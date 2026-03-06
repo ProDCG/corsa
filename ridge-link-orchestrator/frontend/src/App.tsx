@@ -125,7 +125,7 @@ function App() {
 
     const toggleCarInPool = async (carId: string) => {
         const newPool = activeCarPool.includes(carId)
-            ? activeCarPool.filter(id => id !== carId)
+            ? activeCarPool.filter((id: string) => id !== carId)
             : [...activeCarPool, carId]
 
         setActiveCarPool(newPool)
@@ -181,28 +181,32 @@ function App() {
     }
 
     const sendGlobalCommand = async (action: string) => {
-        try {
-            await fetch('/api/command/global', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    rig_id: 'ALL',
-                    action,
-                    track: raceSettings.selected_track,
-                    weather: raceSettings.selected_weather,
-                    practice_time: raceSettings.practice_time,
-                    qualy_time: raceSettings.qualy_time,
-                    race_laps: raceSettings.race_laps,
-                    race_time: raceSettings.race_time,
-                    allow_drs: raceSettings.allow_drs,
-                    use_server: raceSettings.useMultiplayer
+        const responses = rigs.filter((r: Rig) => r.status !== 'offline').map(async (r: Rig) => {
+            try {
+                await fetch('/api/command/global', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        rig_id: 'ALL',
+                        action,
+                        track: raceSettings.selected_track,
+                        weather: raceSettings.selected_weather,
+                        practice_time: raceSettings.practice_time,
+                        qualy_time: raceSettings.qualy_time,
+                        race_laps: raceSettings.race_laps,
+                        race_time: raceSettings.race_time,
+                        allow_drs: raceSettings.allow_drs,
+                        use_server: raceSettings.useMultiplayer
+                    })
                 })
-            })
-            if (action === "LAUNCH_RACE" && raceSettings.useMultiplayer) {
-                setServerStatus('online')
+            } catch (err) {
+                console.error("Global command failed for rig:", r.rig_id, err)
             }
-        } catch (err) {
-            console.error("Global command failed:", err)
+        })
+        await Promise.all(responses)
+
+        if (action === "LAUNCH_RACE" && raceSettings.useMultiplayer) {
+            setServerStatus('online')
         }
     }
 
@@ -277,7 +281,7 @@ function App() {
                     {/* SIM MANAGEMENT VIEW */}
                     {activeTab === 'sims' && (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {rigs.map((rig) => (
+                            {rigs.map((rig: Rig) => (
                                 <div key={rig.rig_id} className={`glass rounded-2xl p-6 transition-all duration-500 overflow-hidden relative border ${rig.status === 'racing' ? 'status-glow-racing border-ridge-brand/50 bg-ridge-brand/5' :
                                     rig.status === 'ready' ? 'status-glow-online border-green-500/50 bg-green-500/5' :
                                         rig.status === 'setup' ? 'status-glow-online border-blue-500/50 bg-blue-500/5' :
@@ -492,7 +496,7 @@ function App() {
                                 </div>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                {ALL_CARS.map(car => (
+                                {ALL_CARS.map((car: { id: string; name: string }) => (
                                     <button
                                         key={car.id}
                                         onClick={() => toggleCarInPool(car.id)}
@@ -517,7 +521,7 @@ function App() {
                     {activeTab === 'monitor' && (
                         <div className="space-y-6">
                             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                                {rigs.map(rig => (
+                                {rigs.map((rig: Rig) => (
                                     <div key={rig.rig_id} className="bg-white/5 border border-white/10 rounded-3xl p-6 relative overflow-hidden group">
                                         <div className="flex justify-between items-start mb-6">
                                             <div>
@@ -599,7 +603,7 @@ function App() {
 
                             <div className="space-y-4">
                                 {leaderboard.length > 0 ? (
-                                    leaderboard.sort((a, b) => b.lap - a.lap).slice(0, 10).map((entry, idx) => (
+                                    leaderboard.sort((a: any, b: any) => b.lap - a.lap).slice(0, 10).map((entry: any, idx: number) => (
                                         <div key={idx} className="bg-white/5 hover:bg-white/10 p-6 rounded-2xl flex items-center gap-8 transition-all border border-white/5 group">
                                             <div className="text-3xl font-black italic opacity-20 group-hover:opacity-100 group-hover:text-ridge-brand transition-all">#{idx + 1}</div>
                                             <div className="flex-1">
