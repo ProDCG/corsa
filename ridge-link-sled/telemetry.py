@@ -15,57 +15,45 @@ class ACTelemetry:
         # Offset 68: float gforce[3]
         self.physics_struct = "i 40x 3f 4x 3f" # total 44 + 12 + 4 + 12 = 72 bytes
         
-    def is_game_running(self):
-        try:
-            import psutil
-            for proc in psutil.process_iter(['name']):
-                if proc.info['name'] and proc.info['name'].lower() in ['acs.exe', 'acss.exe', 'assettocorsa.exe']:
-                    return True
-        except:
-            pass
-        return False
-
     def open(self):
-        if not self.is_game_running():
-            return False
-            
-        prefixes = ["", "Local\\", "Global\\"]
-        names = ["physics", "graphics", "static"]
-        
-        self.close()
-        
         try:
-            for pref in prefixes:
-                found_all = True
-                temp_maps = {}
-                for name in names:
-                    tag = f"{pref}acqs_{name}"
-                    try:
-                        # If the block doesn't exist, this might create it. 
-                        # That's why we check is_game_running first.
-                        m = mmap.mmap(-1, 1024, tag, access=mmap.ACCESS_READ)
-                        temp_maps[name] = m
-                    except:
-                        found_all = False
-                        break
-                
-                if found_all:
-                    self.physics_mmap = temp_maps["physics"]
-                    self.graphics_mmap = temp_maps["graphics"]
-                    self.static_mmap = temp_maps["static"]
-                    print(f"TELEMETRY: Linked to Game Memory ('{pref}')")
+            import ctypes
+            from ctypes import wintypes
+            
+            kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+            FILE_MAP_READ = 0x0004
+            
+            # Use native Windows API to avoid creating blocks that don't exist
+            def try_open(tag):
+                h = kernel32.OpenFileMappingW(FILE_MAP_READ, False, tag)
+                if h:
+                    # If we found it, close handle and let mmap take over for ease of use
+                    kernel32.CloseHandle(h)
                     return True
+                return False
+
+            prefixes = ["", "Local\\", "Global\\"]
+            for pref in prefixes:
+                tag = f"{pref}acqs_physics"
+                if try_open(tag):
+                    self.close()
+                    try:
+                        self.physics_mmap = mmap.mmap(-1, 1024, f"{pref}acqs_physics", access=mmap.ACCESS_READ)
+                        self.graphics_mmap = mmap.mmap(-1, 1024, f"{pref}acqs_graphics", access=mmap.ACCESS_READ)
+                        self.static_mmap = mmap.mmap(-1, 1024, f"{pref}acqs_static", access=mmap.ACCESS_READ)
+                        print(f"TELEMETRY: Successfully found Assetto Corsa Link ({pref})")
+                        return True
+                    except:
+                        pass
             return False
-        except:
+        except Exception as e:
+            print(f"TELEMETRY: Open failed: {e}")
             return False
 
     def get_data(self):
         try:
             if not self.physics_mmap:
-                if self.is_game_running():
-                    if not self.open(): return {}
-                else:
-                    return {}
+                if not self.open(): return {}
             
             self.physics_mmap.seek(0)
             data = self.physics_mmap.read(80) 
