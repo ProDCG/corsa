@@ -56,47 +56,36 @@ class ACTelemetry:
             return False
 
     def get_simhub_data(self):
-        """Pulls telemetry from SimHub's Web API."""
+        """Pulls the 'Golden Ticket' telemetry from SimHub's getgamedata endpoint."""
         try:
             import requests
-            # We only pull the specific properties we need to keep it light
-            props = [
-                "DataCorePlugin.GameData.Gas",
-                "DataCorePlugin.GameData.Brake",
-                "DataCorePlugin.GameData.Gear",
-                "DataCorePlugin.GameData.Rpms",
-                "DataCorePlugin.GameData.SpeedKmh",
-                "DataCorePlugin.GameData.AccelerationLateral",
-                "DataCorePlugin.GameData.AccelerationLongitudinal",
-                "DataCorePlugin.GameData.CompletedLaps",
-                "DataCorePlugin.GameData.Position",
-                "DataCorePlugin.GameData.TrackPositionPercent",
-                "DataCorePlugin.GameData.Status"
-            ]
-            url = f"http://127.0.0.1:8888/api/getproperties?properties={','.join(props)}"
-            r = requests.get(url, timeout=0.2) # Increased to 200ms
+            url = "http://127.0.0.1:8888/api/getgamedata"
+            r = requests.get(url, timeout=0.2)
             if r.status_code == 200:
-                d = r.json()
+                raw = r.json()
+                new_data = raw.get("NewData", {})
+                
                 if not self.simhub_connected:
-                    print("SIMHUB: Connected successfully via Web API")
+                    print("SIMHUB: 'Golden Ticket' API Connected (getgamedata)")
                     self.simhub_connected = True
                 
+                # Mapping SimHub NewData -> Ridge-Link Schema
                 return {
-                    "packet_id": 0,
-                    "gas": round(d.get("DataCorePlugin.GameData.Gas", 0) / 100.0, 2),
-                    "brake": round(d.get("DataCorePlugin.GameData.Brake", 0) / 100.0, 2),
-                    "gear": d.get("DataCorePlugin.GameData.Gear", "N"),
-                    "rpms": int(d.get("DataCorePlugin.GameData.Rpms", 0)),
-                    "velocity": [round(d.get("DataCorePlugin.GameData.SpeedKmh", 0), 1), 0, 0],
+                    "packet_id": int(time.time() * 100),
+                    "gas": round(new_data.get("Throttle", 0) / 100.0, 2),
+                    "brake": round(new_data.get("Brake", 0) / 100.0, 2),
+                    "gear": new_data.get("Gear", "N"),
+                    "rpms": int(new_data.get("Rpms", 0)),
+                    "velocity": [round(new_data.get("SpeedKmh", 0), 1), 0, 0],
                     "gforce": [
-                        round(d.get("DataCorePlugin.GameData.AccelerationLateral", 0), 2),
-                        round(d.get("DataCorePlugin.GameData.AccelerationLongitudinal", 0), 2),
-                        0
+                        round(new_data.get("AccelerationSway", 0), 2),
+                        round(new_data.get("AccelerationHeave", 0), 2),
+                        round(new_data.get("AccelerationSurge", 0), 2)
                     ],
-                    "status": 2 if d.get("DataCorePlugin.GameData.Status") == "Running" else 0,
-                    "completed_laps": d.get("DataCorePlugin.GameData.CompletedLaps", 0),
-                    "position": d.get("DataCorePlugin.GameData.Position", 0),
-                    "normalized_pos": round(d.get("DataCorePlugin.GameData.TrackPositionPercent", 0) / 100.0, 4)
+                    "status": 2 if raw.get("GameRunning") else 0,
+                    "completed_laps": new_data.get("CompletedLaps", 0),
+                    "position": new_data.get("Position", 0),
+                    "normalized_pos": round(new_data.get("TrackPositionPercent", 0) / 100.0, 4)
                 }
         except Exception as e:
             if self.simhub_connected:
