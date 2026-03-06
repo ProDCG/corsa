@@ -1,61 +1,60 @@
 import os, sys, platform, ac, acsys
 
-# --- 1. THE RECURSIVE PATH FIX ---
-# This fixes the "No module named ctypes" error by finding the rig's Python ZIP.
+# --- 1. THE ULTIMATE PATH FINDER ---
 def setup_environment():
     try:
         current_dir = os.path.abspath(os.path.dirname(__file__))
         
-        # Add third_party paths using Absolute Paths
-        # Assuming RidgeLink is in /apps/python/RidgeLink/
-        apps_python_dir = os.path.dirname(current_dir)
-        third_party_dir = os.path.normpath(os.path.join(apps_python_dir, "third_party"))
-        
-        sysdir = "stdlib64" if platform.architecture()[0] == "64bit" else "stdlib"
-        binary_dir = os.path.join(third_party_dir, sysdir)
-        
-        for p in [third_party_dir, binary_dir]:
-            if os.path.exists(p) and p not in sys.path:
-                sys.path.insert(0, p)
-
-        # RECURSIVE SEARCH for python33.zip
-        # We start at the plugin and go UP until we find 'system/x86/python33.zip'
-        search_ptr = current_dir
-        found_zip = False
-        for i in range(10): # Don't go up forever
-            target = os.path.join(search_ptr, "system", "x86", "python33.zip")
-            if os.path.exists(target):
-                if target not in sys.path:
-                    sys.path.insert(0, target)
-                    sys.path.insert(0, os.path.dirname(target)) # Add system/x86 for DLLs
-                ac.log("RidgeLink: SUCCESS! Found Standard Library at: " + target)
-                found_zip = True
+        # 1. Detect AC Root by searching for 'system/x86'
+        ac_root = current_dir
+        for _ in range(5): # Go up to 5 levels
+            if os.path.exists(os.path.join(ac_root, "system", "x86")):
                 break
-            
-            parent = os.path.dirname(search_ptr)
-            if parent == search_ptr: break # Reached Drive root
-            search_ptr = parent
-            
-        if not found_zip:
-            ac.log("RidgeLink ERROR: Could not locate python33.zip. Libraries will fail.")
-            
+            ac_root = os.path.dirname(ac_root)
+        
+        ac.log("RidgeLink: Detected AC Root at: " + ac_root)
+
+        # 2. Collect ALL possible library paths
+        candidate_paths = [
+            os.path.join(ac_root, "system", "x86"),                      # DLLs and maybe the zip
+            os.path.join(ac_root, "system", "x86", "python33.zip"),      # The Standard Library Zip
+            os.path.join(ac_root, "system", "python", "Lib"),            # Fallback Lib
+            os.path.join(ac_root, "system", "python", "DLLs"),           # Fallback DLLs
+            os.path.join(os.path.dirname(current_dir), "third_party"),   # Your SimInfo location
+            os.path.join(os.path.dirname(current_dir), "third_party", 
+                         "stdlib64" if platform.architecture()[0] == "64bit" else "stdlib")
+        ]
+
+        # 3. Inject paths into the START of sys.path
+        for p in candidate_paths:
+            if os.path.exists(p):
+                if p not in sys.path:
+                    sys.path.insert(0, p)
+                ac.log("RidgeLink: Added Path -> " + p)
+
+        # 4. Update Windows Environment PATH for DLL loading
+        os.environ['PATH'] = os.path.join(ac_root, "system", "x86") + ";" + os.environ['PATH']
+
     except Exception as e:
-        ac.log("RidgeLink Environment Error: " + str(e))
+        ac.log("RidgeLink setup_environment ERROR: " + str(e))
 
 setup_environment()
 
-# --- 2. THE IMPORTS ---
+# --- 2. STEP-BY-STEP IMPORTS ---
+READY = False
 try:
-    import socket
     import json
+    ac.log("RidgeLink: JSON import OK")
+    import socket
+    ac.log("RidgeLink: SOCKET import OK")
     from sim_info import info
-    # Initialize UDP non-blocking socket
+    ac.log("RidgeLink: SIM_INFO import OK")
+    
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setblocking(False)
     READY = True
 except Exception as e:
-    ac.log("RidgeLink CRITICAL ERROR: " + str(e))
-    READY = False
+    ac.log("RidgeLink CRITICAL IMPORT ERROR: " + str(e))
 
 # --- 3. APP LOGIC ---
 UDP_IP = "127.0.0.1"
@@ -64,11 +63,17 @@ TIMER = 0
 
 def acMain(ac_version):
     appWindow = ac.newApp("Ridge Link")
-    ac.setSize(appWindow, 200, 80)
+    ac.setSize(appWindow, 260, 100)
     
-    label = ac.addLabel(appWindow, "Status: " + ("LIVE" if READY else "FAILED"))
+    status = "LIVE" if READY else "FAILED"
+    label = ac.addLabel(appWindow, "Status: " + status)
     ac.setPosition(label, 10, 40)
     
+    if READY:
+        ac.log("RidgeLink: Application is streaming telemetry.")
+    else:
+        ac.log("RidgeLink: Application failed to start. Check py_log.txt")
+        
     return "Ridge Link"
 
 def acUpdate(deltaT):
@@ -80,7 +85,6 @@ def acUpdate(deltaT):
     TIMER = 0
     
     try:
-        # Map Shared Memory to your Dashboard Payload
         payload = {
             "packet_id": info.physics.packetId,
             "gas": round(info.physics.gas, 2),
