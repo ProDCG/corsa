@@ -39,7 +39,13 @@ function App() {
         { id: 'ks_porsche_911_gt3_r', name: 'Porsche 911 GT3 R' },
         { id: 'ks_mclaren_650s_gt3', name: 'McLaren 650S GT3' },
         { id: 'ks_audi_r8_lms', name: 'Audi R8 LMS' },
-        { id: 'ks_mercedes_amg_gt3', name: 'Mercedes AMG GT3' }
+        { id: 'ks_mercedes_amg_gt3', name: 'Mercedes AMG GT3' },
+        { id: 'ks_bmw_m6_gt3', name: 'BMW M6 GT3' },
+        { id: 'ks_nissan_gt_r_gt3', name: 'Nissan GT-R GT3' },
+        { id: 'ks_corvette_c7_r', name: 'Corvette C7.R' },
+        { id: 'ks_ferrari_488_gte', name: 'Ferrari 488 GTE' },
+        { id: 'tatuusfa1', name: 'Tatuus FA.01' },
+        { id: 'ks_lotus_exos_125', name: 'Lotus Exos 125' }
     ]
 
     useEffect(() => {

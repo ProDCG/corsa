@@ -29,7 +29,16 @@ export default function Kiosk() {
     const ALL_CARS = [
         { id: 'ks_ferrari_488_gt3', name: 'Ferrari 488 GT3', class: 'GT3' },
         { id: 'ks_lamborghini_huracan_gt3', name: 'Lamborghini Huracan GT3', class: 'GT3' },
-        { id: 'ks_porsche_911_gt3_r', name: 'Porsche 911 GT3 R', class: 'GT3' }
+        { id: 'ks_porsche_911_gt3_r', name: 'Porsche 911 GT3 R', class: 'GT3' },
+        { id: 'ks_mclaren_650s_gt3', name: 'McLaren 650S GT3', class: 'GT3' },
+        { id: 'ks_audi_r8_lms', name: 'Audi R8 LMS', class: 'GT3' },
+        { id: 'ks_mercedes_amg_gt3', name: 'Mercedes AMG GT3', class: 'GT3' },
+        { id: 'ks_bmw_m6_gt3', name: 'BMW M6 GT3', class: 'GT3' },
+        { id: 'ks_nissan_gt_r_gt3', name: 'Nissan GT-R GT3', class: 'GT3' },
+        { id: 'ks_corvette_c7_r', name: 'Corvette C7.R', class: 'GTE' },
+        { id: 'ks_ferrari_488_gte', name: 'Ferrari 488 GTE', class: 'GTE' },
+        { id: 'tatuusfa1', name: 'Tatuus FA.01', class: 'OPEN' },
+        { id: 'ks_lotus_exos_125', name: 'Lotus Exos 125', class: 'F1' }
     ]
 
     useEffect(() => {
@@ -128,6 +137,24 @@ export default function Kiosk() {
 
     return (
         <div className="relative h-screen w-screen bg-black overflow-hidden font-sans text-white">
+            <style>
+                {`
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: rgba(255, 255, 255, 0.05);
+                    border-radius: 10px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: rgba(255, 81, 0, 0.3);
+                    border-radius: 10px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: rgba(255, 81, 0, 0.6);
+                }
+                `}
+            </style>
             {/* Background Video */}
             <video
                 ref={videoRef}
@@ -165,26 +192,28 @@ export default function Kiosk() {
                             <p className="text-ridge-brand font-bold tracking-[0.3em] uppercase text-sm">Select Your Vehicle</p>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-6 mb-12">
-                            {carPool.map(carId => {
-                                const carInfo = ALL_CARS.find(c => c.id === carId) || { id: carId, name: carId.split('_').slice(1).join(' ').toUpperCase() || carId, class: 'CAR' };
-                                return (
-                                    <button
-                                        key={carId}
-                                        onClick={() => handleCarSelect(carId)}
-                                        className={`p-6 rounded-3xl border-2 transition-all duration-500 text-left relative overflow-hidden group ${selectedCar === carId
-                                            ? 'bg-ridge-brand border-ridge-brand shadow-[0_0_30px_rgba(255,81,0,0.4)]'
-                                            : 'bg-white/5 border-white/5 hover:border-white/20'
-                                            }`}
-                                    >
-                                        <div className="relative z-10">
-                                            <p className="text-[10px] font-bold opacity-50 uppercase mb-1">{carInfo.class}</p>
-                                            <h3 className="text-xl font-bold uppercase italic leading-tight">{carInfo.name}</h3>
-                                        </div>
-                                        <Shield className={`absolute -right-4 -bottom-4 w-24 h-24 transition-all duration-700 ${selectedCar === carId ? 'text-white/20 scale-110 rotate-12' : 'text-white/5 rotate-45'}`} />
-                                    </button>
-                                );
-                            })}
+                        <div className="max-h-[50vh] overflow-y-auto overflow-x-hidden p-2 mb-12 custom-scrollbar">
+                            <div className="grid grid-cols-3 gap-6">
+                                {carPool.map(carId => {
+                                    const carInfo = ALL_CARS.find(c => c.id === carId) || { id: carId, name: carId.split('_').slice(1).join(' ').toUpperCase() || carId, class: 'CAR' };
+                                    return (
+                                        <button
+                                            key={carId}
+                                            onClick={() => handleCarSelect(carId)}
+                                            className={`p-6 rounded-3xl border-2 transition-all duration-500 text-left relative overflow-hidden group ${selectedCar === carId
+                                                ? 'bg-ridge-brand border-ridge-brand shadow-[0_0_30px_rgba(255,81,0,0.4)]'
+                                                : 'bg-white/5 border-white/5 hover:border-white/20'
+                                                }`}
+                                        >
+                                            <div className="relative z-10">
+                                                <p className="text-[10px] font-bold opacity-50 uppercase mb-1">{carInfo.class}</p>
+                                                <h3 className="text-xl font-bold uppercase italic leading-tight">{carInfo.name}</h3>
+                                            </div>
+                                            <Shield className={`absolute -right-4 -bottom-4 w-24 h-24 transition-all duration-700 ${selectedCar === carId ? 'text-white/20 scale-110 rotate-12' : 'text-white/5 rotate-45'}`} />
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
 
                         <div className="flex justify-center">
