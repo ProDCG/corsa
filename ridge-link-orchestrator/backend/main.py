@@ -419,13 +419,15 @@ async def send_global_command(command: Command, background_tasks: BackgroundTask
     return {"status": "success", "rigs_notified": responses}
 
 def dispatch_command(ip: str, port: int, payload: dict):
+    print(f"ORCHESTRATOR: Dispatching {payload.get('action')} to {ip}:{port}")
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.settimeout(2.0)
             s.connect((ip, port))
             s.sendall(json.dumps(payload).encode('utf-8'))
+            print(f"ORCHESTRATOR: Successfully sent to {ip}")
     except Exception as e:
-        print(f"Failed to send command to {ip}: {e}")
+        print(f"ORCHESTRATOR ERROR: Failed to send command to {ip}: {e}")
 
 def udp_heartbeat_listener():
     """Listens for UDP broadasts from Rig Sleds"""

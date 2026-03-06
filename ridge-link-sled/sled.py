@@ -168,14 +168,23 @@ class RigSled:
                             "telemetry": self.telemetry_data,
                             "ip": current_ip
                         }
-                        # We send telemetry fast (10Hz) only when RACING
+                        # Send UDP Broadcast for Discovery (Heartbeat Listener)
+                        try:
+                            sock.sendto(json.dumps(payload).encode('utf-8'), (orchestrator_ip, CONFIG["heartbeat_port"]))
+                        except:
+                            pass
+
+                        # Send HTTP Status Update fast (10Hz) only when RACING
                         # Otherwise we send at a relaxed 1Hz pace
                         interval = 0.1 if self.status == "racing" else 1.0
                         
-                        requests.post(f"{orchestrator_url}/api/rigs/{CONFIG['rig_id']}/status", 
+                        # Use port 8000 for standard API communication
+                        requests.post(f"http://{orchestrator_ip}:8000/api/rigs/{CONFIG['rig_id']}/status", 
                                       json=payload, timeout=0.5)
                         
                         time.sleep(interval)
+                    except Exception as e:
+                        time.sleep(1)
                     except Exception as e:
                         time.sleep(1)
 
@@ -189,8 +198,19 @@ class RigSled:
                         if res_pool.status_code == 200:
                             self.car_pool = res_pool.json()
                         
-                        # Branding heartbeat
-                        res_brand = requests.get(f"{orchestrator_url}/api/branding", timeout=2)
+                        # Sync with Orchestrator (Pull State)
+                        res_rigs = requests.get(f"http://{orchestrator_ip}:8000/api/rigs", timeout=2)
+                        if res_rigs.status_code == 200:
+                            data = res_rigs.json()
+                            my_rig = next((r for r in data if r["rig_id"] == CONFIG["rig_id"]), None)
+                            if my_rig:
+                                if my_rig.get("selected_car"):
+                                    self.selected_car = my_rig["selected_car"]
+                                if self.status != "racing" and my_rig.get("status"):
+                                    self.status = my_rig["status"]
+
+                        # Sync Branding
+                        res_brand = requests.get(f"http://{orchestrator_ip}:8000/api/branding", timeout=2)
                         if res_brand.status_code == 200:
                             branding_data = res_brand.json()
                             with open("kiosk_data.json", "w") as f:
@@ -198,7 +218,7 @@ class RigSled:
                                     "car_pool": self.car_pool, 
                                     "selected_car": self.selected_car,
                                     "branding": branding_data,
-                                    "ui_port": 5173,
+                                    "ui_port": 8000,
                                     "status": self.status
                                 }, f)
                     except:
@@ -418,10 +438,13 @@ ACTIVE=0
         while True:
             conn, addr = sock.accept()
             with conn:
-                data = conn.recv(1024)
+                data = conn.recv(4096)
                 if data:
-                    payload = json.loads(data.decode('utf-8'))
-                    self.handle_command(payload)
+                    try:
+                        payload = json.loads(data.decode('utf-8'))
+                        self.handle_command(payload)
+                    except Exception as e:
+                        print(f"Error parsing command: {e}")
 
 if __name__ == "__main__":
     sled = RigSled()
