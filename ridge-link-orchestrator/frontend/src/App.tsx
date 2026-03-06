@@ -119,7 +119,7 @@ function App() {
         fetchBranding()
         const interval = setInterval(() => {
             fetchRigs()
-        }, 1000)
+        }, 500)
         return () => clearInterval(interval)
     }, [])
 
@@ -562,14 +562,20 @@ function App() {
                                                     </div>
                                                 </div>
 
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    <div className="flex justify-between items-center p-2 rounded-lg bg-white/5">
-                                                        <span className="text-[8px] font-black uppercase opacity-30">Laps</span>
-                                                        <span className="font-bold text-sm">{rig.telemetry.completed_laps}</span>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/5 border border-white/5">
+                                                        <span className="text-[8px] font-black uppercase opacity-30 mb-1">Gear</span>
+                                                        <span className="text-xl font-black italic">
+                                                            {rig.telemetry.gear === -1 ? 'R' : rig.telemetry.gear === 0 ? 'N' : rig.telemetry.gear}
+                                                        </span>
                                                     </div>
-                                                    <div className="flex justify-between items-center p-2 rounded-lg bg-white/5">
-                                                        <span className="text-[8px] font-black uppercase opacity-30">Throttle</span>
-                                                        <span className="font-bold text-sm text-green-500">{Math.round(rig.telemetry.gas * 100)}%</span>
+                                                    <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/5 border border-white/5">
+                                                        <span className="text-[8px] font-black uppercase opacity-30 mb-1">Laps</span>
+                                                        <span className="text-xl font-black italic">{rig.telemetry.completed_laps}</span>
+                                                    </div>
+                                                    <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/5 border border-white/5">
+                                                        <span className="text-[8px] font-black uppercase opacity-30 mb-1">Throttle</span>
+                                                        <span className="text-xl font-black italic text-green-500">{Math.round(rig.telemetry.gas * 100)}%</span>
                                                     </div>
                                                 </div>
                                             </div>
