@@ -32,6 +32,7 @@ class RigStatusUpdate(BaseModel):
     selected_car: Optional[str] = None
     cpu_temp: Optional[float] = None
     telemetry: Optional[dict] = None
+    ip: Optional[str] = None
 
 class Branding(BaseModel):
     logo_url: str = "/assets/ridge_logo.png"
@@ -202,7 +203,11 @@ async def get_rigs():
 @app.post("/rigs/{rig_id}/status")
 async def update_rig_status(rig_id: str, update: RigStatusUpdate, request: Request):
     """Allows Kiosks and Sleds to register or update their status/selection."""
+    # Prioritize reported IP over proxy-masked client host
     client_ip = request.client.host
+    if update.ip and update.ip != "127.0.0.1":
+        client_ip = update.ip
+
     if rig_id not in rigs:
         rigs[rig_id] = {
             "rig_id": rig_id,

@@ -182,13 +182,15 @@ class RigSled:
 
                 # Periodic Status & Telemetry Push
                 try:
+                    local_ip = socket.gethostbyname(socket.gethostname())
                     payload = {
                         "rig_id": CONFIG["rig_id"],
                         "status": self.status,
                         "cpu_temp": self.get_cpu_temp(),
                         "mod_version": "1.4.2-telemetry",
                         "selected_car": self.selected_car,
-                        "telemetry": self.telemetry_data
+                        "telemetry": self.telemetry_data,
+                        "ip": local_ip
                     }
                     requests.post(f"{orchestrator_url}/api/rigs/{CONFIG['rig_id']}/status", 
                                   json=payload, timeout=2)
