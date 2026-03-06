@@ -59,9 +59,20 @@ class RigSled:
         self.selected_car = CONFIG.get("default_car", "ks_ferrari_488_gt3")
         self.ac_telemetry = ACTelemetry()
         self.telemetry_data = {}
+        self.launch_sidecar()
         self.telemetry_thread = threading.Thread(target=self.telemetry_loop, daemon=True)
         self.telemetry_thread.start()
         self.start_kiosk()
+
+    def launch_sidecar(self):
+        """Launches the telemetry sidecar as a background process."""
+        try:
+            sidecar_path = os.path.join(os.path.dirname(__file__), "ridge_sidecar.py")
+            print(f"Launching Telemetry Sidecar: {sidecar_path}")
+            subprocess.Popen([sys.executable, sidecar_path], 
+                             creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == 'nt' else 0)
+        except Exception as e:
+            print(f"Failed to launch sidecar: {e}")
 
     def telemetry_loop(self):
         """High-frequency telemetry reader loop."""
