@@ -1,7 +1,8 @@
 import mmap
 import struct
 import time
-import ctypes
+import socket
+import json
 
 class ACTelemetry:
     def __init__(self):
@@ -9,25 +10,26 @@ class ACTelemetry:
         self.graphics_mmap = None
         self.static_mmap = None
         
-        # Struct for Physics (simplified)
-        # Offset 0: int packetId
-        # Offset 44: float velocity[3]
-        # Offset 68: float gforce[3]
-        self.physics_struct = "i 40x 3f 4x 3f" # total 44 + 12 + 4 + 12 = 72 bytes
-        
+        # UDP Bridge Listener (Port 9996)
+        # This replaces Shared Memory if the AC Plugin is active
+        try:
+            self.udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.udp_sock.bind(("127.0.0.1", 9996))
+            self.udp_sock.setblocking(False)
+            print("TELEMETRY: Bridge Listener active on port 9996")
+        except Exception as e:
+            print(f"TELEMETRY: Could not bind UDP Bridge: {e}")
+            self.udp_sock = None
+
     def open(self):
         try:
             import ctypes
-            from ctypes import wintypes
-            
             kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
             FILE_MAP_READ = 0x0004
             
-            # Use native Windows API to avoid creating blocks that don't exist
             def try_open(tag):
                 h = kernel32.OpenFileMappingW(FILE_MAP_READ, False, tag)
                 if h:
-                    # If we found it, close handle and let mmap take over for ease of use
                     kernel32.CloseHandle(h)
                     return True
                 return False
@@ -36,21 +38,36 @@ class ACTelemetry:
             for pref in prefixes:
                 tag = f"{pref}acqs_physics"
                 if try_open(tag):
-                    self.close()
+                    self.close_mmaps()
                     try:
                         self.physics_mmap = mmap.mmap(-1, 1024, f"{pref}acqs_physics", access=mmap.ACCESS_READ)
                         self.graphics_mmap = mmap.mmap(-1, 1024, f"{pref}acqs_graphics", access=mmap.ACCESS_READ)
                         self.static_mmap = mmap.mmap(-1, 1024, f"{pref}acqs_static", access=mmap.ACCESS_READ)
-                        print(f"TELEMETRY: Successfully found Assetto Corsa Link ({pref})")
+                        print(f"TELEMETRY: Found mmap Link ({pref})")
                         return True
                     except:
                         pass
             return False
-        except Exception as e:
-            print(f"TELEMETRY: Open failed: {e}")
+        except:
             return False
 
     def get_data(self):
+        # 1. Try UDP Bridge First (Mod in Game)
+        if self.udp_sock:
+            try:
+                data, addr = self.udp_sock.recvfrom(2048)
+                if data:
+                    # Clear buffer if it's lagging (get latest packet)
+                    while True:
+                        try:
+                            data, addr = self.udp_sock.recvfrom(2048)
+                        except:
+                            break
+                    return json.loads(data.decode('utf-8'))
+            except:
+                pass
+
+        # 2. Fallback to mmap (Shared Memory)
         try:
             if not self.physics_mmap:
                 if not self.open(): return {}
@@ -60,57 +77,23 @@ class ACTelemetry:
             if len(data) < 80: return {}
 
             packet_id = struct.unpack("i", data[0:4])[0]
-            now = time.time()
-            
-            # Initialization
-            if not hasattr(self, '_last_pid'): self._last_pid = -1
-            if not hasattr(self, '_last_pid_time'): self._last_pid_time = now
-            if not hasattr(self, '_id_frozen_count'): self._id_frozen_count = 0
-
-            # Connection Watchdog
-            if packet_id != self._last_pid:
-                self._last_pid = packet_id
-                self._last_pid_time = now
-                self._id_frozen_count = 0
-            else:
-                self._id_frozen_count += 1
-                # If packet hasn't changed in 5 seconds while game is "running"
-                if now - self._last_pid_time > 5:
-                    if packet_id == 0:
-                        # Just in menu likely, no noise
-                        return {}
-                    else:
-                        # Stuck on a dead pipe
-                        print("TELEMETRY: Connection frozen, resetting...")
-                        self.close()
-                        return {}
-
             gas = struct.unpack("f", data[4:8])[0]
             brake = struct.unpack("f", data[8:12])[0]
-            fuel = struct.unpack("f", data[12:16])[0]
             gear = struct.unpack("i", data[16:20])[0]
             rpms = struct.unpack("i", data[20:24])[0]
             velocity = struct.unpack("3f", data[44:56])
-            # AccG starts at 68
             gforce = struct.unpack("3f", data[68:80])
             
-            # Graphics - for position and lap times
             self.graphics_mmap.seek(0)
-            gdata = self.graphics_mmap.read(400) # Increased buffer
-            if len(gdata) < 160:
-                return {}
+            gdata = self.graphics_mmap.read(400)
+            if len(gdata) < 160: return {}
 
-            status = struct.unpack("i", gdata[4:8])[0] # 0=OFF, 1=REPLAY, 2=LIVE, 3=PAUSE
-            
-            # Try to determine offsets dynamically
+            status = struct.unpack("i", gdata[4:8])[0]
             try:
-                # Modern AC/CSP path
                 completed_laps = struct.unpack("i", gdata[132:136])[0]
                 position = struct.unpack("i", gdata[136:140])[0]
                 normalized_pos = struct.unpack("f", gdata[152:156])[0] 
-                
                 if completed_laps < 0 or completed_laps > 1000 or normalized_pos < -1 or normalized_pos > 2:
-                     # Legacy failover
                      completed_laps = struct.unpack("i", gdata[12:16])[0]
                      position = struct.unpack("i", gdata[16:20])[0]
                      normalized_pos = struct.unpack("f", gdata[28:32])[0]
@@ -132,14 +115,16 @@ class ACTelemetry:
                 "position": position,
                 "normalized_pos": round(max(0, min(1, normalized_pos)), 4)
             }
-        except Exception as e:
-            if not hasattr(self, '_last_err_time'): self._last_err_time = 0
-            if time.time() - self._last_err_time > 5:
-                # print(f"TELEMETRY READ ERROR: {e}")
-                self._last_err_time = time.time()
+        except:
             return {}
 
-    def close(self):
+    def close_mmaps(self):
         if self.physics_mmap: self.physics_mmap.close()
         if self.graphics_mmap: self.graphics_mmap.close()
         if self.static_mmap: self.static_mmap.close()
+        self.physics_mmap = self.graphics_mmap = self.static_mmap = None
+
+    def close(self):
+        self.close_mmaps()
+        if hasattr(self, 'udp_sock') and self.udp_sock:
+            self.udp_sock.close()
