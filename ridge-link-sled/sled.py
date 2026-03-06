@@ -71,9 +71,12 @@ class RigSled:
                 data = self.ac_telemetry.get_data()
                 if data:
                     self.telemetry_data = data
-                    # Console Verification only when racing
-                    if data.get("status") == 2:
-                        print(f"LIVE_TELEMETRY: {json.dumps(data)}")
+                    # Throttle console flood for debug (2s frequency)
+                    now = time.time()
+                    if not hasattr(self, '_last_tel_print'): self._last_tel_print = 0
+                    if now - self._last_tel_print > 2:
+                        print(f"DEBUG: Telemetry Active (EngineStatus={data.get('status')})")
+                        self._last_tel_print = now
                 time.sleep(0.1) # 10Hz reading
             except Exception as e:
                 print(f"Telemetry error: {e}")
@@ -167,11 +170,12 @@ class RigSled:
                             if my_rig.get("selected_car"):
                                 self.selected_car = my_rig["selected_car"]
                             
-                            # ONLY overwrite status if we aren't currently in a transition state (setup/ready)
-                            # to prevent stale data from the server overwriting our fresh command local state.
-                            if self.status not in ["setup", "ready"]:
-                                if my_rig.get("status"):
-                                    self.status = my_rig["status"]
+                            server_status = my_rig.get("status")
+                            if self.status != server_status:
+                                 # We only follow if we are not racing (racing is authoritative from us)
+                                 if self.status != "racing":
+                                     print(f"DEBUG: Status sync from Orchestrator: {self.status} -> {server_status}")
+                                     self.status = server_status
                             
                             # Write to local JSON for verification as requested
                             try:
@@ -227,6 +231,8 @@ class RigSled:
                     }
                     res = requests.post(f"{orchestrator_url}/api/rigs/{CONFIG['rig_id']}/status", 
                                   json=payload, timeout=2)
+                    if self.status in ["ready", "racing"] or count % 10 == 0:
+                         print(f"DEBUG: Heartbeat Sent (status={self.status}). Server Response: {res.status_code}")
                     if res.status_code != 200:
                         print(f"Heartbeat Warning: Server returned {res.status_code}")
                 except Exception as e:

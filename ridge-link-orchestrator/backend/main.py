@@ -228,13 +228,28 @@ async def update_rig_status(rig_id: str, update: RigStatusUpdate, request: Reque
         # Update IP if it changed (e.g. DHCP or transition from kiosk to sled)
         rigs[rig_id]["ip"] = client_ip
     
-    if update.status: 
-        print(f"ORCHESTRATOR: Rig {rig_id} status updated to {update.status}")
-        rigs[rig_id]["status"] = update.status
+    # Status Precedence Logic
+    if update.status:
+        # Precedence: RACING > READY > SETUP > IDLE
+        current_status = rigs[rig_id].get("status", "idle")
+        new_status = update.status
+        
+        status_rank = { "idle": 0, "setup": 1, "ready": 2, "racing": 3 }
+        
+        # Don't let a lower rank status overwrite a higher rank status unless it's a reset
+        if status_rank.get(new_status, 0) >= status_rank.get(current_status, 0) or new_status == "idle":
+             if current_status != new_status:
+                print(f"ORCHESTRATOR: Rig {rig_id} transitioning {current_status} -> {new_status}")
+             rigs[rig_id]["status"] = new_status
+        else:
+             # Dropped stale update
+             pass
     if update.selected_car: rigs[rig_id]["selected_car"] = update.selected_car
     if update.cpu_temp: rigs[rig_id]["cpu_temp"] = update.cpu_temp
     if update.telemetry: 
         rigs[rig_id]["telemetry"] = update.telemetry
+        if time.time() % 5 < 1: # Sample every 5s
+             print(f"ORCHESTRATOR: Telemetry received from {rig_id}: Keys={list(update.telemetry.keys())}")
         # Simple Logic to capture lap times for leaderboard
         if update.telemetry.get("completed_laps", 0) > rigs[rig_id].get("last_lap_count", 0):
              rigs[rig_id]["last_lap_count"] = update.telemetry["completed_laps"]
