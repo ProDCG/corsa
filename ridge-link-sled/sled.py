@@ -162,53 +162,62 @@ class RigSled:
                         "telemetry": self.telemetry_data,
                         "ip": get_local_ip()
                     }
-                    # Send to Orchestrator
-                    res = requests.post(f"http://{orchestrator_ip}:8000/rigs/{CONFIG['rig_id']}/status", 
-                                  json=payload, timeout=1.5)
                     
-                    # 2. Pull State Changes from Orchestrator
-                    if res.status_code == 200:
-                        if count % 2 == 0:
-                            try:
-                                res_rigs = requests.get(f"http://{orchestrator_ip}:8000/rigs", timeout=1)
-                                if res_rigs.status_code == 200:
-                                    rigs_data = res_rigs.json()
-                                    my_rig = next((r for r in rigs_data if r["rig_id"] == CONFIG["rig_id"]), None)
-                                    if my_rig and my_rig.get("selected_car"):
-                                        self.selected_car = my_rig["selected_car"]
-                                        if my_rig.get("status") == "ready":
-                                            self.status = "ready"
-                            except:
-                                pass
-                        
-                        # Sync carpool/branding occasionally (every 10s)
-                        if count % 10 == 0:
-                            try:
-                                res_pool = requests.get(f"http://{orchestrator_ip}:8000/carpool", timeout=1)
-                                if res_pool.status_code == 200:
-                                    self.car_pool = res_pool.json()
-                                
-                                res_brand = requests.get(f"http://{orchestrator_ip}:8000/branding", timeout=1)
-                                if res_brand.status_code == 200:
-                                    branding_data = res_brand.json()
-                                    # Update kiosk cache
-                                    with open("kiosk_data.json", "w") as f:
-                                        json.dump({
-                                            "car_pool": self.car_pool, 
-                                            "selected_car": self.selected_car,
-                                            "branding": branding_data,
-                                            "status": self.status
-                                        }, f)
-                            except:
-                                pass
+                    # Speed up telemetry when racing (10Hz)
+                    is_racing = self.status == "racing"
+                    
+                    # Raw Telemetry Logging as requested
+                    if is_racing and count % 10 == 0:
+                        print(f"TELEMETRY OUT: {json.dumps(self.telemetry_data)}")
 
+                    # Send to Orchestrator
+                    requests.post(f"http://{orchestrator_ip}:8000/rigs/{CONFIG['rig_id']}/status", 
+                                  json=payload, timeout=0.1 if is_racing else 1.5)
+                    
+                    # 2. Pull State Changes from Orchestrator (Throttled)
+                    throttle_pull = 20 if is_racing else 2
+                    throttle_brand = 100 if is_racing else 10
+                    
+                    if count % throttle_pull == 0:
+                        try:
+                            res_rigs = requests.get(f"http://{orchestrator_ip}:8000/rigs", timeout=1)
+                            if res_rigs.status_code == 200:
+                                rigs_data = res_rigs.json()
+                                my_rig = next((r for r in rigs_data if r["rig_id"] == CONFIG["rig_id"]), None)
+                                if my_rig and my_rig.get("selected_car"):
+                                    self.selected_car = my_rig["selected_car"]
+                                    if my_rig.get("status") == "ready":
+                                        self.status = "ready"
+                        except:
+                            pass
+                    
+                    if count % throttle_brand == 0:
+                        try:
+                            res_pool = requests.get(f"http://{orchestrator_ip}:8000/carpool", timeout=1)
+                            if res_pool.status_code == 200:
+                                self.car_pool = res_pool.json()
+                            
+                            res_brand = requests.get(f"http://{orchestrator_ip}:8000/branding", timeout=1)
+                            if res_brand.status_code == 200:
+                                branding_data = res_brand.json()
+                                with open("kiosk_data.json", "w") as f:
+                                    json.dump({
+                                        "car_pool": self.car_pool, 
+                                        "selected_car": self.selected_car,
+                                        "branding": branding_data,
+                                        "status": self.status
+                                    }, f)
+                        except:
+                            pass
+
+                    if count % 10 == 0 and not is_racing:
+                        print(f"STATUS REPORT: Status={self.status} // Car={self.selected_car}")
+                    
                 except Exception as e:
                     print(f"Heartbeat Loop Error: {e}")
-                
-                if count % 5 == 0:
-                    print(f"STATUS REPORT: Status={self.status} // Car={self.selected_car}")
+
                 count += 1
-                time.sleep(1)
+                time.sleep(0.1 if is_racing else 1.0)
         
         threading.Thread(target=run, daemon=True).start()
 
