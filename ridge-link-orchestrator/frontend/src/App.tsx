@@ -83,6 +83,10 @@ function App() {
                 const sRes = await fetch('/api/server/status')
                 const sData = await sRes.json()
                 setServerStatus(sData.status)
+
+                const lRes = await fetch('/api/leaderboard')
+                const lData = await lRes.json()
+                setLeaderboard(lData)
             } catch (err) {
                 console.error("Failed to fetch rigs:", err)
             }

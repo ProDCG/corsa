@@ -3,9 +3,9 @@ import threading
 import json
 import time
 import os
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI, BackgroundTasks, Request
 from pydantic import BaseModel
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 app = FastAPI(title="Ridge-Link Orchestrator")
 
@@ -200,17 +200,21 @@ async def get_rigs():
     return list(rigs.values())
 
 @app.post("/rigs/{rig_id}/status")
-async def update_rig_status(rig_id: str, update: RigStatusUpdate):
-    """Allows Kiosks to self-register or update their status/selection."""
+async def update_rig_status(rig_id: str, update: RigStatusUpdate, request: Request):
+    """Allows Kiosks and Sleds to register or update their status/selection."""
+    client_ip = request.client.host
     if rig_id not in rigs:
         rigs[rig_id] = {
             "rig_id": rig_id,
-            "ip": "web-kiosk",
+            "ip": client_ip,
             "status": update.status or "idle",
             "cpu_temp": 0,
-            "mod_version": "web-client",
+            "mod_version": "v1.4.2",
             "last_seen": time.time()
         }
+    else:
+        # Update IP if it changed (e.g. DHCP or transition from kiosk to sled)
+        rigs[rig_id]["ip"] = client_ip
     
     if update.status: rigs[rig_id]["status"] = update.status
     if update.selected_car: rigs[rig_id]["selected_car"] = update.selected_car
@@ -232,7 +236,7 @@ async def update_rig_status(rig_id: str, update: RigStatusUpdate):
     rigs[rig_id]["last_seen"] = time.time()
     return {"status": "success"}
 
-@app.get("/api/leaderboard")
+@app.get("/leaderboard")
 async def get_leaderboard():
     return leaderboard
 
@@ -256,7 +260,7 @@ async def update_branding(update: Branding):
     branding = update
     return {"status": "success", "branding": branding}
 
-@app.get("/api/server/status")
+@app.get("/server/status")
 async def get_server_status():
     global server_status
     if server_manager.process and server_manager.process.poll() is None:
@@ -265,7 +269,7 @@ async def get_server_status():
         server_status = "offline"
     return {"status": server_status}
 
-@app.post("/api/server/start")
+@app.post("/server/start")
 async def start_server():
     global server_status
     ac_path = r"C:\Program Files (x86)\Steam\steamapps\common\assettocorsa\acs.exe"
@@ -276,9 +280,9 @@ async def start_server():
         server_status = "online"
         return {"message": "Server started"}
     else:
-        return {"error": "Failed to start server"}, 500
+        return {"error": "Failed to start server"}
 
-@app.post("/api/server/stop")
+@app.post("/server/stop")
 async def stop_server():
     global server_status
     server_manager.stop()

@@ -140,12 +140,12 @@ class RigSled:
             while True:
                 try:
                     # Sync car pool
-                    res = requests.get(f"{orchestrator_url}/carpool", timeout=2)
+                    res = requests.get(f"{orchestrator_url}/api/carpool", timeout=2)
                     if res.status_code == 200:
                         self.car_pool = res.json()
                     
                     # Sync this rig's specific state (e.g., car selection from Kiosk)
-                    res_rigs = requests.get(f"{orchestrator_url}/rigs", timeout=2)
+                    res_rigs = requests.get(f"{orchestrator_url}/api/rigs", timeout=2)
                     if res_rigs.status_code == 200:
                         rigs_data = res_rigs.json()
                         my_rig = next((r for r in rigs_data if r["rig_id"] == CONFIG["rig_id"]), None)
@@ -155,7 +155,7 @@ class RigSled:
                                  self.status = my_rig["status"]
 
                     # Sync branding
-                    res_brand = requests.get(f"{orchestrator_url}/branding", timeout=2)
+                    res_brand = requests.get(f"{orchestrator_url}/api/branding", timeout=2)
                     if res_brand.status_code == 200:
                         branding_data = res_brand.json()
                         with open("kiosk_data.json", "w") as f:
@@ -190,7 +190,7 @@ class RigSled:
                         "selected_car": self.selected_car,
                         "telemetry": self.telemetry_data
                     }
-                    requests.post(f"{orchestrator_url}/rigs/{CONFIG['rig_id']}/status", 
+                    requests.post(f"{orchestrator_url}/api/rigs/{CONFIG['rig_id']}/status", 
                                   json=payload, timeout=2)
                 except Exception as e:
                     print(f"Heartbeat failed: {e}")
