@@ -106,6 +106,13 @@ class ACTelemetry:
 
     def get_data(self):
         # 1. Try SimHub First (Recommended)
+        if not hasattr(self, '_last_sh_check'): self._last_sh_check = 0
+        now = time.time()
+        
+        if not self.simhub_connected and now - self._last_sh_check > 5:
+            print(f"TELEMETRY: Attempting to reach SimHub API at {self.simhub_url}...")
+            self._last_sh_check = now
+
         sh_data = self.get_simhub_data()
         if sh_data: return sh_data
 
