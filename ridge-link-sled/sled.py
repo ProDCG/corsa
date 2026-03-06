@@ -39,6 +39,7 @@ class RigSled:
         self.current_process = None
         self.kiosk_process = None
         self.car_pool = []
+        self.file_lock = threading.Lock() # Fix permission issues
         self.selected_car = CONFIG.get("default_car", "ks_ferrari_488_gt3")
         self.start_kiosk()
 
@@ -111,6 +112,16 @@ class RigSled:
                     if res.status_code == 200:
                         self.car_pool = res.json()
                     
+                    # Sync this rig's specific state (e.g., car selection from Kiosk)
+                    res_rigs = requests.get(f"{orchestrator_url}/rigs", timeout=2)
+                    if res_rigs.status_code == 200:
+                        rigs_data = res_rigs.json()
+                        my_rig = next((r for r in rigs_data if r["rig_id"] == CONFIG["rig_id"]), None)
+                        if my_rig and my_rig.get("selected_car"):
+                             self.selected_car = my_rig["selected_car"]
+                             if my_rig.get("status"):
+                                 self.status = my_rig["status"]
+
                     # Sync branding
                     res_brand = requests.get(f"{orchestrator_url}/branding", timeout=2)
                     if res_brand.status_code == 200:
@@ -123,13 +134,18 @@ class RigSled:
                                 "status": self.status
                             }, f)
                     
+                    # Optional: Read local overrides with lock safety
                     if os.path.exists("selected_car.json"):
-                        with open("selected_car.json", "r") as f:
-                            choice = json.load(f)
-                            self.selected_car = choice.get("selected_car", self.selected_car)
-                            if choice.get("ready"):
-                                self.status = "ready"
-                except Exception:
+                        with self.file_lock:
+                            try:
+                                with open("selected_car.json", "r") as f:
+                                    choice = json.load(f)
+                                    self.selected_car = choice.get("selected_car", self.selected_car)
+                                    if choice.get("ready"):
+                                        self.status = "ready"
+                            except Exception:
+                                pass
+                except Exception as e:
                     pass
 
                 payload = {
@@ -159,8 +175,13 @@ class RigSled:
         elif action == "SETUP_MODE":
             print("Entering Setup Mode...")
             self.status = "setup"
-            with open("selected_car.json", "w") as f:
-                json.dump({"selected_car": self.selected_car, "ready": False}, f)
+            # Thread-safe reset of local state file
+            with self.file_lock:
+                try:
+                    with open("selected_car.json", "w") as f:
+                        json.dump({"selected_car": self.selected_car, "ready": False}, f)
+                except Exception as e:
+                    print(f"Warning: Could not reset selected_car.json: {e}")
 
     def generate_race_ini(self, car, track):
         """Generates a standard race.ini file for direct acs.exe launch"""
