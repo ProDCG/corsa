@@ -16,6 +16,7 @@ interface Rig {
         completed_laps: number
         gas: number
         brake: number
+        gear: number
     }
 }
 
