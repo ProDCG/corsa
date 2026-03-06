@@ -227,8 +227,9 @@ async def update_rig_status(rig_id: str, update: RigStatusUpdate, request: Reque
             "telemetry": None
         }
     else:
-        # Update IP if it changed
+        # Update IP and activity
         rigs[rig_id]["ip"] = client_ip
+        rigs[rig_id]["last_seen"] = time.time()
     
     # SIMPLIFIED STATUS LOGIC
     if update.status:

@@ -163,14 +163,14 @@ class RigSled:
                         "ip": get_local_ip()
                     }
                     # Send to Orchestrator
-                    res = requests.post(f"http://{orchestrator_ip}:8000/api/rigs/{CONFIG['rig_id']}/status", 
+                    res = requests.post(f"http://{orchestrator_ip}:8000/rigs/{CONFIG['rig_id']}/status", 
                                   json=payload, timeout=1.5)
                     
                     # 2. Pull State Changes from Orchestrator
                     if res.status_code == 200:
                         if count % 2 == 0:
                             try:
-                                res_rigs = requests.get(f"http://{orchestrator_ip}:8000/api/rigs", timeout=1)
+                                res_rigs = requests.get(f"http://{orchestrator_ip}:8000/rigs", timeout=1)
                                 if res_rigs.status_code == 200:
                                     rigs_data = res_rigs.json()
                                     my_rig = next((r for r in rigs_data if r["rig_id"] == CONFIG["rig_id"]), None)
@@ -184,11 +184,11 @@ class RigSled:
                         # Sync carpool/branding occasionally (every 10s)
                         if count % 10 == 0:
                             try:
-                                res_pool = requests.get(f"http://{orchestrator_ip}:8000/api/carpool", timeout=1)
+                                res_pool = requests.get(f"http://{orchestrator_ip}:8000/carpool", timeout=1)
                                 if res_pool.status_code == 200:
                                     self.car_pool = res_pool.json()
                                 
-                                res_brand = requests.get(f"http://{orchestrator_ip}:8000/api/branding", timeout=1)
+                                res_brand = requests.get(f"http://{orchestrator_ip}:8000/branding", timeout=1)
                                 if res_brand.status_code == 200:
                                     branding_data = res_brand.json()
                                     # Update kiosk cache
