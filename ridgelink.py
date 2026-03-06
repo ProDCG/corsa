@@ -14,7 +14,7 @@ except:
     LIBRARY_OK = False
 
 # CONFIGURATION
-ORCHESTRATOR_URL = "http://127.0.0.1:8000/rigs/DESKTOP-MVNH13H/status"
+ORCHESTRATOR_URL = "http://192.168.9.35:8000/rigs/DESKTOP-MVNH13H/status"
 TIMER = 0
 
 def acMain(ac_version):
