@@ -230,31 +230,22 @@ async def update_rig_status(rig_id: str, update: RigStatusUpdate, request: Reque
         # Update IP if it changed
         rigs[rig_id]["ip"] = client_ip
     
-    # Status Precedence Logic
+    # SIMPLIFIED STATUS LOGIC
     if update.status:
+        # Accept 'racing' from Sled as authoritative
+        # Accept 'ready' / 'setup' from Kiosk/Sled
         current_status = rigs[rig_id].get("status", "idle")
         new_status = update.status
-
-        # Precedence: RACING > READY > SETUP > IDLE
-        status_rank = { "idle": 0, "setup": 1, "ready": 2, "racing": 3 }
-        current_rank = status_rank.get(current_status, 0)
-        new_rank = status_rank.get(new_status, 0)
         
-        # Determine if we should allow the update
-        should_update = False
-        if new_rank >= current_rank:
-            should_update = True
-        elif current_status == "racing" and new_status == "idle":
-            # Allow race end reset
-            should_update = True
-        elif new_status == "idle" and current_status in ["setup", "ready"]:
-            # Drop stale heartbeat from Sled trying to say "idle" when we are in "setup/ready"
-            pass
-            
-        if should_update:
-             if current_status != new_status:
-                print(f"ORCHESTRATOR: Rig {rig_id} transitioning {current_status} -> {new_status}")
+        # Simple Precedence: Don't let heartbeats downgrade READY/RACING to SETUP/IDLE easily
+        if current_status in ["racing", "ready"] and new_status in ["idle", "setup"]:
+             # Only downgrade if it's been a while (heartbeat timeout) or if we are resetting
+             if time.time() - rigs[rig_id].get("last_seen", 0) > 5:
+                  rigs[rig_id]["status"] = new_status
+        else:
              rigs[rig_id]["status"] = new_status
+             if current_status != new_status:
+                 print(f"ORCHESTRATOR: Rig {rig_id} -> {new_status}")
     if update.selected_car: rigs[rig_id]["selected_car"] = update.selected_car
     if update.cpu_temp: rigs[rig_id]["cpu_temp"] = update.cpu_temp
     if update.telemetry: 

@@ -148,89 +148,69 @@ class RigSled:
     def start_heartbeat(self):
         def run():
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-            
             orchestrator_ip = CONFIG.get("orchestrator_ip", "127.0.0.1")
-            orchestrator_url = f"http://{orchestrator_ip}:5173"
             import requests
             count = 0
-            # Fast Heartbeat Thread (10Hz)
-            def fast_run():
-                while True:
-                    try:
-                        current_ip = get_local_ip()
-                        payload = {
-                            "rig_id": CONFIG["rig_id"],
-                            "status": self.status,
-                            "cpu_temp": self.get_cpu_temp(),
-                            "mod_version": "1.4.2-telemetry",
-                            "selected_car": self.selected_car,
-                            "telemetry": self.telemetry_data,
-                            "ip": current_ip
-                        }
-                        # Send UDP Broadcast for Discovery (Heartbeat Listener)
-                        try:
-                            sock.sendto(json.dumps(payload).encode('utf-8'), (orchestrator_ip, CONFIG["heartbeat_port"]))
-                        except:
-                            pass
-
-                        # Send HTTP Status Update fast (10Hz) only when RACING
-                        # Otherwise we send at a relaxed 1Hz pace
-                        interval = 0.1 if self.status == "racing" else 1.0
-                        
-                        # Use port 8000 for standard API communication
-                        requests.post(f"http://{orchestrator_ip}:8000/api/rigs/{CONFIG['rig_id']}/status", 
-                                      json=payload, timeout=0.5)
-                        
-                        time.sleep(interval)
-                    except Exception as e:
-                        time.sleep(1)
-                    except Exception as e:
-                        time.sleep(1)
-
-            # Slow Sync Thread (1s)
-            def slow_run():
-                count = 0
-                while True:
-                    try:
-                        # Sync car pool
-                        res_pool = requests.get(f"{orchestrator_url}/api/carpool", timeout=2)
-                        if res_pool.status_code == 200:
-                            self.car_pool = res_pool.json()
-                        
-                        # Sync with Orchestrator (Pull State)
-                        res_rigs = requests.get(f"http://{orchestrator_ip}:8000/api/rigs", timeout=2)
-                        if res_rigs.status_code == 200:
-                            data = res_rigs.json()
-                            my_rig = next((r for r in data if r["rig_id"] == CONFIG["rig_id"]), None)
-                            if my_rig:
-                                if my_rig.get("selected_car"):
-                                    self.selected_car = my_rig["selected_car"]
-                                if self.status != "racing" and my_rig.get("status"):
-                                    self.status = my_rig["status"]
-
-                        # Sync Branding
-                        res_brand = requests.get(f"http://{orchestrator_ip}:8000/api/branding", timeout=2)
-                        if res_brand.status_code == 200:
-                            branding_data = res_brand.json()
-                            with open("kiosk_data.json", "w") as f:
-                                json.dump({
-                                    "car_pool": self.car_pool, 
-                                    "selected_car": self.selected_car,
-                                    "branding": branding_data,
-                                    "ui_port": 8000,
-                                    "status": self.status
-                                }, f)
-                    except:
-                        pass
+            while True:
+                try:
+                    # 1. Post our status and telemetry
+                    payload = {
+                        "rig_id": CONFIG["rig_id"],
+                        "status": self.status,
+                        "cpu_temp": self.get_cpu_temp(),
+                        "selected_car": self.selected_car,
+                        "telemetry": self.telemetry_data,
+                        "ip": get_local_ip()
+                    }
+                    # Send to Orchestrator
+                    res = requests.post(f"http://{orchestrator_ip}:8000/api/rigs/{CONFIG['rig_id']}/status", 
+                                  json=payload, timeout=1.5)
                     
-                    if count % 5 == 0:
-                        print(f"Status Diagnostic: LocalStatus={self.status} // IP={get_local_ip()}")
-                    count += 1
-                    time.sleep(2)
+                    # 2. Pull State Changes from Orchestrator
+                    if res.status_code == 200:
+                        if count % 2 == 0:
+                            try:
+                                res_rigs = requests.get(f"http://{orchestrator_ip}:8000/api/rigs", timeout=1)
+                                if res_rigs.status_code == 200:
+                                    rigs_data = res_rigs.json()
+                                    my_rig = next((r for r in rigs_data if r["rig_id"] == CONFIG["rig_id"]), None)
+                                    if my_rig and my_rig.get("selected_car"):
+                                        self.selected_car = my_rig["selected_car"]
+                                        if my_rig.get("status") == "ready":
+                                            self.status = "ready"
+                            except:
+                                pass
+                        
+                        # Sync carpool/branding occasionally (every 10s)
+                        if count % 10 == 0:
+                            try:
+                                res_pool = requests.get(f"http://{orchestrator_ip}:8000/api/carpool", timeout=1)
+                                if res_pool.status_code == 200:
+                                    self.car_pool = res_pool.json()
+                                
+                                res_brand = requests.get(f"http://{orchestrator_ip}:8000/api/branding", timeout=1)
+                                if res_brand.status_code == 200:
+                                    branding_data = res_brand.json()
+                                    # Update kiosk cache
+                                    with open("kiosk_data.json", "w") as f:
+                                        json.dump({
+                                            "car_pool": self.car_pool, 
+                                            "selected_car": self.selected_car,
+                                            "branding": branding_data,
+                                            "status": self.status
+                                        }, f)
+                            except:
+                                pass
 
-            threading.Thread(target=fast_run, daemon=True).start()
-            threading.Thread(target=slow_run, daemon=True).start()
+                except Exception as e:
+                    print(f"Heartbeat Loop Error: {e}")
+                
+                if count % 5 == 0:
+                    print(f"STATUS REPORT: Status={self.status} // Car={self.selected_car}")
+                count += 1
+                time.sleep(1)
+        
+        threading.Thread(target=run, daemon=True).start()
 
     def handle_command(self, payload):
         print(f"DEBUG: Command Payload Received: {json.dumps(payload)}")
