@@ -16,9 +16,9 @@ env/
 .venv/
 
 # Local Configs
-config.json
-kiosk_data.json
-selected_car.json
+# config.json
+# kiosk_data.json
+# selected_car.json
 
 # Assets/Logs
 *.log
