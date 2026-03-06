@@ -222,10 +222,11 @@ async def update_rig_status(rig_id: str, update: RigStatusUpdate, request: Reque
             "status": update.status or "idle",
             "cpu_temp": 0,
             "mod_version": "v1.4.2",
-            "last_seen": time.time()
+            "last_seen": time.time(),
+            "telemetry": None
         }
     else:
-        # Update IP if it changed (e.g. DHCP or transition from kiosk to sled)
+        # Update IP if it changed
         rigs[rig_id]["ip"] = client_ip
     
     # Status Precedence Logic
@@ -341,11 +342,14 @@ async def send_command(command: Command, background_tasks: BackgroundTasks):
         "LAUNCH_RACE": "racing"
     }
     
-    # If it's a web client, just update the status directly
+    # Status Reset on Setup Mode
+    if command.action == "SETUP_MODE":
+         rig["selected_car"] = None
+         rig["status"] = "setup"
+         print(f"ORCHESTRATOR: Clearing selection for Rig {command.rig_id}")
+
+    # If it's a web client, just update the status directly (already handled by port above for Sleds)
     if rig.get("ip") == "web-kiosk":
-        rig["status"] = action_map.get(command.action, "idle")
-        if command.action == "KILL_RACE":
-             rig["selected_car"] = None
         return {"status": "success", "message": f"Web Kiosk {command.rig_id} updated to {rig['status']}"}
 
     # For physical Sleds
@@ -362,26 +366,35 @@ async def send_global_command(command: Command, background_tasks: BackgroundTask
     # If starting a race in multiplayer mode, start the server first
     if command.action == "LAUNCH_RACE" and command.use_server:
          await start_server()
-         # Give it a second to bind ports
          time.sleep(1)
+    
+    action_map = {
+        "SETUP_MODE": "setup",
+        "KILL_RACE": "idle",
+        "LAUNCH_RACE": "racing"
+    }
 
-    for rig_id, rig_data in rigs.items():
-        if rig_data.get("ip") == "web-kiosk":
-            rig_data["status"] = "racing" if command.action == "LAUNCH_RACE" else "idle"
-            continue
-            
-        ip = rig_data["ip"]
-        port = CONFIG["command_port"]
+    for rig_id in rigs.keys():
+        rig = rigs[rig_id]
         
-        # Merge individual rig choice with global command
-        rig_command = command.model_copy()
-        rig_command.rig_id = rig_id
-        if not rig_command.car:
-            rig_command.car = rig_data.get("selected_car")
+        # CLEAR SELECTIONS ON SETUP
+        if command.action == "SETUP_MODE":
+             rig["selected_car"] = None
+             rig["status"] = "setup"
+             print(f"ORCHESTRATOR: Global Reset applied to {rig_id}")
+
+        if rig.get("ip") == "web-kiosk":
+            rig["status"] = action_map.get(command.action, "idle")
+            responses.append(f"Web {rig_id}")
+        else:
+            # Map global command to specific rig if needed (e.g. inject car selection)
+            rig_payload = command.model_dump()
+            if not rig_payload.get("car"):
+                 rig_payload["car"] = rig.get("selected_car")
             
-        background_tasks.add_task(dispatch_command, ip, port, rig_command.model_dump())
-        responses.append(rig_id)
-        
+            background_tasks.add_task(dispatch_command, rig["ip"], CONFIG["command_port"], rig_payload)
+            responses.append(f"Sled {rig_id}")
+            
     return {"status": "success", "rigs_notified": responses}
 
 def dispatch_command(ip: str, port: int, payload: dict):
@@ -410,17 +423,24 @@ def udp_heartbeat_listener():
             
             rig_id = payload.get("rig_id")
             if rig_id:
-                # Merge logic: Preserve selected_car if not in payload
-                existing = rigs.get(rig_id, {})
-                rigs[rig_id] = {
-                    "rig_id": rig_id,
-                    "ip": addr[0],
-                    "status": payload.get("status", existing.get("status", "idle")),
-                    "selected_car": existing.get("selected_car"), # Preserve car selection
-                    "cpu_temp": payload.get("cpu_temp", 0),
-                    "mod_version": payload.get("mod_version", "unknown"),
-                    "last_seen": time.time()
-                }
+                if rig_id not in rigs:
+                    rigs[rig_id] = {
+                        "rig_id": rig_id,
+                        "ip": addr[0],
+                        "status": payload.get("status", "idle"),
+                        "cpu_temp": payload.get("cpu_temp", 0),
+                        "mod_version": payload.get("mod_version", "unknown"),
+                        "last_seen": time.time(),
+                        "telemetry": None
+                    }
+                else:
+                    # Update existing record (MERGE)
+                    rigs[rig_id].update({
+                        "ip": addr[0],
+                        "status": payload.get("status", rigs[rig_id]["status"]),
+                        "cpu_temp": payload.get("cpu_temp", rigs[rig_id].get("cpu_temp", 0)),
+                        "last_seen": time.time()
+                    })
         except Exception as e:
             print(f"Error in UDP listener: {e}")
 

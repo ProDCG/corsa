@@ -154,97 +154,63 @@ class RigSled:
             orchestrator_url = f"http://{orchestrator_ip}:5173"
             import requests
             count = 0
-            while True:
-                try:
-                    # Sync car pool
-                    res = requests.get(f"{orchestrator_url}/api/carpool", timeout=2)
-                    if res.status_code == 200:
-                        self.car_pool = res.json()
-                    
-                    # Diagnostic Sync
-                    res_rigs = requests.get(f"{orchestrator_url}/api/rigs", timeout=2)
-                    if res_rigs.status_code == 200:
-                        rigs_data = res_rigs.json()
-                        my_rig = next((r for r in rigs_data if r["rig_id"] == CONFIG["rig_id"]), None)
-                        if my_rig:
-                            if my_rig.get("selected_car"):
-                                self.selected_car = my_rig["selected_car"]
-                            
-                            server_status = my_rig.get("status")
-                            if self.status != server_status:
-                                 # We only follow if we are not racing (racing is authoritative from us)
-                                 if self.status != "racing":
-                                     print(f"DEBUG: Status sync from Orchestrator: {self.status} -> {server_status}")
-                                     self.status = server_status
-                            
-                            # Write to local JSON for verification as requested
-                            try:
-                                with self.file_lock:
-                                    with open("selected_car.json", "w") as f:
-                                        json.dump({
-                                            "selected_car": self.selected_car,
-                                            "status": self.status,
-                                            "ready": self.status == "ready"
-                                        }, f)
-                            except:
-                                pass
+            # Fast Heartbeat Thread (10Hz)
+            def fast_run():
+                while True:
+                    try:
+                        current_ip = get_local_ip()
+                        payload = {
+                            "rig_id": CONFIG["rig_id"],
+                            "status": self.status,
+                            "cpu_temp": self.get_cpu_temp(),
+                            "mod_version": "1.4.2-telemetry",
+                            "selected_car": self.selected_car,
+                            "telemetry": self.telemetry_data,
+                            "ip": current_ip
+                        }
+                        # We send telemetry fast (10Hz) only when RACING
+                        # Otherwise we send at a relaxed 1Hz pace
+                        interval = 0.1 if self.status == "racing" else 1.0
+                        
+                        requests.post(f"{orchestrator_url}/api/rigs/{CONFIG['rig_id']}/status", 
+                                      json=payload, timeout=0.5)
+                        
+                        time.sleep(interval)
+                    except Exception as e:
+                        time.sleep(1)
 
-                    # Sync branding
-                    res_brand = requests.get(f"{orchestrator_url}/api/branding", timeout=2)
-                    if res_brand.status_code == 200:
-                        branding_data = res_brand.json()
-                        with open("kiosk_data.json", "w") as f:
-                            json.dump({
-                                "car_pool": self.car_pool, 
-                                "selected_car": self.selected_car,
-                                "branding": branding_data,
-                                "branding_url": f"http://{get_local_ip()}:5173/branding",
-                                "ui_port": 5173,
-                                "status": self.status
-                            }, f)
+            # Slow Sync Thread (1s)
+            def slow_run():
+                count = 0
+                while True:
+                    try:
+                        # Sync car pool
+                        res_pool = requests.get(f"{orchestrator_url}/api/carpool", timeout=2)
+                        if res_pool.status_code == 200:
+                            self.car_pool = res_pool.json()
+                        
+                        # Branding heartbeat
+                        res_brand = requests.get(f"{orchestrator_url}/api/branding", timeout=2)
+                        if res_brand.status_code == 200:
+                            branding_data = res_brand.json()
+                            with open("kiosk_data.json", "w") as f:
+                                json.dump({
+                                    "car_pool": self.car_pool, 
+                                    "selected_car": self.selected_car,
+                                    "branding": branding_data,
+                                    "ui_port": 5173,
+                                    "status": self.status
+                                }, f)
+                    except:
+                        pass
                     
-                    # Optional: Read local overrides with lock safety
-                    if os.path.exists("selected_car.json"):
-                        with self.file_lock:
-                            try:
-                                with open("selected_car.json", "r") as f:
-                                    choice = json.load(f)
-                                    self.selected_car = choice.get("selected_car", self.selected_car)
-                                    if choice.get("ready"):
-                                        self.status = "ready"
-                            except Exception:
-                                pass
-                except Exception as e:
-                    pass
+                    if count % 5 == 0:
+                        print(f"Status Diagnostic: LocalStatus={self.status} // IP={get_local_ip()}")
+                    count += 1
+                    time.sleep(2)
 
-                # Periodic Status & Telemetry Push
-                try:
-                    current_ip = get_local_ip()
-                    payload = {
-                        "rig_id": CONFIG["rig_id"],
-                        "status": self.status,
-                        "cpu_temp": self.get_cpu_temp(),
-                        "mod_version": "1.4.2-telemetry",
-                        "selected_car": self.selected_car,
-                        "telemetry": self.telemetry_data,
-                        "ip": current_ip
-                    }
-                    res = requests.post(f"{orchestrator_url}/api/rigs/{CONFIG['rig_id']}/status", 
-                                  json=payload, timeout=2)
-                    if self.status in ["ready", "racing"] or count % 10 == 0:
-                         print(f"DEBUG: Heartbeat Sent (status={self.status}). Server Response: {res.status_code}")
-                    if res.status_code != 200:
-                        print(f"Heartbeat Warning: Server returned {res.status_code}")
-                except Exception as e:
-                    print(f"Heartbeat failed: {e}")
-                
-                if count % 5 == 0:
-                    print(f"Status Diagnostic: LocalStatus={self.status} // IP={current_ip}")
-                count += 1
-                
-                time.sleep(1)
-        
-        threading.Thread(target=run, daemon=True).start()
+            threading.Thread(target=fast_run, daemon=True).start()
+            threading.Thread(target=slow_run, daemon=True).start()
 
     def handle_command(self, payload):
         print(f"DEBUG: Command Payload Received: {json.dumps(payload)}")
@@ -271,13 +237,14 @@ class RigSled:
             # We don't call start_kiosk here anymore.
             # The browser is likely already open on the Kiosk page.
         elif action == "SETUP_MODE":
-            print("Entering Setup Mode...")
+            print("Entering Setup Mode (Clearing previous selections)...")
             self.status = "setup"
+            self.selected_car = None
             # Update local state for consistency
             with self.file_lock:
                 try:
                     with open("selected_car.json", "w") as f:
-                        json.dump({"selected_car": self.selected_car, "ready": False}, f)
+                        json.dump({"selected_car": None, "ready": False, "status": "setup"}, f)
                 except:
                     pass
             # No start_kiosk() here. Simple is better.

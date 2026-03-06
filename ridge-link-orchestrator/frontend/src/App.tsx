@@ -119,7 +119,7 @@ function App() {
         fetchBranding()
         const interval = setInterval(() => {
             fetchRigs()
-        }, 2000)
+        }, 200)
         return () => clearInterval(interval)
     }, [])
 
