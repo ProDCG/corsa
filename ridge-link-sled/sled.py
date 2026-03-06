@@ -173,8 +173,15 @@ class RigSled:
     def generate_race_ini(self, car, track):
         """Generates a standard race.ini file for direct acs.exe launch"""
         try:
-            # On Windows, this is usually Documents\Assetto Corsa\cfg\race.ini
-            documents = os.path.join(os.environ['USERPROFILE'], 'Documents') if IS_WINDOWS else os.path.expanduser('~/Documents')
+            # On Windows, SHGetSpecialFolderPath is the safest way, but let's try environment first
+            user_profile = os.environ.get('USERPROFILE') or os.path.expanduser('~')
+            documents = os.path.join(user_profile, 'Documents')
+            
+            # Check for OneDrive documents path which is common on modern Windows
+            onedrive_docs = os.path.join(user_profile, 'OneDrive', 'Documents')
+            if not os.path.exists(os.path.join(documents, 'Assetto Corsa')) and os.path.exists(onedrive_docs):
+                 documents = onedrive_docs
+
             cfg_path = os.path.join(documents, 'Assetto Corsa', 'cfg', 'race.ini')
             os.makedirs(os.path.dirname(cfg_path), exist_ok=True)
             
@@ -183,6 +190,8 @@ class RigSled:
 MODEL={car}
 TRACK={track}
 CONFIG_TRACK=
+CARS=1
+AI_LEVEL=0
 FIXED_SETUP=0
 PENALTIES=1
 JUMP_START_PENALTY=1
@@ -192,11 +201,17 @@ MODEL={car}
 SKIN=0_official
 DRIVER_NAME=Ridge Racer
 NATIONALITY=Italy
+NATION_CODE=ITA
+TEAM=
+GUID=
+BALLAST=0
+RESTRICTOR=0
+SPECTATOR_MODE=0
 
 [SESSION_0]
 NAME=Quick Race
-TYPE=1
-LAPS=5
+TYPE=3
+LAPS=10
 DURATION_MINUTES=0
 WAIT_TIME=5
 
@@ -212,10 +227,13 @@ ACTIVE=0
 [LIGHTING]
 SPECULAR_MULT=1.0
 CLOUD_SPEED=0.2
+
+[WEATHER]
+NAME=3_clear
 """
             with open(cfg_path, "w") as f:
                 f.write(content.strip())
-            print(f"Generated race.ini at: {cfg_path}")
+            print(f"DEBUG: Successfully wrote race.ini to {cfg_path}")
             return cfg_path
         except Exception as e:
             print(f"Failed to generate race.ini: {e}")
@@ -228,22 +246,21 @@ CLOUD_SPEED=0.2
         
         print(f"--- LAUNCHING ENGINE: {car} @ {track} ---")
         
-        # Methodology: Direct Engine Launch (Sim-Center Standard)
         ac_path = CONFIG.get("ac_path")
         if not ac_path or not os.path.exists(ac_path):
-            # Try a common default if not specified
             probable_path = r"C:\Program Files (x86)\Steam\steamapps\common\assettocorsa\acs.exe"
             ac_path = probable_path if os.path.exists(probable_path) else ac_path
 
         if ac_path and os.path.exists(ac_path):
-            print(f"Executing Assetto Corsa Engine: {ac_path}")
             ini_path = self.generate_race_ini(car, track)
             if ini_path:
                 try:
-                    # acs.exe automatically reads from Documents\Assetto Corsa\cfg\race.ini
-                    # We run it from its directory to ensure resource loading
                     ac_dir = os.path.dirname(ac_path)
-                    self.current_process = subprocess.Popen([ac_path], cwd=ac_dir)
+                    # We pass the INI path explicitly via the -race argument
+                    # This ensures the engine picks up our EXACT configuration
+                    cmd = [ac_path, f"-race={ini_path}"]
+                    print(f"Executing: {' '.join(cmd)}")
+                    self.current_process = subprocess.Popen(cmd, cwd=ac_dir)
                     return
                 except Exception as e:
                     print(f"Engine launch failed: {e}")
@@ -251,7 +268,6 @@ CLOUD_SPEED=0.2
             print(f"CRITICAL: acs.exe not found at {ac_path}")
 
         print("ERROR: Could not find acs.exe. Please update config.json with the correct path.")
-        # Dummy process for state stability
         self.current_process = subprocess.Popen(["sleep", "600"] if os.name != 'nt' else ["timeout", "/t", "600"])
 
     def kill_race(self):
