@@ -232,19 +232,25 @@ async def update_rig_status(rig_id: str, update: RigStatusUpdate, request: Reque
     # Status Precedence Logic
     if update.status:
         # Precedence: RACING > READY > SETUP > IDLE
-        current_status = rigs[rig_id].get("status", "idle")
-        new_status = update.status
-        
         status_rank = { "idle": 0, "setup": 1, "ready": 2, "racing": 3 }
+        current_rank = status_rank.get(current_status, 0)
+        new_rank = status_rank.get(new_status, 0)
         
-        # Don't let a lower rank status overwrite a higher rank status unless it's a reset
-        if status_rank.get(new_status, 0) >= status_rank.get(current_status, 0) or new_status == "idle":
+        # Determine if we should allow the update
+        should_update = False
+        if new_rank >= current_rank:
+            should_update = True
+        elif current_status == "racing" and new_status == "idle":
+            # Allow race end reset
+            should_update = True
+        elif new_status == "idle" and current_status in ["setup", "ready"]:
+            # Drop stale heartbeat from Sled trying to say "idle" when we are in "setup/ready"
+            pass
+            
+        if should_update:
              if current_status != new_status:
                 print(f"ORCHESTRATOR: Rig {rig_id} transitioning {current_status} -> {new_status}")
              rigs[rig_id]["status"] = new_status
-        else:
-             # Dropped stale update
-             pass
     if update.selected_car: rigs[rig_id]["selected_car"] = update.selected_car
     if update.cpu_temp: rigs[rig_id]["cpu_temp"] = update.cpu_temp
     if update.telemetry: 
@@ -342,13 +348,15 @@ async def send_command(command: Command, background_tasks: BackgroundTasks):
         "LAUNCH_RACE": "racing"
     }
     
+    # Instant Status Update for Feedback
+    rig["status"] = action_map.get(command.action, rig["status"])
+    
     # Status Reset on Setup Mode
     if command.action == "SETUP_MODE":
          rig["selected_car"] = None
-         rig["status"] = "setup"
          print(f"ORCHESTRATOR: Clearing selection for Rig {command.rig_id}")
 
-    # If it's a web client, just update the status directly (already handled by port above for Sleds)
+    # If it's a web client, we are done (already handled by port above for Sleds)
     if rig.get("ip") == "web-kiosk":
         return {"status": "success", "message": f"Web Kiosk {command.rig_id} updated to {rig['status']}"}
 
@@ -387,6 +395,9 @@ async def send_global_command(command: Command, background_tasks: BackgroundTask
             rig["status"] = action_map.get(command.action, "idle")
             responses.append(f"Web {rig_id}")
         else:
+            # INSTANT STATUS FEEDBACK
+            rig["status"] = action_map.get(command.action, rig["status"])
+            
             # Map global command to specific rig if needed (e.g. inject car selection)
             rig_payload = command.model_dump()
             if not rig_payload.get("car"):

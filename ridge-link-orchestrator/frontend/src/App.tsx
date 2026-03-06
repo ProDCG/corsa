@@ -181,32 +181,29 @@ function App() {
     }
 
     const sendGlobalCommand = async (action: string) => {
-        const responses = rigs.filter((r: Rig) => r.status !== 'offline').map(async (r: Rig) => {
-            try {
-                await fetch('/api/command/global', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        rig_id: 'ALL',
-                        action,
-                        track: raceSettings.selected_track,
-                        weather: raceSettings.selected_weather,
-                        practice_time: raceSettings.practice_time,
-                        qualy_time: raceSettings.qualy_time,
-                        race_laps: raceSettings.race_laps,
-                        race_time: raceSettings.race_time,
-                        allow_drs: raceSettings.allow_drs,
-                        use_server: raceSettings.useMultiplayer
-                    })
+        try {
+            await fetch('/api/command/global', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    rig_id: 'ALL',
+                    action,
+                    track: raceSettings.selected_track,
+                    weather: raceSettings.selected_weather,
+                    practice_time: raceSettings.practice_time,
+                    qualy_time: raceSettings.qualy_time,
+                    race_laps: raceSettings.race_laps,
+                    race_time: raceSettings.race_time,
+                    allow_drs: raceSettings.allow_drs,
+                    use_server: raceSettings.useMultiplayer
                 })
-            } catch (err) {
-                console.error("Global command failed for rig:", r.rig_id, err)
-            }
-        })
-        await Promise.all(responses)
+            })
 
-        if (action === "LAUNCH_RACE" && raceSettings.useMultiplayer) {
-            setServerStatus('online')
+            if (action === "LAUNCH_RACE" && raceSettings.useMultiplayer) {
+                setServerStatus('online')
+            }
+        } catch (err) {
+            console.error("Global command failed:", err)
         }
     }
 
