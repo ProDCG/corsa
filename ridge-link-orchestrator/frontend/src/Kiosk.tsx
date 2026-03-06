@@ -190,7 +190,7 @@ export default function Kiosk() {
             </div>
 
             {/* Setup Overlay */}
-            {(status === 'setup' || status === 'ready') && (
+            {(status?.toLowerCase() === 'setup' || status?.toLowerCase() === 'ready') && (
                 <div className="absolute inset-0 flex items-center justify-center z-40 bg-black/20 animate-in fade-in duration-700">
                     <div className="flex flex-col items-center">
                         <div className="text-center mb-10">
@@ -213,7 +213,13 @@ export default function Kiosk() {
                             )}
 
                             <div className="flex-1 overflow-y-auto custom-scrollbar p-12 pt-16">
-                                {!selectedBrand ? (
+                                {brands.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center h-full opacity-30 text-center px-12">
+                                        <Shield className="w-16 h-16 mb-4" />
+                                        <p className="font-black italic uppercase text-lg italic uppercase tracking-tighter">Fleet database unavailable</p>
+                                        <p className="text-[10px] font-mono mt-2 tracking-widest leading-relaxed">System status: {status} // Car Pool Size: {carPool?.length || 0}</p>
+                                    </div>
+                                ) : !selectedBrand ? (
                                     <div className="grid grid-cols-3 gap-6">
                                         {brands.map(brand => (
                                             <button

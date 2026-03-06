@@ -71,8 +71,9 @@ class RigSled:
                 data = self.ac_telemetry.get_data()
                 if data:
                     self.telemetry_data = data
-                    # Console Verification at 10Hz
-                    print(f"RAW_TELEMETRY: {json.dumps(data)}")
+                    # Console Verification only when racing
+                    if data.get("status") == 2:
+                        print(f"LIVE_TELEMETRY: {json.dumps(data)}")
                 time.sleep(0.1) # 10Hz reading
             except Exception as e:
                 print(f"Telemetry error: {e}")
@@ -86,46 +87,18 @@ class RigSled:
             return 0.0
 
     def start_kiosk(self):
-        # SIMPLIFICATION: Only launch if not already running
-        if self.kiosk_process and self.kiosk_process.poll() is None:
-            print("Kiosk is already running. Skipping launch.")
-            return
-
-        self.stop_kiosk()
         rig_id = CONFIG.get("rig_id", "UNKNOWN")
         orchestrator_ip = CONFIG.get("orchestrator_ip", "127.0.0.1")
         url = f"http://{orchestrator_ip}:5173/kiosk?rig_id={rig_id}"
         
-        print(f"Launching Kiosk at: {url}")
-        
+        print(f"Opening Kiosk in browser: {url}")
         import webbrowser
-        if IS_WINDOWS:
-            cmd = ["msedge.exe", "--kiosk", url, "--edge-kiosk-type=fullscreen"]
-            try:
-                self.kiosk_process = subprocess.Popen(cmd)
-            except:
-                webbrowser.open(url)
-        else:
-            try:
-                self.kiosk_process = subprocess.Popen(["google-chrome", "--kiosk", "--app=" + url])
-            except:
-                webbrowser.open(url)
+        # Using webbrowser.open is much more stable and prevents the constant "killing/restarting" behavior
+        webbrowser.open(url)
 
     def stop_kiosk(self):
-        """Specifically kills only the browser process launched by this sled."""
-        if self.kiosk_process:
-            print(f"Stopping kiosk process (PID: {self.kiosk_process.pid})")
-            try:
-                self.kiosk_process.terminate()
-                self.kiosk_process.wait(timeout=3)
-            except:
-                try:
-                    self.kiosk_process.kill()
-                except:
-                    pass
-            self.kiosk_process = None
-        
-        # NEVER use pkill chrome/msedge here, as it kills the Admin's browser too!
+        # We'll leave this empty for now or just do nothing to prevent dashboard closing
+        pass
 
     def sync_mods(self):
         """Uses Robocopy to sync specific content from Admin PC"""
@@ -254,18 +227,19 @@ class RigSled:
             self.launch_race(params)
         elif action == "KILL_RACE":
             self.kill_race()
-            self.start_kiosk()
+            # We don't call start_kiosk here anymore.
+            # The browser is likely already open on the Kiosk page.
         elif action == "SETUP_MODE":
             print("Entering Setup Mode...")
             self.status = "setup"
-            # Thread-safe reset of local state file
+            # Update local state for consistency
             with self.file_lock:
                 try:
                     with open("selected_car.json", "w") as f:
                         json.dump({"selected_car": self.selected_car, "ready": False}, f)
-                except Exception as e:
-                    print(f"Warning: Could not reset selected_car.json: {e}")
-            self.start_kiosk()
+                except:
+                    pass
+            # No start_kiosk() here. Simple is better.
 
     def generate_race_ini(self, params):
         """Generates a multi-session race.ini file for direct acs.exe launch"""
