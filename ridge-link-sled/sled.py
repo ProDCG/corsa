@@ -20,7 +20,8 @@ CONFIG = {
     "command_port": 5000,
     "mod_version": "1.0.0",
     "admin_shared_folder": r"\\ADMIN-PC\RidgeContent",
-    "local_ac_folder": r"C:\AssettoCorsa"
+    "local_ac_folder": r"C:\AssettoCorsa",
+    "cm_path": r"C:\RidgeLink\Content Manager.exe"
 }
 
 # Load local config if exists
@@ -175,12 +176,18 @@ class RigSled:
         
         print(f"Launching race: {car} at {track}")
         
-        # --- PRO TIP: Launching Assetto Corsa ---
-        # 1. Update this path to your acs.exe or Content Manager
-        # ac_path = r"C:\Program Files (x86)\Steam\steamapps\common\assettocorsa\acs.exe"
-        # 2. You would typically generate an 'ini' file here and pass it as an argument
-        # subprocess.Popen([ac_path, "cfg/race.ini"])
-
+        cm_path = CONFIG.get("cm_path")
+        if cm_path and os.path.exists(cm_path):
+            print(f"Executing Content Manager: {cm_path}")
+            # CM arguments: -go (start immediately), -car, -track
+            cmd = [cm_path, "-go", f"-car:{car}", f"-track:{track}"]
+            try:
+                self.current_process = subprocess.Popen(cmd)
+                return
+            except Exception as e:
+                print(f"Failed to launch CM: {e}")
+        
+        print("WARNING: Content Manager path not found. Running dummy race process.")
         self.current_process = subprocess.Popen(["sleep", "600"] if os.name != 'nt' else ["timeout", "/t", "600"])
 
     def kill_race(self):

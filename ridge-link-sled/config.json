@@ -2,5 +2,6 @@
     "orchestrator_ip": "192.168.9.35",
     "rig_id": "RIG-06",
     "admin_shared_folder": "\\\\ADMIN-PC\\RidgeContent",
-    "local_ac_folder": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\assettocorsa"
+    "local_ac_folder": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\assettocorsa",
+    "cm_path": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\assettocorsa\\Content Manager.exe"
 }
