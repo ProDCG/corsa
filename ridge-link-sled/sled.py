@@ -230,6 +230,9 @@ CLOUD_SPEED=0.2
 
 [WEATHER]
 NAME=3_clear
+
+[BENCHMARK]
+ACTIVE=0
 """
             with open(cfg_path, "w") as f:
                 f.write(content.strip())
@@ -256,9 +259,8 @@ NAME=3_clear
             if ini_path:
                 try:
                     ac_dir = os.path.dirname(ac_path)
-                    # We pass the INI path explicitly via the -race argument
-                    # This ensures the engine picks up our EXACT configuration
-                    cmd = [ac_path, f"-race={ini_path}"]
+                    # Forcing the ini path is more reliable than hoping it reads the fallback
+                    cmd = [ac_path, f"-ini={ini_path}"]
                     print(f"Executing: {' '.join(cmd)}")
                     self.current_process = subprocess.Popen(cmd, cwd=ac_dir)
                     return

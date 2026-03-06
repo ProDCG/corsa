@@ -148,10 +148,13 @@ def udp_heartbeat_listener():
             
             rig_id = payload.get("rig_id")
             if rig_id:
+                # Merge logic: Preserve selected_car if not in payload
+                existing = rigs.get(rig_id, {})
                 rigs[rig_id] = {
                     "rig_id": rig_id,
                     "ip": addr[0],
-                    "status": payload.get("status", "unknown"),
+                    "status": payload.get("status", existing.get("status", "idle")),
+                    "selected_car": existing.get("selected_car"), # Preserve car selection
                     "cpu_temp": payload.get("cpu_temp", 0),
                     "mod_version": payload.get("mod_version", "unknown"),
                     "last_seen": time.time()

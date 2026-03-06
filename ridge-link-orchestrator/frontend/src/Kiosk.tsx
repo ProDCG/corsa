@@ -166,22 +166,25 @@ export default function Kiosk() {
                         </div>
 
                         <div className="grid grid-cols-3 gap-6 mb-12">
-                            {ALL_CARS.filter(c => carPool.includes(c.id)).map(car => (
-                                <button
-                                    key={car.id}
-                                    onClick={() => handleCarSelect(car.id)}
-                                    className={`p-6 rounded-3xl border-2 transition-all duration-500 text-left relative overflow-hidden group ${selectedCar === car.id
-                                        ? 'bg-ridge-brand border-ridge-brand shadow-[0_0_30px_rgba(255,81,0,0.4)]'
-                                        : 'bg-white/5 border-white/5 hover:border-white/20'
-                                        }`}
-                                >
-                                    <div className="relative z-10">
-                                        <p className="text-[10px] font-bold opacity-50 uppercase mb-1">{car.class}</p>
-                                        <h3 className="text-xl font-bold uppercase italic leading-tight">{car.name}</h3>
-                                    </div>
-                                    <Shield className={`absolute -right-4 -bottom-4 w-24 h-24 transition-all duration-700 ${selectedCar === car.id ? 'text-white/20 scale-110 rotate-12' : 'text-white/5 rotate-45'}`} />
-                                </button>
-                            ))}
+                            {carPool.map(carId => {
+                                const carInfo = ALL_CARS.find(c => c.id === carId) || { id: carId, name: carId.split('_').slice(1).join(' ').toUpperCase() || carId, class: 'CAR' };
+                                return (
+                                    <button
+                                        key={carId}
+                                        onClick={() => handleCarSelect(carId)}
+                                        className={`p-6 rounded-3xl border-2 transition-all duration-500 text-left relative overflow-hidden group ${selectedCar === carId
+                                            ? 'bg-ridge-brand border-ridge-brand shadow-[0_0_30px_rgba(255,81,0,0.4)]'
+                                            : 'bg-white/5 border-white/5 hover:border-white/20'
+                                            }`}
+                                    >
+                                        <div className="relative z-10">
+                                            <p className="text-[10px] font-bold opacity-50 uppercase mb-1">{carInfo.class}</p>
+                                            <h3 className="text-xl font-bold uppercase italic leading-tight">{carInfo.name}</h3>
+                                        </div>
+                                        <Shield className={`absolute -right-4 -bottom-4 w-24 h-24 transition-all duration-700 ${selectedCar === carId ? 'text-white/20 scale-110 rotate-12' : 'text-white/5 rotate-45'}`} />
+                                    </button>
+                                );
+                            })}
                         </div>
 
                         <div className="flex justify-center">

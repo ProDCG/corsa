@@ -116,8 +116,11 @@ function App() {
         }
     }
 
-    const sendCommand = async (rigId: string, action: string) => {
+    const sendCommand = async (rigId: string, action: string, preferredCar?: string | null) => {
         try {
+            // Use rig's selected car if available, otherwise global selection
+            const carToLaunch = preferredCar || selectedCar;
+
             await fetch('/api/command', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -125,7 +128,7 @@ function App() {
                     rig_id: rigId,
                     action,
                     track: selectedTrack,
-                    car: selectedCar,
+                    car: carToLaunch,
                     session_time: 20,
                     server_ip: "192.168.1.10"
                 })
@@ -136,7 +139,7 @@ function App() {
     }
 
     const sendGlobalCommand = (action: string) => {
-        rigs.forEach(rig => sendCommand(rig.rig_id, action))
+        rigs.forEach(rig => sendCommand(rig.rig_id, action, rig.selected_car))
     }
 
     return (
@@ -209,11 +212,19 @@ function App() {
                                     </div>
                                     <div className="font-mono">{rig.mod_version}</div>
                                 </div>
+                                {rig.selected_car && (
+                                    <div className={`flex items-center justify-between text-sm p-2 rounded-lg border ${rig.selected_car !== selectedCar ? 'bg-ridge-brand/10 border-ridge-brand/20' : 'bg-white/5 border-white/10'}`}>
+                                        <div className={`flex items-center gap-2 font-bold uppercase text-[10px] ${rig.selected_car !== selectedCar ? 'text-ridge-brand' : 'text-white/60'}`}>
+                                            <Zap size={14} /> Selected Car
+                                        </div>
+                                        <div className="font-bold text-white truncate max-w-[120px]">{rig.selected_car.split('_').slice(1).join(' ').toUpperCase()}</div>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="grid grid-cols-2 gap-2 mt-auto">
                                 <button
-                                    onClick={() => sendCommand(rig.rig_id, 'LAUNCH_RACE')}
+                                    onClick={() => sendCommand(rig.rig_id, 'LAUNCH_RACE', rig.selected_car)}
                                     className="bg-white/5 hover:bg-white/10 p-3 rounded-xl flex items-center justify-center transition-colors group"
                                 >
                                     <Zap className="group-hover:text-ridge-brand transition-colors" size={20} />
