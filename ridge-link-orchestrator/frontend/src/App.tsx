@@ -56,6 +56,20 @@ function App() {
         video_url: '/assets/idle_race.mp4'
     })
     const [leaderboard, setLeaderboard] = useState<any[]>([])
+    const [presets, setPresets] = useState<any[]>([])
+    const [activeTelemFields, setActiveTelemFields] = useState<string[]>(['velocity', 'gforce', 'normalized_pos', 'gear', 'completed_laps', 'gas'])
+
+    const TELEM_FIELDS = [
+        { id: 'velocity', name: 'Velocity (KM/H)', icon: Zap },
+        { id: 'gforce', name: 'G-Force', icon: Activity },
+        { id: 'normalized_pos', name: 'Circuit Progress', icon: LayoutGrid },
+        { id: 'gear', name: 'Gear', icon: Settings2 },
+        { id: 'completed_laps', name: 'Lap Count', icon: Flag },
+        { id: 'gas', name: 'Throttle Input', icon: Power },
+        { id: 'brake', name: 'Brake Input', icon: ShieldCheck },
+        { id: 'rpms', name: 'Engine RPM', icon: Activity },
+        { id: 'status', name: 'Engine Status', icon: Monitor },
+    ]
 
     const ALL_CARS = [
         { id: 'ks_ferrari_488_gt3', name: 'Ferrari 488 GT3' },
@@ -115,9 +129,31 @@ function App() {
             }
         }
 
+        const fetchPresets = async () => {
+            try {
+                const res = await fetch('/api/presets')
+                const data = await res.json()
+                if (Array.isArray(data)) setPresets(data)
+            } catch (err) {
+                console.error("Failed to fetch presets:", err)
+            }
+        }
+
+        const fetchTelemConfig = async () => {
+            try {
+                const res = await fetch('/api/telem_config')
+                const data = await res.json()
+                if (data.active_fields) setActiveTelemFields(data.active_fields)
+            } catch (err) {
+                console.error("Failed to fetch telem config:", err)
+            }
+        }
+
         fetchRigs()
         fetchCarPool()
         fetchBranding()
+        fetchPresets()
+        fetchTelemConfig()
         const interval = setInterval(() => {
             fetchRigs()
         }, 500)
@@ -178,6 +214,87 @@ function App() {
             })
         } catch (err) {
             console.error("Failed to send command:", err)
+        }
+    }
+
+    const toggleTelemField = async (fieldId: string) => {
+        const newFields = activeTelemFields.includes(fieldId)
+            ? activeTelemFields.filter(f => f !== fieldId)
+            : [...activeTelemFields, fieldId]
+
+        setActiveTelemFields(newFields)
+        try {
+            await fetch('/api/telem_config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ active_fields: newFields })
+            })
+        } catch (err) {
+            console.error("Failed to update telem config:", err)
+        }
+    }
+
+    const saveCurrentAsPreset = async (name: string) => {
+        const newPreset = {
+            id: Date.now().toString(),
+            name,
+            track: raceSettings.selected_track,
+            weather: raceSettings.selected_weather,
+            practice_time: raceSettings.practice_time,
+            qualy_time: raceSettings.qualy_time,
+            race_laps: raceSettings.race_laps,
+            race_time: raceSettings.race_time,
+            allow_drs: raceSettings.allow_drs,
+            selected_car: selectedCar,
+            car_pool: activeCarPool
+        }
+        const newPresets = [...presets, newPreset]
+        setPresets(newPresets)
+        try {
+            await fetch('/api/presets', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newPresets)
+            })
+        } catch (err) {
+            console.error("Failed to save preset:", err)
+        }
+    }
+
+    const applyPreset = (preset: any) => {
+        setRaceSettings({
+            ...raceSettings,
+            selected_track: preset.track,
+            selected_weather: preset.weather,
+            practice_time: preset.practice_time,
+            qualy_time: preset.qualy_time,
+            race_laps: preset.race_laps,
+            race_time: preset.race_time,
+            allow_drs: preset.allow_drs
+        })
+        if (preset.selected_car) setSelectedCar(preset.selected_car)
+        if (preset.car_pool) {
+            setActiveCarPool(preset.car_pool)
+            // Sync car pool to backend
+            fetch('/api/carpool', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cars: preset.car_pool })
+            }).catch(console.error)
+        }
+    }
+
+    const deletePreset = async (id: string) => {
+        const newPresets = presets.filter(p => p.id !== id)
+        setPresets(newPresets)
+        try {
+            await fetch('/api/presets', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newPresets)
+            })
+        } catch (err) {
+            console.error("Failed to delete preset:", err)
         }
     }
 
@@ -477,6 +594,46 @@ function App() {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* PRESETS SECTION */}
+                            <div className="bg-white/5 border border-white/10 rounded-3xl p-8">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-xl font-black italic uppercase flex items-center gap-2">
+                                        <ShieldCheck className="text-ridge-brand" size={24} /> Configuration Presets
+                                    </h2>
+                                    <button
+                                        onClick={() => {
+                                            const name = prompt("Enter a name for this preset:");
+                                            if (name) saveCurrentAsPreset(name);
+                                        }}
+                                        className="bg-white/10 hover:bg-white/20 px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all"
+                                    >
+                                        Save Current as Preset
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {presets.map(preset => (
+                                        <div key={preset.id} className="bg-black/20 border border-white/5 p-4 rounded-2xl group relative">
+                                            <div className="flex justify-between items-center mb-3">
+                                                <h4 className="font-black italic uppercase text-sm text-ridge-brand">{preset.name}</h4>
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => applyPreset(preset)} className="text-green-500 hover:scale-110 transition-transform"><Check size={16} /></button>
+                                                    <button onClick={() => deletePreset(preset.id)} className="text-red-500 hover:scale-110 transition-transform opacity-0 group-hover:opacity-100"><Power size={14} /></button>
+                                                </div>
+                                            </div>
+                                            <div className="text-[8px] font-bold uppercase tracking-widest text-white/30 space-y-1">
+                                                <p>{preset.track.toUpperCase()} // ENV {preset.weather.split('_').slice(1).join(' ')}</p>
+                                                <p>{preset.race_laps} Laps | {preset.qualy_time}m Qualy | DRS: {preset.allow_drs ? 'ON' : 'OFF'}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {presets.length === 0 && (
+                                        <div className="col-span-full py-8 text-center text-white/10 italic text-[10px] uppercase font-black tracking-widest px-4 border border-dashed border-white/5 rounded-2xl">
+                                            No saved presets found. Configure a setup above and click "Save Current"
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     )}
 
@@ -518,6 +675,28 @@ function App() {
                     {/* LIVE MONITOR VIEW */}
                     {activeTab === 'monitor' && (
                         <div className="space-y-6">
+                            {/* Telemetry Master Checklist */}
+                            <div className="glass rounded-3xl p-6 border border-white/10 mb-8">
+                                <h3 className="text-sm font-black italic uppercase italic tracking-tighter mb-4 flex items-center gap-2">
+                                    <Monitor size={16} className="text-ridge-brand" /> Telemetry Data Master Selection
+                                </h3>
+                                <div className="flex flex-wrap gap-2">
+                                    {TELEM_FIELDS.map(field => (
+                                        <button
+                                            key={field.id}
+                                            onClick={() => toggleTelemField(field.id)}
+                                            className={`px-4 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTelemFields.includes(field.id)
+                                                ? 'bg-ridge-brand/10 border-ridge-brand text-ridge-brand'
+                                                : 'bg-white/5 border-white/10 text-white/30 hover:border-white/20'
+                                                }`}
+                                        >
+                                            <field.icon size={12} />
+                                            {field.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
                             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                                 {rigs.map((rig: Rig) => (
                                     <div key={rig.rig_id} className="bg-white/5 border border-white/10 rounded-3xl p-6 relative overflow-hidden group">
@@ -533,51 +712,74 @@ function App() {
 
                                         {rig.telemetry ? (
                                             <div className="space-y-6">
+                                                {/* DYNAMIC FIELDS GRID */}
                                                 <div className="grid grid-cols-2 gap-4">
-                                                    <div className="bg-black/20 p-4 rounded-2xl border border-white/5">
-                                                        <p className="text-[8px] font-black uppercase opacity-40 mb-1">Velocity</p>
-                                                        <div className="flex items-baseline gap-2">
-                                                            <span className="text-2xl font-black italic tabular-nums">{rig.telemetry.velocity[0]}</span>
-                                                            <span className="text-[10px] font-bold text-ridge-brand">KM/H</span>
+                                                    {activeTelemFields.includes('velocity') && (
+                                                        <div className="bg-black/20 p-4 rounded-2xl border border-white/5">
+                                                            <p className="text-[8px] font-black uppercase opacity-40 mb-1">Velocity</p>
+                                                            <div className="flex items-baseline gap-2">
+                                                                <span className="text-2xl font-black italic tabular-nums">{rig.telemetry.velocity[0]}</span>
+                                                                <span className="text-[10px] font-bold text-ridge-brand">KM/H</span>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                    <div className="bg-black/20 p-4 rounded-2xl border border-white/5">
-                                                        <p className="text-[8px] font-black uppercase opacity-40 mb-1">Force (G-Lat)</p>
-                                                        <div className="flex items-baseline gap-2">
-                                                            <span className="text-2xl font-black italic tabular-nums">{rig.telemetry.gforce[0]}</span>
-                                                            <span className="text-[10px] font-bold text-blue-400">G</span>
+                                                    )}
+                                                    {activeTelemFields.includes('gforce') && (
+                                                        <div className="bg-black/20 p-4 rounded-2xl border border-white/5">
+                                                            <p className="text-[8px] font-black uppercase opacity-40 mb-1">Force (G-Lat)</p>
+                                                            <div className="flex items-baseline gap-2">
+                                                                <span className="text-2xl font-black italic tabular-nums">{rig.telemetry.gforce[0]}</span>
+                                                                <span className="text-[10px] font-bold text-blue-400">G</span>
+                                                            </div>
                                                         </div>
-                                                    </div>
+                                                    )}
                                                 </div>
 
-                                                <div className="space-y-2">
-                                                    <div className="flex justify-between text-[8px] font-black uppercase tracking-widest mb-1">
-                                                        <span>Circuit Progress</span>
-                                                        <span>{Math.round(rig.telemetry.normalized_pos * 100)}%</span>
+                                                {activeTelemFields.includes('normalized_pos') && (
+                                                    <div className="space-y-2">
+                                                        <div className="flex justify-between text-[8px] font-black uppercase tracking-widest mb-1">
+                                                            <span>Circuit Progress</span>
+                                                            <span>{Math.round(rig.telemetry.normalized_pos * 100)}%</span>
+                                                        </div>
+                                                        <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                                                            <div
+                                                                className="h-full bg-ridge-brand transition-all duration-300"
+                                                                style={{ width: `${rig.telemetry.normalized_pos * 100}%` }}
+                                                            />
+                                                        </div>
                                                     </div>
-                                                    <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-                                                        <div
-                                                            className="h-full bg-ridge-brand transition-all duration-300"
-                                                            style={{ width: `${rig.telemetry.normalized_pos * 100}%` }}
-                                                        />
-                                                    </div>
-                                                </div>
+                                                )}
 
                                                 <div className="grid grid-cols-3 gap-2">
-                                                    <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/5 border border-white/5">
-                                                        <span className="text-[8px] font-black uppercase opacity-30 mb-1">Gear</span>
-                                                        <span className="text-xl font-black italic">
-                                                            {rig.telemetry.gear === -1 ? 'R' : rig.telemetry.gear === 0 ? 'N' : rig.telemetry.gear}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/5 border border-white/5">
-                                                        <span className="text-[8px] font-black uppercase opacity-30 mb-1">Laps</span>
-                                                        <span className="text-xl font-black italic">{rig.telemetry.completed_laps}</span>
-                                                    </div>
-                                                    <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/5 border border-white/5">
-                                                        <span className="text-[8px] font-black uppercase opacity-30 mb-1">Throttle</span>
-                                                        <span className="text-xl font-black italic text-green-500">{Math.round(rig.telemetry.gas * 100)}%</span>
-                                                    </div>
+                                                    {activeTelemFields.includes('gear') && (
+                                                        <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/5 border border-white/5">
+                                                            <span className="text-[8px] font-black uppercase opacity-30 mb-1">Gear</span>
+                                                            <span className="text-xl font-black italic">
+                                                                {rig.telemetry.gear === -1 ? 'R' : rig.telemetry.gear === 0 ? 'N' : rig.telemetry.gear}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    {activeTelemFields.includes('completed_laps') && (
+                                                        <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/5 border border-white/5">
+                                                            <span className="text-[8px] font-black uppercase opacity-30 mb-1">Laps</span>
+                                                            <span className="text-xl font-black italic">{rig.telemetry.completed_laps}</span>
+                                                        </div>
+                                                    )}
+                                                    {activeTelemFields.includes('gas') && (
+                                                        <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/5 border border-white/5">
+                                                            <span className="text-[8px] font-black uppercase opacity-30 mb-1">Throttle</span>
+                                                            <span className="text-xl font-black italic text-green-500">{Math.round(rig.telemetry.gas * 100)}%</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Additional logic if others fields are added later */}
+                                                <div className="grid grid-cols-2 gap-2 mt-2">
+                                                    {activeTelemFields.includes('brake') && (
+                                                        <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/5 border border-white/5">
+                                                            <span className="text-[8px] font-black uppercase opacity-30 mb-1">Brake</span>
+                                                            <span className="text-xl font-black italic text-red-500">{Math.round(rig.telemetry.brake * 100)}%</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         ) : (

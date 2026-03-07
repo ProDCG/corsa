@@ -1,0 +1,10 @@
+{
+    "active_fields": [
+        "velocity",
+        "gforce",
+        "normalized_pos",
+        "gear",
+        "completed_laps",
+        "gas"
+    ]
+}

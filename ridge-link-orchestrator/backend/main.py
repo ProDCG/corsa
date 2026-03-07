@@ -67,6 +67,28 @@ class Command(BaseModel):
     session_time: Optional[int] = None # Legacy support
     server_ip: Optional[str] = None
 
+class Preset(BaseModel):
+    id: str
+    name: str
+    track: str
+    weather: str
+    practice_time: int
+    qualy_time: int
+    race_laps: int
+    race_time: int
+    allow_drs: bool
+    selected_car: Optional[str] = None
+    car_pool: Optional[List[str]] = []
+
+class TelemetryConfig(BaseModel):
+    active_fields: List[str]
+
+# --- Persistence ---
+DATA_DIR = os.path.join(os.getcwd(), "data")
+os.makedirs(DATA_DIR, exist_ok=True)
+PRESETS_FILE = os.path.join(DATA_DIR, "presets.json")
+TELEM_CONFIG_FILE = os.path.join(DATA_DIR, "telem_config.json")
+
 # --- Server Orchestration ---
 
 class ServerManager:
@@ -330,6 +352,32 @@ async def update_settings(update: GlobalSettings):
     global global_settings
     global_settings = update
     return {"status": "success", "settings": global_settings}
+
+@app.get("/presets", response_model=List[Preset])
+async def get_presets():
+    if os.path.exists(PRESETS_FILE):
+        with open(PRESETS_FILE, "r") as f:
+            return json.load(f)
+    return []
+
+@app.post("/presets")
+async def save_presets(presets: List[Preset]):
+    with open(PRESETS_FILE, "w") as f:
+        json.dump([p.model_dump() for p in presets], f, indent=4)
+    return {"status": "success"}
+
+@app.get("/telem_config", response_model=TelemetryConfig)
+async def get_telem_config():
+    if os.path.exists(TELEM_CONFIG_FILE):
+        with open(TELEM_CONFIG_FILE, "r") as f:
+            return json.load(f)
+    return {"active_fields": ["velocity", "gforce", "normalized_pos", "gear", "completed_laps", "gas"]}
+
+@app.post("/telem_config")
+async def save_telem_config(config: TelemetryConfig):
+    with open(TELEM_CONFIG_FILE, "w") as f:
+        json.dump(config.model_dump(), f, indent=4)
+    return {"status": "success"}
 
 @app.post("/command")
 async def send_command(command: Command, background_tasks: BackgroundTasks):

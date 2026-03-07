@@ -1,0 +1,19 @@
+[
+    {
+        "id": "1772864794772",
+        "name": "Default",
+        "track": "monza",
+        "weather": "3_clear",
+        "practice_time": 0,
+        "qualy_time": 10,
+        "race_laps": 10,
+        "race_time": 0,
+        "allow_drs": true,
+        "selected_car": "ks_ferrari_488_gt3",
+        "car_pool": [
+            "ks_ferrari_488_gt3",
+            "ks_lamborghini_huracan_gt3",
+            "ks_porsche_911_gt3_r"
+        ]
+    }
+]

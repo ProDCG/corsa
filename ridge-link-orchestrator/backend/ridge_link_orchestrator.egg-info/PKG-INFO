@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: ridge-link-orchestrator
+Version: 1.0.0
+Summary: Centralized orchestration hub for racing simulators
+Requires-Dist: fastapi
+Requires-Dist: uvicorn
+Requires-Dist: pydantic
+Requires-Dist: psutil
+Requires-Dist: sqlalchemy
+Requires-Dist: python-multipart
