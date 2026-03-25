@@ -43,6 +43,18 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
         race_laps = int(str(params.get("race_laps", 10) or 10))
         race_time = int(str(params.get("race_time", 0) or 0))
 
+        # AI settings
+        ai_count = int(str(params.get("ai_count", 0) or 0))
+        ai_difficulty = int(str(params.get("ai_difficulty", 80) or 80))
+        car_pool_raw = params.get("car_pool", [])
+        car_pool: list[str] = list(car_pool_raw) if isinstance(car_pool_raw, list) else [car]
+
+        # AC dedicated server doesn't support AI — force offline if bots requested
+        use_server = bool(params.get("use_server", False))
+        if ai_count > 0 and use_server:
+            logger.info("AI bots requested — switching to offline mode (server doesn't support AI)")
+            use_server = False
+
         if practice_time > 0:
             sessions.append(
                 f"\n[SESSION_{session_id}]\n"
@@ -73,7 +85,7 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
             f"WAIT_TIME=0\n"
         )
 
-        use_server = bool(params.get("use_server", False))
+        total_cars = 1 + ai_count
         server_ip = str(params.get("server_ip", config.orchestrator_ip))
 
         content = (
@@ -82,8 +94,8 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
             f"MODEL={car}\n"
             f"TRACK={track}\n"
             f"CONFIG_TRACK=\n"
-            f"CARS=1\n"
-            f"AI_LEVEL=0\n"
+            f"CARS={total_cars}\n"
+            f"AI_LEVEL={ai_difficulty if ai_count > 0 else 0}\n"
             f"FIXED_SETUP=0\n"
             f"PENALTIES=1\n"
             f"JUMP_START_PENALTY=1\n"
@@ -93,14 +105,35 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
             f"[CAR_0]\n"
             f"MODEL={car}\n"
             f"SKIN=0_official\n"
-            f"DRIVER_NAME=Ridge Racer\n"
+            f"DRIVER_NAME={config.rig_id}\n"
             f"NATIONALITY=Italy\n"
             f"NATION_CODE=ITA\n"
-            f"TEAM=\n"
+            f"TEAM=Ridge Racing\n"
             f"GUID=\n"
             f"BALLAST=0\n"
             f"RESTRICTOR=0\n"
             f"SPECTATOR_MODE=0\n\n"
+        )
+
+        # Add AI opponent entries
+        for i in range(ai_count):
+            ai_car = car_pool[i % len(car_pool)] if car_pool else car
+            content += (
+                f"[CAR_{i + 1}]\n"
+                f"MODEL={ai_car}\n"
+                f"SKIN=\n"
+                f"DRIVER_NAME=AI Driver {i + 1}\n"
+                f"NATIONALITY=Italy\n"
+                f"NATION_CODE=ITA\n"
+                f"TEAM=AI\n"
+                f"GUID=\n"
+                f"BALLAST=0\n"
+                f"RESTRICTOR=0\n"
+                f"SPECTATOR_MODE=0\n"
+                f"AI=auto\n\n"
+            )
+
+        content += (
             f"{''.join(sessions) if not use_server else ''}"
             f"[REMOTE]\n"
             f"ACTIVE={'1' if use_server else '0'}\n"
@@ -122,7 +155,8 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
         with open(cfg_path, "w") as f:
             f.write(content.strip())
 
-        logger.info("Wrote race.ini: CAR=%s TRACK=%s WEATHER=%s", car, track, weather)
+        logger.info("Wrote race.ini: CAR=%s TRACK=%s AI=%d/%d%% SERVER=%s",
+                     car, track, ai_count, ai_difficulty, use_server)
         return cfg_path
 
     except Exception as e:

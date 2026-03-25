@@ -65,6 +65,9 @@ class CommandHandler:
                 "allow_drs": payload.get("allow_drs", True),
                 "use_server": payload.get("use_server", False),
                 "server_ip": payload.get("server_ip") or self.config.orchestrator_ip,
+                "ai_count": payload.get("ai_count", 0),
+                "ai_difficulty": payload.get("ai_difficulty", 80),
+                "car_pool": payload.get("car_pool", []),
             }
             self.agent.launch_race(params)
 

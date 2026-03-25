@@ -105,6 +105,16 @@ def create_router(state: AppState) -> APIRouter:
             else:
                 state.update_rig_field(rig_id, "status", new_status)
                 payload = _prepare_payload(command, rig)
+                # Inject group settings for LAUNCH_RACE
+                if command.action == "LAUNCH_RACE":
+                    payload["track"] = payload.get("track") or group.track
+                    payload["weather"] = payload.get("weather") or group.weather
+                    payload["race_laps"] = payload.get("race_laps") or group.race_laps
+                    payload["practice_time"] = payload.get("practice_time") or group.practice_time
+                    payload["qualy_time"] = payload.get("qualy_time") or group.qualy_time
+                    payload["ai_count"] = group.ai_count
+                    payload["ai_difficulty"] = group.ai_difficulty
+                    payload["car_pool"] = group.car_pool
                 background_tasks.add_task(dispatch_command, str(rig["ip"]), COMMAND_PORT, payload)
                 responses.append(f"Sled {rig_id}")
 

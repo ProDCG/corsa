@@ -103,6 +103,9 @@ class Command(BaseModel):
     use_server: bool = False
     session_time: int | None = None  # Legacy support
     server_ip: str | None = None
+    ai_count: int = 0
+    ai_difficulty: int = 80
+    car_pool: list[str] = Field(default_factory=list)
 
 
 # --- Settings Models ---
