@@ -19,9 +19,23 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
     Returns the path to the generated INI, or None on failure.
     """
     try:
-        car = str(params["car"])
-        track = str(params["track"])
-        weather = str(params["weather"])
+        # Resolve player car with clear fallback chain
+        raw_car = params.get("car")
+        car_pool_raw = params.get("car_pool", [])
+        car_pool: list[str] = list(car_pool_raw) if isinstance(car_pool_raw, list) else []
+
+        if raw_car and str(raw_car) not in ("", "None", "null"):
+            car = str(raw_car)
+            logger.info("Player car from command: %s", car)
+        elif car_pool:
+            car = car_pool[0]
+            logger.info("Player car fallback to car_pool[0]: %s", car)
+        else:
+            car = config.default_car
+            logger.info("Player car fallback to config default: %s", car)
+
+        track = str(params.get("track", "monza"))
+        weather = str(params.get("weather", "3_clear"))
 
         user_profile = os.environ.get("USERPROFILE") or os.path.expanduser("~")
         documents = os.path.join(user_profile, "Documents")
@@ -46,8 +60,9 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
         # AI settings
         ai_count = int(str(params.get("ai_count", 0) or 0))
         ai_difficulty = int(str(params.get("ai_difficulty", 80) or 80))
-        car_pool_raw = params.get("car_pool", [])
-        car_pool: list[str] = list(car_pool_raw) if isinstance(car_pool_raw, list) else [car]
+        # Ensure car_pool has at least the player's car for AI to use
+        if not car_pool:
+            car_pool = [car]
 
         # AC dedicated server doesn't support AI — force offline if bots requested
         use_server = bool(params.get("use_server", False))

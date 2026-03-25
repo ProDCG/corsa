@@ -90,11 +90,19 @@ def create_router(state: AppState) -> APIRouter:
         rig = state.get_rig(rig_id)
         if not rig:
             return {"mode": "lockout", "status": "unknown", "car_pool": []}
+
+        # Find which group this rig belongs to, and use that group's car_pool
+        car_pool: list[str] = list(state.car_pool)  # fallback to global
+        for g in state.get_groups():
+            if rig_id in g.rig_ids:
+                car_pool = list(g.car_pool)
+                break
+
         return {
             "mode": rig.get("mode", "lockout"),
             "status": rig.get("status", "idle"),
             "selected_car": rig.get("selected_car"),
-            "car_pool": state.car_pool,
+            "car_pool": car_pool,
         }
 
     @router.post("/rigs/{rig_id}/mode")
