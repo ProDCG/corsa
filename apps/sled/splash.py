@@ -386,24 +386,52 @@ class DesktopBlocker:
     def _apply_status(self, status: str) -> None:
         """React to status changes from orchestrator."""
         if status == "setup" and self._current_mode == "lockout":
-            # Show car selection
+            # Show car selection — need splash visible
+            self._restore_for_lockout()
             self.update_status("CHOOSE YOUR CAR")
+            # Show cursor for car selection
+            self.root.configure(cursor="hand2")
             if self._car_pool:
                 self._show_car_selection(self._car_pool)
             else:
                 self.update_status("WAITING FOR CAR POOL...")
         elif status == "racing":
+            # HIDE splash completely so AC can render fullscreen
             self._hide_car_selection()
+            self.root.attributes("-topmost", False)
+            self.root.attributes("-fullscreen", False)
+            self.root.overrideredirect(False)
+            self.root.withdraw()
             self.update_status("RACE IN PROGRESS")
+            logger.info("Racing detected — splash hidden for AC")
         elif status == "ready":
             self._hide_car_selection()
+            # Keep splash visible (lockout) but lower behind AC if it opens
+            if self._current_mode == "lockout":
+                self._restore_for_lockout()
             self.update_status("READY — WAITING FOR GREEN LIGHT")
         elif status == "syncing":
             self._hide_car_selection()
             self.update_status("SYNCING MODS...")
         else:
+            # idle / other — restore splash based on mode
             self._hide_car_selection()
+            if self._current_mode == "lockout":
+                self._restore_for_lockout()
             self.update_status("SYSTEMS ONLINE — READY")
+
+    def _restore_for_lockout(self) -> None:
+        """Restore splash to fullscreen lockout state."""
+        try:
+            self.root.deiconify()
+            self.root.overrideredirect(True)
+            self.root.attributes("-fullscreen", True)
+            self.root.attributes("-topmost", True)
+            self.root.configure(cursor="none")
+            self.root.lift()
+            self.root.focus_force()
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------
     # Animation / Display

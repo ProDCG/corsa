@@ -218,12 +218,29 @@ class ACServerManager:
         sessions = []
         session_idx = 0
         if practice_time > 0:
-            sessions.append(f"[SESSION_{session_idx}]\nNAME=Practice\nTYPE=1\nTIME={practice_time}\nIS_OPEN=1\n")
+            sessions.append(
+                f"[SESSION_{session_idx}]\n"
+                f"NAME=Practice\nTYPE=1\nTIME={practice_time}\nIS_OPEN=1\n"
+            )
             session_idx += 1
         if qualy_time > 0:
-            sessions.append(f"[SESSION_{session_idx}]\nNAME=Qualifying\nTYPE=2\nTIME={qualy_time}\nIS_OPEN=1\n")
+            sessions.append(
+                f"[SESSION_{session_idx}]\n"
+                f"NAME=Qualifying\nTYPE=2\nTIME={qualy_time}\nIS_OPEN=1\n"
+            )
             session_idx += 1
-        sessions.append(f"[SESSION_{session_idx}]\nNAME=Race\nTYPE=3\nLAPS={race_laps}\nIS_OPEN=1\n")
+        elif practice_time == 0:
+            # Always include a short qualifying if no practice — prevents floating cars
+            sessions.append(
+                f"[SESSION_{session_idx}]\n"
+                f"NAME=Qualifying\nTYPE=2\nTIME=5\nIS_OPEN=1\n"
+            )
+            session_idx += 1
+        sessions.append(
+            f"[SESSION_{session_idx}]\n"
+            f"NAME=Race\nTYPE=3\nLAPS={race_laps}\nIS_OPEN=1\n"
+            f"WAIT_TIME=30\n"
+        )
 
         session_block = "\n".join(sessions)
 
@@ -238,10 +255,24 @@ class ACServerManager:
             TCP_PORT={tcp_port}
             HTTP_PORT={http_port}
             REGISTER_TO_LOBBY=0
-            PICKUP_MODE_ENABLED=1
+            PICKUP_MODE_ENABLED=0
+            LOCKED_ENTRY_LIST=0
+            LOOP_MODE=0
             SLEEP_TIME=1
             CLIENT_SEND_INTERVAL_HZ=18
             RACE_OVER_TIME=60
+            START_RULE=2
+            ALLOWED_TYRES_OUT=-1
+            TYRE_BLANKETS_ALLOWED=1
+            FUEL_RATE=100
+            DAMAGE_MULTIPLIER=50
+            ABS_ALLOWED=1
+            TC_ALLOWED=1
+            STABILITY_ALLOWED=0
+            AUTOCLUTCH_ALLOWED=1
+            FORCE_VIRTUAL_MIRROR=1
+            MAX_BALLAST_KG=0
+            QUALIFY_MAX_WAIT_PERC=120
             KICK_QUORUM=85
             VOTING_QUORUM=75
             VOTE_DURATION=20
