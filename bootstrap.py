@@ -61,7 +61,8 @@ def setup_frontend() -> None:
         print("  WARNING: Frontend directory not found!")
         return
     print("  Installing frontend dependencies (npm install)...")
-    subprocess.run(["npm", "install"], cwd=frontend_dir, check=True, capture_output=True)
+    npm_cmd = "npm.cmd" if os.name == "nt" else "npm"
+    subprocess.run([npm_cmd, "install"], cwd=frontend_dir, check=True, capture_output=True)
     print("  Frontend ready.")
 
 
