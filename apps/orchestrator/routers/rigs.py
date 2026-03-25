@@ -60,8 +60,9 @@ def create_router(state: AppState) -> APIRouter:
                 if current_status != new_status:
                     logger.info("Rig %s -> %s", rig_id, new_status)
 
-        if update.selected_car:
+        if update.selected_car is not None:
             state.update_rig_field(rig_id, "selected_car", update.selected_car)
+            logger.info("Rig %s car -> %s", rig_id, update.selected_car)
         if update.cpu_temp:
             state.update_rig_field(rig_id, "cpu_temp", update.cpu_temp)
         if update.telemetry:

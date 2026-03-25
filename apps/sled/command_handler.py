@@ -54,8 +54,13 @@ class CommandHandler:
 
         if action == "LAUNCH_RACE":
             self.agent.stop_kiosk()
+            # Resolve car: payload (from orchestrator) > agent selection > None
+            payload_car = payload.get("car")
+            resolved_car = payload_car if (payload_car and str(payload_car) not in ("", "None")) else self.agent.selected_car
+            logger.info("Car resolution: payload=%s, agent=%s, resolved=%s",
+                         payload_car, self.agent.selected_car, resolved_car)
             params = {
-                "car": payload.get("car") or self.agent.selected_car,
+                "car": resolved_car,
                 "track": payload.get("track", "monza"),
                 "weather": payload.get("weather", "3_clear"),
                 "practice_time": payload.get("practice_time", 0),

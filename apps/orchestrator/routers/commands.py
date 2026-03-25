@@ -29,8 +29,11 @@ def create_router(state: AppState) -> APIRouter:
     def _prepare_payload(command: Command, rig: dict[str, object]) -> dict[str, object]:
         """Build the final command payload, injecting car selection if needed."""
         payload = command.model_dump()
-        if not payload.get("car") and rig.get("selected_car"):
-            payload["car"] = rig["selected_car"]
+        # Always inject the rig's selected car from state (this is what the user actually picked)
+        rig_car = rig.get("selected_car")
+        if rig_car and str(rig_car) not in ("", "None"):
+            payload["car"] = str(rig_car)
+            logger.info("Injecting car '%s' for rig %s", rig_car, rig.get("rig_id"))
         return payload
 
     @router.post("/command")
