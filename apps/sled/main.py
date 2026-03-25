@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import signal
 import sys
 
@@ -32,8 +33,9 @@ def main() -> None:
     # Create agent
     agent = RigAgent(config)
 
-    # Start kiosk
-    agent.start_kiosk()
+    # Start kiosk (only if not launched from splash — splash IS the kiosk)
+    if not os.environ.get("RIDGE_NO_KIOSK"):
+        agent.start_kiosk()
 
     # Start heartbeat service
     heartbeat = HeartbeatService(agent, config)

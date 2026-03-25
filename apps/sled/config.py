@@ -36,16 +36,27 @@ class SledConfig(BaseModel):
     standalone_mode: bool = False  # Auto-set when orchestrator is unreachable
 
 
-def load_config(config_path: str = "config.json") -> SledConfig:
+def load_config(config_path: str | None = None) -> SledConfig:
     """Load and validate sled config from a JSON file.
 
-    Returns defaults if the file doesn't exist or is invalid.
+    Searches for config.json next to this module first, then CWD.
+    Returns defaults if no file is found or is invalid.
     """
-    if os.path.exists(config_path):
-        try:
-            with open(config_path) as f:
-                data = json.load(f)
-            return SledConfig(**data)
-        except Exception:
-            pass
+    search_paths = []
+    if config_path:
+        search_paths.append(config_path)
+    # Look next to this file (apps/sled/config.json)
+    module_dir = os.path.dirname(os.path.abspath(__file__))
+    search_paths.append(os.path.join(module_dir, "config.json"))
+    # Also check CWD
+    search_paths.append("config.json")
+
+    for path in search_paths:
+        if os.path.exists(path):
+            try:
+                with open(path) as f:
+                    data = json.load(f)
+                return SledConfig(**data)
+            except Exception:
+                pass
     return SledConfig()
