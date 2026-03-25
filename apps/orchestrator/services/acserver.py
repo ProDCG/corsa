@@ -40,6 +40,8 @@ class ACServerInstance:
     track: str = "monza"
     cars: list[str] = field(default_factory=list)
     max_clients: int = 10
+    ai_count: int = 0
+    ai_difficulty: int = 80
 
 
 class ACServerManager:
@@ -67,6 +69,7 @@ class ACServerManager:
         result: list[dict[str, object]] = []
         for sid, srv in self._servers.items():
             alive = srv.process is not None and srv.process.poll() is None
+            pid = srv.process.pid if srv.process else None
             result.append({
                 "group_id": sid,
                 "group_name": srv.group_name,
@@ -75,6 +78,9 @@ class ACServerManager:
                 "track": srv.track,
                 "cars": srv.cars,
                 "max_clients": srv.max_clients,
+                "ai_count": srv.ai_count,
+                "ai_difficulty": srv.ai_difficulty,
+                "pid": pid,
                 "status": "running" if alive else "stopped",
             })
         return result
@@ -90,6 +96,8 @@ class ACServerManager:
         qualy_time: int = 10,
         max_clients: int = 10,
         weather: str = "3_clear",
+        ai_count: int = 0,
+        ai_difficulty: int = 80,
     ) -> dict[str, object]:
         """Start an AC server for a group. Returns server info."""
         # Kill existing server for this group if running
@@ -110,15 +118,16 @@ class ACServerManager:
         os.makedirs(os.path.join(config_dir, "cfg"), exist_ok=True)
 
         # Generate configs
+        total_slots = max_clients + ai_count
         self._write_server_cfg(
             config_dir, group_name, track, cars, udp_port, tcp_port, http_port,
-            race_laps, practice_time, qualy_time, max_clients, weather,
+            race_laps, practice_time, qualy_time, total_slots, weather,
         )
 
         # Get rigs in this group for entry_list
         group = self.state.get_group(group_id)
         rig_ids = group.rig_ids if group else []
-        self._write_entry_list(config_dir, rig_ids, cars)
+        self._write_entry_list(config_dir, rig_ids, cars, ai_count, ai_difficulty)
 
         # Start acServer.exe
         try:
@@ -138,7 +147,9 @@ class ACServerManager:
                 config_dir=config_dir,
                 track=track,
                 cars=cars,
-                max_clients=max_clients,
+                max_clients=total_slots,
+                ai_count=ai_count,
+                ai_difficulty=ai_difficulty,
             )
             self._servers[group_id] = server
             logger.info("AC server started for '%s' on port %d (PID: %d)", group_name, udp_port, proc.pid)
@@ -255,13 +266,15 @@ class ACServerManager:
 
     def _write_entry_list(
         self, config_dir: str, rig_ids: list[str], cars: list[str],
+        ai_count: int = 0, ai_difficulty: int = 80,
     ) -> None:
-        """Write entry_list.ini — one slot per rig in the group."""
+        """Write entry_list.ini — one slot per rig + AI bots."""
         entries = []
         default_car = cars[0] if cars else "ks_ferrari_488_gt3"
+        idx = 0
 
-        for idx, rig_id in enumerate(rig_ids):
-            # Look up what car this rig has selected
+        # Human player slots
+        for rig_id in rig_ids:
             rig = self.state.get_rig(rig_id)
             car = str(rig.get("selected_car", default_car)) if rig else default_car
             if not car or car == "None":
@@ -278,9 +291,27 @@ class ACServerManager:
                 f"BALLAST=0\n"
                 f"RESTRICTOR=0\n"
             )
+            idx += 1
 
-        # Add a few extra open slots
-        for idx in range(len(rig_ids), len(rig_ids) + 3):
+        # AI bot slots
+        for ai_idx in range(ai_count):
+            ai_car = cars[ai_idx % len(cars)] if cars else default_car
+            entries.append(
+                f"[CAR_{idx}]\n"
+                f"MODEL={ai_car}\n"
+                f"SKIN=\n"
+                f"SPECTATOR_MODE=0\n"
+                f"DRIVERNAME=AI Driver {ai_idx + 1}\n"
+                f"TEAM=AI\n"
+                f"GUID=\n"
+                f"BALLAST=0\n"
+                f"RESTRICTOR=0\n"
+                f"AI=auto\n"
+            )
+            idx += 1
+
+        # Add a few extra open slots for late-joiners
+        for _ in range(3):
             entries.append(
                 f"[CAR_{idx}]\n"
                 f"MODEL={default_car}\n"
@@ -292,6 +323,7 @@ class ACServerManager:
                 f"BALLAST=0\n"
                 f"RESTRICTOR=0\n"
             )
+            idx += 1
 
         entry_path = os.path.join(config_dir, "cfg", "entry_list.ini")
         with open(entry_path, "w") as f:

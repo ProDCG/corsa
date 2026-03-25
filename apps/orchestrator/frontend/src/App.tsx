@@ -100,16 +100,24 @@ function App() {
                 const res = await fetch('/api/rigs')
                 const data = await res.json()
                 if (Array.isArray(data)) {
-                    setRigs(data)
+                    setRigs((prev: Rig[]) => {
+                        const newJson = JSON.stringify(data)
+                        const oldJson = JSON.stringify(prev)
+                        return newJson !== oldJson ? data : prev
+                    })
                 }
 
                 const sRes = await fetch('/api/server/status')
                 const sData = await sRes.json()
-                setServerStatus(sData.status)
+                setServerStatus((prev: string) => sData.status !== prev ? sData.status : prev)
 
                 const lRes = await fetch('/api/leaderboard')
                 const lData = await lRes.json()
-                setLeaderboard(lData)
+                setLeaderboard((prev: any[]) => {
+                    const newJson = JSON.stringify(lData)
+                    const oldJson = JSON.stringify(prev)
+                    return newJson !== oldJson ? lData : prev
+                })
             } catch (err) {
                 console.error("Failed to fetch rigs:", err)
             }
@@ -164,7 +172,7 @@ function App() {
         fetchTelemConfig()
         const interval = setInterval(() => {
             fetchRigs()
-        }, 500)
+        }, 2000)
         return () => clearInterval(interval)
     }, [])
 

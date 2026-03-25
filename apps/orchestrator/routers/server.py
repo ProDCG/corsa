@@ -30,6 +30,8 @@ class StartServerRequest(BaseModel):
     qualy_time: int = 10
     max_clients: int = 10
     weather: str = "3_clear"
+    ai_count: int = 0
+    ai_difficulty: int = 80
 
 
 # Singleton server manager — created when router is bound to state
@@ -78,6 +80,8 @@ def create_router(state: AppState) -> APIRouter:
             qualy_time=req.qualy_time,
             max_clients=req.max_clients,
             weather=req.weather,
+            ai_count=req.ai_count,
+            ai_difficulty=req.ai_difficulty,
         )
 
         if result.get("status") == "success":

@@ -28,6 +28,10 @@ interface ServerInfo {
     track: string
     cars: string[]
     status: string
+    pid: number | null
+    ai_count: number
+    ai_difficulty: number
+    max_clients: number
 }
 
 interface Rig {
@@ -69,7 +73,12 @@ export default function GroupManager({ rigs }: GroupManagerProps) {
         try {
             const res = await fetch('/api/groups/')
             const data = await res.json()
-            if (Array.isArray(data)) setGroups(data)
+            if (Array.isArray(data)) {
+                setGroups(prev => {
+                    const nj = JSON.stringify(data)
+                    return nj !== JSON.stringify(prev) ? data : prev
+                })
+            }
         } catch { /* offline */ }
     }, [])
 
@@ -77,7 +86,12 @@ export default function GroupManager({ rigs }: GroupManagerProps) {
         try {
             const res = await fetch('/api/server/list')
             const data = await res.json()
-            if (Array.isArray(data)) setServers(data)
+            if (Array.isArray(data)) {
+                setServers(prev => {
+                    const nj = JSON.stringify(data)
+                    return nj !== JSON.stringify(prev) ? data : prev
+                })
+            }
         } catch { /* offline */ }
     }, [])
 
@@ -181,6 +195,8 @@ export default function GroupManager({ rigs }: GroupManagerProps) {
                 qualy_time: group.qualy_time,
                 weather: group.weather,
                 max_clients: group.rig_ids.length + group.ai_count + 2,
+                ai_count: group.ai_count,
+                ai_difficulty: group.ai_difficulty,
             })
         })
         const data = await res.json()
@@ -267,8 +283,8 @@ export default function GroupManager({ rigs }: GroupManagerProps) {
                                                 : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
                                         }`}>{group.mode}</span>
                                         {isServerRunning && (
-                                            <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase bg-green-500/20 text-green-400 border border-green-500/30 flex items-center gap-1">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> Live :{serverInfo?.port}
+                                            <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase bg-green-500/20 text-green-400 border border-green-500/30 flex items-center gap-1" title={`PID: ${serverInfo?.pid}`}>
+                                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> Server :{serverInfo?.port} // PID:{serverInfo?.pid} // {serverInfo?.ai_count || 0} AI
                                             </span>
                                         )}
                                     </div>
