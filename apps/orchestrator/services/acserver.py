@@ -234,82 +234,133 @@ class ACServerManager:
         """Write server_cfg.ini for an AC dedicated server."""
         car_str = ";".join(cars) if cars else "ks_ferrari_488_gt3"
 
-        # Build session blocks
-        sessions = []
-        session_idx = 0
-        if practice_time > 0:
-            sessions.append(
-                f"[SESSION_{session_idx}]\n"
-                f"NAME=Practice\nTYPE=1\nTIME={practice_time}\nIS_OPEN=1\n"
-            )
-            session_idx += 1
-        if qualy_time > 0:
-            sessions.append(
-                f"[SESSION_{session_idx}]\n"
-                f"NAME=Qualifying\nTYPE=2\nTIME={qualy_time}\nIS_OPEN=1\n"
-            )
-            session_idx += 1
-        elif practice_time == 0:
-            # Always include a short qualifying if no practice — prevents floating cars
-            sessions.append(
-                f"[SESSION_{session_idx}]\n"
-                f"NAME=Qualifying\nTYPE=2\nTIME=5\nIS_OPEN=1\n"
-            )
-            session_idx += 1
-        sessions.append(
-            f"[SESSION_{session_idx}]\n"
-            f"NAME=Race\nTYPE=3\nLAPS={race_laps}\nIS_OPEN=1\n"
-            f"WAIT_TIME=30\n"
+        cfg = (
+            f"[SERVER]\n"
+            f"NAME=Ridge - {name}\n"
+            f"CARS={car_str}\n"
+            f"CONFIG_TRACK=\n"
+            f"TRACK={track}\n"
+            f"SUN_ANGLE=48\n"
+            f"PASSWORD=\n"
+            f"ADMIN_PASSWORD=ridgeadmin\n"
+            f"UDP_PORT={udp_port}\n"
+            f"TCP_PORT={tcp_port}\n"
+            f"HTTP_PORT={http_port}\n"
+            f"MAX_BALLAST_KG=0\n"
+            f"QUALIFY_MAX_WAIT_PERC=120\n"
+            f"PICKUP_MODE_ENABLED=1\n"
+            f"LOOP_MODE=1\n"
+            f"SLEEP_TIME=1\n"
+            f"CLIENT_SEND_INTERVAL_HZ=18\n"
+            f"SEND_BUFFER_SIZE=0\n"
+            f"RECV_BUFFER_SIZE=0\n"
+            f"RACE_OVER_TIME=180\n"
+            f"KICK_QUORUM=85\n"
+            f"VOTING_QUORUM=80\n"
+            f"VOTE_DURATION=20\n"
+            f"BLACKLIST_MODE=1\n"
+            f"FUEL_RATE=100\n"
+            f"DAMAGE_MULTIPLIER=100\n"
+            f"TYRE_WEAR_RATE=100\n"
+            f"ALLOWED_TYRES_OUT=2\n"
+            f"ABS_ALLOWED=1\n"
+            f"TC_ALLOWED=1\n"
+            f"START_RULE=0\n"
+            f"STABILITY_ALLOWED=0\n"
+            f"AUTOCLUTCH_ALLOWED=0\n"
+            f"TYRE_BLANKETS_ALLOWED=0\n"
+            f"FORCE_VIRTUAL_MIRROR=1\n"
+            f"REGISTER_TO_LOBBY=0\n"
+            f"MAX_CLIENTS={max_clients}\n"
+            f"NUM_THREADS=2\n"
+            f"UDP_PLUGIN_LOCAL_PORT=\n"
+            f"UDP_PLUGIN_ADDRESS=\n"
+            f"AUTH_PLUGIN_ADDRESS=\n"
+            f"RACE_GAS_PENALTY_DISABLED=0\n"
+            f"RACE_EXTRA_LAP=0\n"
+            f"REVERSED_GRID_RACE_POSITIONS=0\n"
+            f"RESULT_SCREEN_TIME=60\n"
+            f"CM_RACE_PIT_WINDOW_START_OFF=0\n"
+            f"CM_RACE_PIT_WINDOW_END_OFF=0\n"
+            f"LOCKED_ENTRY_LIST=0\n"
+            f"TIME_OF_DAY_MULT=1\n"
+            f"MAX_CONTACTS_PER_KM=-1\n"
+            f"\n"
+            f"[FTP]\n"
+            f"HOST=\n"
+            f"LOGIN=\n"
+            f"PASSWORD=\n"
+            f"FOLDER=\n"
+            f"LINUX=0\n"
+            f"CM_CLEAR_BEFORE_UPLOAD=0\n"
+            f"CM_DATA_ONLY=1\n"
+            f"\n"
         )
 
-        session_block = "\n".join(sessions)
+        # Practice session
+        if practice_time > 0:
+            cfg += (
+                f"[PRACTICE]\n"
+                f"NAME=Practice\n"
+                f"TIME={practice_time}\n"
+                f"IS_OPEN=1\n"
+                f"\n"
+            )
 
-        cfg = textwrap.dedent(f"""\
-            [SERVER]
-            NAME=Ridge - {name}
-            CARS={car_str}
-            TRACK={track}
-            CONFIG_TRACK=
-            MAX_CLIENTS={max_clients}
-            UDP_PORT={udp_port}
-            TCP_PORT={tcp_port}
-            HTTP_PORT={http_port}
-            REGISTER_TO_LOBBY=0
-            PICKUP_MODE_ENABLED=0
-            LOCKED_ENTRY_LIST=0
-            LOOP_MODE=0
-            SLEEP_TIME=1
-            CLIENT_SEND_INTERVAL_HZ=18
-            RACE_OVER_TIME=60
-            START_RULE=2
-            ALLOWED_TYRES_OUT=-1
-            TYRE_BLANKETS_ALLOWED=1
-            FUEL_RATE=100
-            DAMAGE_MULTIPLIER=50
-            ABS_ALLOWED=1
-            TC_ALLOWED=1
-            STABILITY_ALLOWED=0
-            AUTOCLUTCH_ALLOWED=1
-            FORCE_VIRTUAL_MIRROR=1
-            MAX_BALLAST_KG=0
-            QUALIFY_MAX_WAIT_PERC=120
-            KICK_QUORUM=85
-            VOTING_QUORUM=75
-            VOTE_DURATION=20
+        # Qualifying session
+        if qualy_time > 0:
+            cfg += (
+                f"[CM_QUALIFY_OFF]\n"
+                f"NAME=Qualify\n"
+                f"TIME={qualy_time}\n"
+                f"IS_OPEN=1\n"
+                f"\n"
+            )
 
-            [WEATHER_0]
-            GRAPHICS={weather}
-            BASE_TEMPERATURE_AMBIENT=22
-            BASE_TEMPERATURE_ROAD=28
-
-            [DYNAMIC_TRACK]
-            SESSION_START=95
-            RANDOMNESS=2
-            SESSION_TRANSFER=90
-            LAP_GAIN=1
-
-            {session_block}
-        """)
+        # Race session
+        cfg += (
+            f"[CM_RACE_OFF]\n"
+            f"NAME=Race\n"
+            f"TIME=0\n"
+            f"IS_OPEN=1\n"
+            f"WAIT_TIME=60\n"
+            f"LAPS={race_laps}\n"
+            f"CM_TIME_OFF=10\n"
+            f"\n"
+            f"[DYNAMIC_TRACK]\n"
+            f"SESSION_START=95\n"
+            f"RANDOMNESS=2\n"
+            f"SESSION_TRANSFER=90\n"
+            f"LAP_GAIN=10\n"
+            f"\n"
+            f"[WEATHER_0]\n"
+            f"GRAPHICS={weather}\n"
+            f"BASE_TEMPERATURE_AMBIENT=18\n"
+            f"BASE_TEMPERATURE_ROAD=6\n"
+            f"VARIATION_AMBIENT=1\n"
+            f"VARIATION_ROAD=1\n"
+            f"WIND_BASE_SPEED_MIN=0\n"
+            f"WIND_BASE_SPEED_MAX=0\n"
+            f"WIND_BASE_DIRECTION=0\n"
+            f"WIND_VARIATION_DIRECTION=0\n"
+            f"\n"
+            f"[DATA]\n"
+            f"DESCRIPTION=\n"
+            f"EXSERVEREXE=\n"
+            f"EXSERVERBAT=\n"
+            f"EXSERVERHIDEWIN=0\n"
+            f"WEBLINK=\n"
+            f"WELCOME_PATH=\n"
+            f"\n"
+            f"[CM_BOOK_OFF]\n"
+            f"NAME=Booking\n"
+            f"TIME=10\n"
+            f"IS_OPEN=1\n"
+            f"\n"
+            f"[CM_SERVER]\n"
+            f"DISABLE_CHECKSUMS=0\n"
+            f"REGISTER_TO_CM_LOBBY=1\n"
+        )
 
         cfg_path = os.path.join(config_dir, "cfg", "server_cfg.ini")
         with open(cfg_path, "w") as f:

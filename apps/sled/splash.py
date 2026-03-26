@@ -113,21 +113,13 @@ class DesktopBlocker:
         # Draw branding
         self._draw_splash()
 
-        # Rig ID label (large, bottom area)
-        self.canvas.create_text(
-            self.sw // 2, self.sh - 140,
-            text=self.rig_id,
-            font=("Arial", 28, "bold italic"),
-            fill=BRAND_COLOR,
-            tags="branding",
-        )
-
-        # Status label
+        # Status label — bottom-left, right below rig ID
         self.status_text = self.canvas.create_text(
-            self.sw // 2, self.sh // 2 + 80,
+            30, self.sh - 30,
             text="INITIALIZING SYSTEMS...",
-            font=("Arial", 12, "bold"),
-            fill="#666666",
+            font=("Arial", 9, "bold"),
+            fill="#444444",
+            anchor="w",
             tags="branding",
         )
 
@@ -138,15 +130,6 @@ class DesktopBlocker:
             font=("Arial", 8, "bold"),
             fill="#333333",
             anchor="ne",
-            tags="branding",
-        )
-
-        # Connection info label
-        self.canvas.create_text(
-            self.sw // 2, self.sh - 100,
-            text=f"ADMIN: {self.orchestrator_ip}",
-            font=("Arial", 8, "bold"),
-            fill="#333333",
             tags="branding",
         )
 
@@ -166,7 +149,7 @@ class DesktopBlocker:
         # Top accent line
         self.canvas.create_rectangle(0, 0, sw, 3, fill=BRAND_COLOR, outline="", tags="branding")
 
-        # Main title
+        # Main title — centered
         self.canvas.create_text(
             sw // 2, sh // 2 - 60,
             text="RIDGE",
@@ -182,34 +165,38 @@ class DesktopBlocker:
             tags="branding",
         )
 
-        # Collaboration line
+        # Version tagline — centered below title
         self.canvas.create_text(
-            sw // 2, sh // 2 + 50,
-            text="RIDGE MEDIA  |  TALBOT MEDIA",
-            font=("Arial", 10, "bold"),
-            fill="#888888",
-            tags="branding",
-        )
-
-        # Version tagline
-        self.canvas.create_text(
-            sw // 2, sh // 2 + 72,
+            sw // 2, sh // 2 + 55,
             text="POWERED BY RIDGE-LINK v2.0",
             font=("Arial", 8, "bold"),
             fill="#333333",
             tags="branding",
         )
 
-        # Bottom accent line
-        self.canvas.create_rectangle(
-            sw // 4, sh - 60, sw * 3 // 4, sh - 58,
-            fill=BRAND_COLOR, outline="",
+        # --- Bottom-right: media collaboration logos ---
+        self.canvas.create_text(
+            sw - 30, sh - 40,
+            text="RIDGE MEDIA  |  TALBOT MEDIA",
+            font=("Arial", 10, "bold"),
+            fill="#555555",
+            anchor="e",
             tags="branding",
         )
 
-        # Exit hint (always visible — very dark so customers can't see it)
+        # --- Bottom-left: rig identifier ---
         self.canvas.create_text(
-            sw // 2, sh - 30,
+            30, sh - 55,
+            text=self.rig_id,
+            font=("Arial", 18, "bold italic"),
+            fill=BRAND_COLOR,
+            anchor="w",
+            tags="branding",
+        )
+
+        # Exit hint (very dark so customers can't see it)
+        self.canvas.create_text(
+            sw // 2, sh - 10,
             text="Ctrl+Shift+Q to exit  |  Ctrl+Shift+D for dev mode  |  Esc x5 to quit",
             font=("Arial", 7),
             fill="#1a1a1a",

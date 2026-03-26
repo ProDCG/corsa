@@ -131,7 +131,7 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
             f"FIXED_SETUP=0\n"
             f"PENALTIES=1\n"
             f"JUMP_START_PENALTY=1\n"
-            f"AUTO_START=1\n"
+            f"AUTO_START=0\n"
             f"OPEN_CONTROL_CONFIG=0\n"
             f"CONF_MODE=\n\n"
             f"[CAR_0]\n"
