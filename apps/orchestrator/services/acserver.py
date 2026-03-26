@@ -118,7 +118,7 @@ class ACServerManager:
         config_dir = os.path.join(self._work_dir, group_id)
         os.makedirs(os.path.join(config_dir, "cfg"), exist_ok=True)
 
-        # Generate configs
+        # Generate configs into the per-group working directory (for reference)
         total_slots = max_clients + ai_count
         self._write_server_cfg(
             config_dir, group_name, track, cars, udp_port, tcp_port, http_port,
@@ -130,19 +130,30 @@ class ACServerManager:
         rig_ids = group.rig_ids if group else []
         self._write_entry_list(config_dir, rig_ids, cars, ai_count, ai_difficulty)
 
-        # Copy acServer.exe into config_dir so it finds cfg/ relative to itself
-        local_exe = os.path.join(config_dir, os.path.basename(self.ac_server_exe))
-        try:
-            shutil.copy2(self.ac_server_exe, local_exe)
-        except Exception as e:
-            logger.error("Failed to copy acServer.exe to %s: %s", config_dir, e)
-            return {"status": "error", "message": f"Could not copy server binary: {e}"}
+        # AC dedicated server reads cfg/ relative to its own exe location,
+        # so we ALSO write configs into the server's own directory.
+        ac_server_dir = os.path.dirname(self.ac_server_exe)
+        ac_cfg_dir = os.path.join(ac_server_dir, "cfg")
+        os.makedirs(ac_cfg_dir, exist_ok=True)
 
-        # Start acServer.exe from config_dir
+        try:
+            shutil.copy2(
+                os.path.join(config_dir, "cfg", "server_cfg.ini"),
+                os.path.join(ac_cfg_dir, "server_cfg.ini"),
+            )
+            shutil.copy2(
+                os.path.join(config_dir, "cfg", "entry_list.ini"),
+                os.path.join(ac_cfg_dir, "entry_list.ini"),
+            )
+        except Exception as e:
+            logger.error("Failed to copy configs to server dir: %s", e)
+            return {"status": "error", "message": f"Could not write server configs: {e}"}
+
+        # Launch acServer.exe from its own directory
         try:
             proc = subprocess.Popen(
-                [local_exe],
-                cwd=config_dir,
+                [self.ac_server_exe],
+                cwd=ac_server_dir,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 creationflags=subprocess.CREATE_NO_WINDOW if IS_WINDOWS else 0,  # type: ignore[attr-defined]
