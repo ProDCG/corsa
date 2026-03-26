@@ -64,11 +64,13 @@ class HeartbeatService:
                 base_url = f"http://{self.config.orchestrator_ip}:8000"
 
                 # --- Post status + telemetry ---
+                # NOTE: Do NOT send selected_car here! The orchestrator
+                # is the source of truth for car selection (set by dashboard).
+                # Sending it here would overwrite the user's dashboard pick.
                 payload = {
                     "rig_id": self.config.rig_id,
                     "status": self.agent.status,
                     "cpu_temp": self.agent.get_cpu_temp(),
-                    "selected_car": self.agent.selected_car,
                     "telemetry": self.agent.telemetry_data,
                     "ip": _get_local_ip(),
                 }
@@ -108,8 +110,13 @@ class HeartbeatService:
                                     None,
                                 )
                                 if my_rig:
-                                    if my_rig.get("selected_car"):
-                                        self.agent.selected_car = my_rig["selected_car"]
+                                    # Always sync car from orchestrator (dashboard is source of truth)
+                                    orch_car = my_rig.get("selected_car")
+                                    if orch_car and str(orch_car) not in ("", "None"):
+                                        if self.agent.selected_car != orch_car:
+                                            logger.info("Car synced from orchestrator: %s -> %s",
+                                                         self.agent.selected_car, orch_car)
+                                            self.agent.selected_car = str(orch_car)
                                     if my_rig.get("status") == "ready":
                                         self.agent.status = "ready"
                         except requests.RequestException:

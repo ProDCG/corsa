@@ -60,9 +60,13 @@ def create_router(state: AppState) -> APIRouter:
                 if current_status != new_status:
                     logger.info("Rig %s -> %s", rig_id, new_status)
 
-        if update.selected_car is not None:
-            state.update_rig_field(rig_id, "selected_car", update.selected_car)
-            logger.info("Rig %s car -> %s", rig_id, update.selected_car)
+        # Only accept car selection from explicit selection calls, NOT heartbeats.
+        # Heartbeats include cpu_temp/telemetry — car picks never do.
+        is_heartbeat = update.cpu_temp is not None or update.telemetry is not None
+        if update.selected_car is not None and not is_heartbeat:
+            if str(update.selected_car) not in ("", "None"):
+                state.update_rig_field(rig_id, "selected_car", update.selected_car)
+                logger.info("Rig %s car -> %s (explicit selection)", rig_id, update.selected_car)
         if update.cpu_temp:
             state.update_rig_field(rig_id, "cpu_temp", update.cpu_temp)
         if update.telemetry:
