@@ -607,35 +607,7 @@ export default function GroupManager({ rigs }: GroupManagerProps) {
                             </div>
                         )}
 
-                        {/* Car Pool */}
-                        <div className="glass rounded-2xl p-5 border border-white/10">
-                            <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-3">
-                                <Car size={10} /> Available Cars
-                            </label>
-                            <div className="flex flex-wrap gap-2">
-                                {cars.map(car => {
-                                    const active = selectedGroup.car_pool.includes(car.id)
-                                    return (
-                                        <button
-                                            key={car.id}
-                                            onClick={() => {
-                                                const updated = active
-                                                    ? selectedGroup.car_pool.filter(c => c !== car.id)
-                                                    : [...selectedGroup.car_pool, car.id]
-                                                updateGroup(selectedGroup.id, { car_pool: updated.length > 0 ? updated : [car.id] })
-                                            }}
-                                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all border ${
-                                                active
-                                                    ? 'bg-ridge-brand/15 border-ridge-brand/40 text-ridge-brand shadow-sm shadow-ridge-brand/10'
-                                                    : 'bg-white/3 border-white/5 text-white/20 hover:text-white/40 hover:border-white/15'
-                                            }`}
-                                        >
-                                            <span className="opacity-50 mr-1">{car.brand}</span> {car.name.replace(car.brand + ' ', '')}
-                                        </button>
-                                    )
-                                })}
-                            </div>
-                        </div>
+
                     </div>
                 ) : (
                     /* Empty state */

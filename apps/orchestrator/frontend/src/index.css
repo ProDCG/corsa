@@ -32,3 +32,14 @@ body {
 .status-glow-racing {
   box-shadow: 0 0 15px rgba(255, 59, 48, 0.5);
 }
+
+/* Dark dropdown backgrounds for all select elements */
+select,
+select option {
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
+select option:checked {
+  background-color: #333333;
+}

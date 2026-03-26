@@ -1,4 +1,4 @@
-import { Activity, Cpu, Monitor, Zap, Power, RotateCcw, Play, Check, Image, Car, Settings2, Flag, Clock, ShieldCheck, LayoutGrid, Users, Lock, Unlock } from 'lucide-react'
+import { Activity, Cpu, Monitor, Zap, Power, RotateCcw, Play, Check, Image, Car, Settings2, Flag, Clock, ShieldCheck, LayoutGrid, Users, Lock, Unlock, Wrench } from 'lucide-react'
 import Kiosk from './Kiosk'
 import Lobby from './Lobby'
 import GroupManager from './components/GroupManager'
@@ -42,7 +42,10 @@ function App() {
         return <Lobby />
     }
 
-    const [activeTab, setActiveTab] = useState<'sims' | 'media' | 'cars' | 'race' | 'monitor' | 'leaderboard' | 'groups'>('sims')
+    const [activeTab, setActiveTab] = useState<'sims' | 'media' | 'cars' | 'monitor' | 'leaderboard' | 'groups' | 'settings'>('sims')
+
+    // Dynamic car catalog from backend
+    const [catalogCars, setCatalogCars] = useState<{id: string; name: string; brand: string; car_class: string}[]>([])
     const [rigs, setRigs] = useState<Rig[]>([])
 
     // Global Session & Race Settings
@@ -166,11 +169,22 @@ function App() {
             }
         }
 
+        const fetchCatalogs = async () => {
+            try {
+                const res = await fetch('/api/catalogs')
+                const data = await res.json()
+                if (data.cars) setCatalogCars(data.cars)
+            } catch (err) {
+                console.error("Failed to fetch catalogs:", err)
+            }
+        }
+
         fetchRigs()
         fetchCarPool()
         fetchBranding()
         fetchPresets()
         fetchTelemConfig()
+        fetchCatalogs()
         const interval = setInterval(() => {
             fetchRigs()
         }, 2000)
@@ -369,8 +383,8 @@ function App() {
                     <SidebarItem id="leaderboard" icon={Flag} label="Standings" />
                     <SidebarItem id="cars" icon={Car} label="Cars" />
                     <SidebarItem id="groups" icon={Users} label="Groups" />
-                    <SidebarItem id="race" icon={Settings2} label="Race Control" />
                     <SidebarItem id="media" icon={Image} label="Media" />
+                    <SidebarItem id="settings" icon={Wrench} label="Settings" />
                 </div>
 
                 <div className="mt-auto">
@@ -394,7 +408,8 @@ function App() {
                                             activeTab === 'monitor' ? 'Telemetry Feed' :
                                                 activeTab === 'leaderboard' ? 'Facility Standings' :
                                                     activeTab === 'groups' ? 'Rig Groups' :
-                                                        'Race Control'
+                                                        activeTab === 'settings' ? 'System Settings' :
+                                                            'Ridge-Link'
                             }</span>
                         </h1>
                         <p className="text-white/30 font-mono text-[10px] uppercase tracking-widest leading-none mt-1">
@@ -500,214 +515,23 @@ function App() {
                         <GroupManager rigs={rigs} />
                     )}
 
-                    {/* RACE MANAGER VIEW */}
-                    {activeTab === 'race' && (
-                        <div className="max-w-4xl space-y-8">
-                            <div className="bg-white/5 border border-white/10 rounded-3xl p-8 mb-8">
-                                <div className="flex items-center justify-between mb-8">
-                                    <div>
-                                        <h2 className="text-2xl font-black italic uppercase tracking-tighter">Event Orchestration</h2>
-                                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Master Control</p>
-                                    </div>
-                                    <div className="flex gap-4">
-                                        <button
-                                            onClick={() => setRaceSettings({ ...raceSettings, useMultiplayer: !raceSettings.useMultiplayer })}
-                                            className={`px-6 py-2 rounded-full border-2 text-[10px] font-black uppercase tracking-widest transition-all ${raceSettings.useMultiplayer
-                                                ? 'bg-ridge-brand/20 border-ridge-brand text-ridge-brand'
-                                                : 'bg-white/5 border-white/10 text-white/30'
-                                                }`}
-                                        >
-                                            {raceSettings.useMultiplayer ? 'MULTIPLAYER ON' : 'LOCAL RACES ONLY'}
-                                        </button>
-                                        <button
-                                            onClick={() => sendGlobalCommand('LAUNCH_RACE')}
-                                            className="bg-ridge-brand hover:bg-orange-600 px-8 py-3 rounded-full flex items-center gap-3 transition-all group scale-110 shadow-2xl shadow-ridge-brand/20"
-                                        >
-                                            <Play className="w-5 h-5 fill-white group-hover:scale-110 transition-transform" />
-                                            <span className="font-black italic uppercase tracking-tighter text-sm">Deploy Session</span>
-                                        </button>
-                                    </div>
-                                </div>
 
-                                <div className="grid grid-cols-4 gap-4">
-                                    <div className={`p-4 rounded-2xl border transition-all ${serverStatus === 'online' ? 'bg-green-500/10 border-green-500/50' : 'bg-white/5 border-white/5'}`}>
-                                        <p className="text-[8px] font-black uppercase opacity-40 mb-1">Server Status</p>
-                                        <p className={`font-black uppercase tracking-widest ${serverStatus === 'online' ? 'text-green-500' : 'text-zinc-600'}`}>{serverStatus}</p>
-                                    </div>
-                                    <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
-                                        <p className="text-[8px] font-black uppercase opacity-40 mb-1">Circuit</p>
-                                        <p className="font-black uppercase tracking-widest text-ridge-brand">{raceSettings.selected_track}</p>
-                                    </div>
-                                    <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
-                                        <p className="text-[8px] font-black uppercase opacity-40 mb-1">DRS System</p>
-                                        <p className={`font-black uppercase tracking-widest ${raceSettings.allow_drs ? 'text-green-500' : 'text-red-500'}`}>{raceSettings.allow_drs ? 'ACTIVE' : 'RESTR'}</p>
-                                    </div>
-                                    <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
-                                        <p className="text-[8px] font-black uppercase opacity-40 mb-1">Cars Prepared</p>
-                                        <p className="font-black uppercase tracking-widest">{rigs.filter(r => r.status === 'ready').length} / {rigs.length}</p>
-                                    </div>
-                                </div>
-                            </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="glass rounded-3xl p-8 border border-white/10">
-                                    <h2 className="text-xl font-black italic uppercase mb-6 flex items-center gap-2"><Flag className="text-ridge-brand" size={20} /> Circuit & Atmosphere</h2>
-                                    <div className="space-y-6">
-                                        <div>
-                                            <label className="block text-[10px] uppercase font-black text-white/40 mb-2">Target Circuit</label>
-                                            <select
-                                                value={raceSettings.selected_track}
-                                                onChange={(e) => setRaceSettings({ ...raceSettings, selected_track: e.target.value })}
-                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-ridge-brand transition-all font-bold italic appearance-none"
-                                            >
-                                                <option value="monza">Monza - Grand Prix</option>
-                                                <option value="spa">Spa-Francorchamps</option>
-                                                <option value="nordschleife">Nürburgring Nordschleife</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] uppercase font-black text-white/40 mb-2">Environment / Weather</label>
-                                            <select
-                                                value={raceSettings.selected_weather}
-                                                onChange={(e) => setRaceSettings({ ...raceSettings, selected_weather: e.target.value })}
-                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-ridge-brand transition-all font-bold italic appearance-none"
-                                            >
-                                                <option value="0_sun">01 - Clear Sun</option>
-                                                <option value="1_nosun">02 - No Sun</option>
-                                                <option value="2_clouds">03 - Overcast</option>
-                                                <option value="3_clear">04 - Optimum (Clear)</option>
-                                                <option value="4_mid_clouds">05 - Mid Clouds</option>
-                                                <option value="5_light_clouds">06 - Light Clouds</option>
-                                                <option value="6_heavy_clouds">07 - Heavy Clouds</option>
-                                            </select>
-                                        </div>
-                                        <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10">
-                                            <div>
-                                                <p className="font-black italic uppercase text-sm">DRS System Availability</p>
-                                                <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Global Regulation Flag</p>
-                                            </div>
-                                            <button
-                                                onClick={() => setRaceSettings({ ...raceSettings, allow_drs: !raceSettings.allow_drs })}
-                                                className={`w-14 h-8 rounded-full relative transition-all ${raceSettings.allow_drs ? 'bg-ridge-brand' : 'bg-zinc-800'}`}
-                                            >
-                                                <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all ${raceSettings.allow_drs ? 'left-7' : 'left-1'}`} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                        <div>
-                                            <label className="block text-[10px] uppercase font-black text-white/40 mb-2">Content Folder (Admin Share Path)</label>
-                                            <input
-                                                type="text"
-                                                value={raceSettings.content_folder}
-                                                onChange={(e) => setRaceSettings({ ...raceSettings, content_folder: e.target.value })}
-                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-ridge-brand transition-all font-bold font-mono text-xs"
-                                                placeholder="C:\RidgeContent or \\ADMIN-PC\RidgeContent"
-                                            />
-                                        </div>
-                                </div>
-
-                                <div className="glass rounded-3xl p-8 border border-white/10">
-                                    <h2 className="text-xl font-black italic uppercase mb-6 flex items-center gap-2"><Clock className="text-ridge-brand" size={20} /> Session Timing</h2>
-                                    <div className="space-y-6">
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-[10px] uppercase font-black text-white/40 mb-2">Practice (Min)</label>
-                                                <input
-                                                    type="number"
-                                                    value={raceSettings.practice_time}
-                                                    onChange={(e) => setRaceSettings({ ...raceSettings, practice_time: parseInt(e.target.value) })}
-                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 outline-none focus:border-ridge-brand transition-all font-bold font-mono"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] uppercase font-black text-white/40 mb-2">Qualifying (Min)</label>
-                                                <input
-                                                    type="number"
-                                                    value={raceSettings.qualy_time}
-                                                    onChange={(e) => setRaceSettings({ ...raceSettings, qualy_time: parseInt(e.target.value) })}
-                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 outline-none focus:border-ridge-brand transition-all font-bold font-mono"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] uppercase font-black text-white/40 mb-2">Race Length (Laps)</label>
-                                            <input
-                                                type="number"
-                                                value={raceSettings.race_laps}
-                                                onChange={(e) => setRaceSettings({ ...raceSettings, race_laps: parseInt(e.target.value) })}
-                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-ridge-brand transition-all font-bold font-mono text-xl"
-                                            />
-                                        </div>
-                                        <div className="bg-ridge-brand/10 border border-ridge-brand/30 p-4 rounded-2xl flex items-start gap-4">
-                                            <div className="p-2 bg-ridge-brand rounded-lg"><Flag size={16} /></div>
-                                            <div>
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-ridge-brand mb-1">Session Summary</p>
-                                                <p className="text-xs text-white/70 leading-relaxed font-medium capitalize">
-                                                    Race will run {raceSettings.practice_time > 0 ? `${raceSettings.practice_time}m Practice, ` : ''}{raceSettings.qualy_time > 0 ? `${raceSettings.qualy_time}m Qualy, ` : ''}followed by a {raceSettings.race_laps} Lap Grand Prix.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* PRESETS SECTION */}
-                            <div className="bg-white/5 border border-white/10 rounded-3xl p-8">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h2 className="text-xl font-black italic uppercase flex items-center gap-2">
-                                        <ShieldCheck className="text-ridge-brand" size={24} /> Configuration Presets
-                                    </h2>
-                                    <button
-                                        onClick={() => {
-                                            const name = prompt("Enter a name for this preset:");
-                                            if (name) saveCurrentAsPreset(name);
-                                        }}
-                                        className="bg-white/10 hover:bg-white/20 px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all"
-                                    >
-                                        Save Current as Preset
-                                    </button>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {presets.map(preset => (
-                                        <div key={preset.id} className="bg-black/20 border border-white/5 p-4 rounded-2xl group relative">
-                                            <div className="flex justify-between items-center mb-3">
-                                                <h4 className="font-black italic uppercase text-sm text-ridge-brand">{preset.name}</h4>
-                                                <div className="flex gap-2">
-                                                    <button onClick={() => applyPreset(preset)} className="text-green-500 hover:scale-110 transition-transform"><Check size={16} /></button>
-                                                    <button onClick={() => deletePreset(preset.id)} className="text-red-500 hover:scale-110 transition-transform opacity-0 group-hover:opacity-100"><Power size={14} /></button>
-                                                </div>
-                                            </div>
-                                            <div className="text-[8px] font-bold uppercase tracking-widest text-white/30 space-y-1">
-                                                <p>{preset.track.toUpperCase()} // ENV {preset.weather.split('_').slice(1).join(' ')}</p>
-                                                <p>{preset.race_laps} Laps | {preset.qualy_time}m Qualy | DRS: {preset.allow_drs ? 'ON' : 'OFF'}</p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {presets.length === 0 && (
-                                        <div className="col-span-full py-8 text-center text-white/10 italic text-[10px] uppercase font-black tracking-widest px-4 border border-dashed border-white/5 rounded-2xl">
-                                            No saved presets found. Configure a setup above and click "Save Current"
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* CAR POOL VIEW */}
+                    {/* CAR POOL VIEW — globally available cars for all groups */}
                     {activeTab === 'cars' && (
                         <div className="max-w-5xl">
                             <div className="flex items-center justify-between mb-8">
                                 <div>
                                     <h2 className="text-xl font-black italic uppercase">Fleet Authorization</h2>
-                                    <p className="text-xs text-white/40 uppercase tracking-widest font-bold">Manage available vehicle classes for customer selection</p>
+                                    <p className="text-xs text-white/40 uppercase tracking-widest font-bold">Enable or disable cars available across all groups</p>
                                 </div>
                                 <div className="text-right">
                                     <p className="text-xs font-black uppercase text-white/40">Authorized</p>
-                                    <p className="text-2xl font-black italic text-ridge-brand">{activeCarPool.length} / {ALL_CARS.length}</p>
+                                    <p className="text-2xl font-black italic text-ridge-brand">{activeCarPool.length} / {catalogCars.length || ALL_CARS.length}</p>
                                 </div>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                {ALL_CARS.map((car: { id: string; name: string }) => (
+                                {(catalogCars.length > 0 ? catalogCars : ALL_CARS.map(c => ({...c, brand: '', car_class: ''}))).map((car) => (
                                     <button
                                         key={car.id}
                                         onClick={() => toggleCarInPool(car.id)}
@@ -720,7 +544,10 @@ function App() {
                                             <Car size={32} className={`transition-all ${activeCarPool.includes(car.id) ? 'text-ridge-brand' : 'opacity-20'}`} />
                                             {activeCarPool.includes(car.id) ? <Check className="text-ridge-brand" size={16} /> : <Zap size={16} className="opacity-10" />}
                                         </div>
-                                        <span className={`font-black italic uppercase text-xs tracking-tighter ${activeCarPool.includes(car.id) ? 'text-white' : 'group-hover:text-white/40 transition-colors'}`}>{car.name}</span>
+                                        <div>
+                                            {car.brand && <span className="text-[8px] font-bold uppercase text-white/30 block">{car.brand}</span>}
+                                            <span className={`font-black italic uppercase text-xs tracking-tighter ${activeCarPool.includes(car.id) ? 'text-white' : 'group-hover:text-white/40 transition-colors'}`}>{car.name}</span>
+                                        </div>
                                         {activeCarPool.includes(car.id) && <div className="absolute -right-2 -bottom-2 w-12 h-12 bg-ridge-brand/20 blur-xl rounded-full" />}
                                     </button>
                                 ))}
@@ -774,7 +601,7 @@ function App() {
                                                         <div className="bg-black/20 p-4 rounded-2xl border border-white/5">
                                                             <p className="text-[8px] font-black uppercase opacity-40 mb-1">Velocity</p>
                                                             <div className="flex items-baseline gap-2">
-                                                                <span className="text-2xl font-black italic tabular-nums">{rig.telemetry.velocity[0]}</span>
+                                                                <span className="text-2xl font-black italic tabular-nums">{rig.telemetry?.velocity?.[0] ?? 0}</span>
                                                                 <span className="text-[10px] font-bold text-ridge-brand">KM/H</span>
                                                             </div>
                                                         </div>
@@ -783,7 +610,7 @@ function App() {
                                                         <div className="bg-black/20 p-4 rounded-2xl border border-white/5">
                                                             <p className="text-[8px] font-black uppercase opacity-40 mb-1">Force (G-Lat)</p>
                                                             <div className="flex items-baseline gap-2">
-                                                                <span className="text-2xl font-black italic tabular-nums">{rig.telemetry.gforce[0]}</span>
+                                                                <span className="text-2xl font-black italic tabular-nums">{rig.telemetry?.gforce?.[0] ?? 0}</span>
                                                                 <span className="text-[10px] font-bold text-blue-400">G</span>
                                                             </div>
                                                         </div>
@@ -794,12 +621,12 @@ function App() {
                                                     <div className="space-y-2">
                                                         <div className="flex justify-between text-[8px] font-black uppercase tracking-widest mb-1">
                                                             <span>Circuit Progress</span>
-                                                            <span>{Math.round(rig.telemetry.normalized_pos * 100)}%</span>
+                                                            <span>{Math.round((rig.telemetry?.normalized_pos ?? 0) * 100)}%</span>
                                                         </div>
                                                         <div className="h-1 bg-white/5 rounded-full overflow-hidden">
                                                             <div
                                                                 className="h-full bg-ridge-brand transition-all duration-300"
-                                                                style={{ width: `${rig.telemetry.normalized_pos * 100}%` }}
+                                                                style={{ width: `${(rig.telemetry?.normalized_pos ?? 0) * 100}%` }}
                                                             />
                                                         </div>
                                                     </div>
@@ -810,30 +637,30 @@ function App() {
                                                         <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/5 border border-white/5">
                                                             <span className="text-[8px] font-black uppercase opacity-30 mb-1">Gear</span>
                                                             <span className="text-xl font-black italic">
-                                                                {rig.telemetry.gear === -1 ? 'R' : rig.telemetry.gear === 0 ? 'N' : rig.telemetry.gear}
+                                                                {(rig.telemetry?.gear ?? 0) === -1 ? 'R' : (rig.telemetry?.gear ?? 0) === 0 ? 'N' : rig.telemetry?.gear}
                                                             </span>
                                                         </div>
                                                     )}
                                                     {activeTelemFields.includes('completed_laps') && (
                                                         <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/5 border border-white/5">
                                                             <span className="text-[8px] font-black uppercase opacity-30 mb-1">Laps</span>
-                                                            <span className="text-xl font-black italic">{rig.telemetry.completed_laps}</span>
+                                                            <span className="text-xl font-black italic">{rig.telemetry?.completed_laps ?? 0}</span>
                                                         </div>
                                                     )}
                                                     {activeTelemFields.includes('gas') && (
                                                         <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/5 border border-white/5">
                                                             <span className="text-[8px] font-black uppercase opacity-30 mb-1">Throttle</span>
-                                                            <span className="text-xl font-black italic text-green-500">{Math.round(rig.telemetry.gas * 100)}%</span>
+                                                            <span className="text-xl font-black italic text-green-500">{Math.round((rig.telemetry?.gas ?? 0) * 100)}%</span>
                                                         </div>
                                                     )}
                                                 </div>
 
-                                                {/* Additional logic if others fields are added later */}
+                                                {/* Additional telemetry fields */}
                                                 <div className="grid grid-cols-2 gap-2 mt-2">
                                                     {activeTelemFields.includes('brake') && (
                                                         <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/5 border border-white/5">
                                                             <span className="text-[8px] font-black uppercase opacity-30 mb-1">Brake</span>
-                                                            <span className="text-xl font-black italic text-red-500">{Math.round(rig.telemetry.brake * 100)}%</span>
+                                                            <span className="text-xl font-black italic text-red-500">{Math.round((rig.telemetry?.brake ?? 0) * 100)}%</span>
                                                         </div>
                                                     )}
                                                 </div>
@@ -926,6 +753,78 @@ function App() {
                                 <div className="aspect-video bg-zinc-900 rounded-2xl flex items-center justify-center border border-white/5">
                                     <Monitor size={32} className="text-white/5" />
                                 </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* SETTINGS VIEW */}
+                    {activeTab === 'settings' && (
+                        <div className="max-w-3xl space-y-6">
+                            <div className="glass rounded-3xl p-8 border border-white/10">
+                                <h2 className="text-xl font-black italic uppercase mb-6 flex items-center gap-2"><Wrench className="text-ridge-brand" size={24} /> System Configuration</h2>
+                                <div className="space-y-6">
+                                    <div>
+                                        <label className="block text-[10px] uppercase font-black text-white/40 mb-2">Assetto Corsa Install Path</label>
+                                        <p className="text-[9px] text-white/20 uppercase font-black mb-2 tracking-widest italic">Path to the AC installation folder — used for car/track scanning</p>
+                                        <input
+                                            type="text"
+                                            value={raceSettings.content_folder}
+                                            onChange={(e) => setRaceSettings({ ...raceSettings, content_folder: e.target.value })}
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 font-mono text-xs focus:ring-1 focus:ring-ridge-brand outline-none transition-all"
+                                            placeholder="C:\Program Files (x86)\Steam\steamapps\common\assettocorsa"
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                await fetch('/api/settings', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify(raceSettings)
+                                                })
+                                                alert('Settings saved!')
+                                            } catch { alert('Failed to save settings') }
+                                        }}
+                                        className="bg-ridge-brand hover:bg-orange-600 px-8 py-3 rounded-xl font-black italic uppercase text-sm transition-all shadow-lg shadow-ridge-brand/20"
+                                    >
+                                        Save Settings
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="glass rounded-3xl p-8 border border-white/10">
+                                <h2 className="text-xl font-black italic uppercase mb-6 flex items-center gap-2"><ShieldCheck className="text-ridge-brand" size={24} /> Configuration Presets</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {presets.map(preset => (
+                                        <div key={preset.id} className="bg-black/20 border border-white/5 p-4 rounded-2xl group relative">
+                                            <div className="flex justify-between items-center mb-3">
+                                                <h4 className="font-black italic uppercase text-sm text-ridge-brand">{preset.name}</h4>
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => applyPreset(preset)} className="text-green-500 hover:scale-110 transition-transform"><Check size={16} /></button>
+                                                    <button onClick={() => deletePreset(preset.id)} className="text-red-500 hover:scale-110 transition-transform opacity-0 group-hover:opacity-100"><Power size={14} /></button>
+                                                </div>
+                                            </div>
+                                            <div className="text-[8px] font-bold uppercase tracking-widest text-white/30 space-y-1">
+                                                <p>{preset.track.toUpperCase()} // ENV {preset.weather.split('_').slice(1).join(' ')}</p>
+                                                <p>{preset.race_laps} Laps | {preset.qualy_time}m Qualy | DRS: {preset.allow_drs ? 'ON' : 'OFF'}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {presets.length === 0 && (
+                                        <div className="col-span-full py-8 text-center text-white/10 italic text-[10px] uppercase font-black tracking-widest px-4 border border-dashed border-white/5 rounded-2xl">
+                                            No saved presets found
+                                        </div>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        const name = prompt('Enter a name for this preset:');
+                                        if (name) saveCurrentAsPreset(name);
+                                    }}
+                                    className="mt-4 bg-white/10 hover:bg-white/20 px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all"
+                                >
+                                    Save Current as Preset
+                                </button>
                             </div>
                         </div>
                     )}
