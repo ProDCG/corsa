@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Users, Plus, Trash2, UserPlus, UserMinus, Play, Power, Server, ChevronDown, ChevronUp, Settings, Cpu, Gauge, Cloud, Map, Car, Trophy, Timer, Flag } from 'lucide-react'
+import { Users, Plus, Trash2, UserPlus, UserMinus, Play, Power, Server, Settings, Cpu, Gauge, Cloud, Map, Car, Trophy, Timer, Flag, Sun, Clock, ChevronRight } from 'lucide-react'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -18,6 +18,9 @@ interface RigGroup {
     practice_time: number
     qualy_time: number
     race_laps: number
+    sun_angle: number
+    time_mult: number
+    session_duration_min: number
 }
 
 interface ServerInfo {
@@ -52,15 +55,27 @@ interface GroupManagerProps {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+function sunAngleToLabel(angle: number): string {
+    if (angle <= -60) return 'Night'
+    if (angle <= -20) return 'Sunset'
+    if (angle <= 20) return 'Morning'
+    if (angle <= 50) return 'Midday'
+    return 'Afternoon'
+}
+
+/* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
 export default function GroupManager({ rigs }: GroupManagerProps) {
     const [groups, setGroups] = useState<RigGroup[]>([])
     const [servers, setServers] = useState<ServerInfo[]>([])
+    const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
     const [newGroupName, setNewGroupName] = useState('')
     const [newGroupMode, setNewGroupMode] = useState<'multiplayer' | 'solo'>('multiplayer')
-    const [expandedGroup, setExpandedGroup] = useState<string | null>(null)
 
     // Catalogs from backend
     const [cars, setCars] = useState<CatalogCar[]>([])
@@ -115,17 +130,20 @@ export default function GroupManager({ rigs }: GroupManagerProps) {
 
     const createGroup = async () => {
         if (!newGroupName.trim()) return
-        await fetch('/api/groups/', {
+        const res = await fetch('/api/groups/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: newGroupName, mode: newGroupMode })
         })
+        const created = await res.json()
         setNewGroupName('')
         fetchGroups()
+        if (created.id) setSelectedGroupId(created.id)
     }
 
     const deleteGroup = async (groupId: string) => {
         await fetch(`/api/groups/${groupId}`, { method: 'DELETE' })
+        if (selectedGroupId === groupId) setSelectedGroupId(null)
         fetchGroups()
     }
 
@@ -201,6 +219,8 @@ export default function GroupManager({ rigs }: GroupManagerProps) {
                 max_clients: group.rig_ids.length + group.ai_count + 2,
                 ai_count: group.ai_count,
                 ai_difficulty: group.ai_difficulty,
+                sun_angle: group.sun_angle,
+                time_mult: group.time_mult,
             })
         })
         const data = await res.json()
@@ -218,141 +238,172 @@ export default function GroupManager({ rigs }: GroupManagerProps) {
     const assignedRigIds = new Set(groups.flatMap(g => g.rig_ids))
     const unassignedRigs = rigs.filter(r => !assignedRigIds.has(r.rig_id))
     const getServerForGroup = (gid: string) => servers.find(s => s.group_id === gid)
+    const selectedGroup = groups.find(g => g.id === selectedGroupId) || null
+    const selectedServer = selectedGroupId ? getServerForGroup(selectedGroupId) : null
+    const isSelectedServerRunning = selectedServer?.status === 'running'
 
     /* ---- Render ---- */
 
     return (
-        <div className="space-y-6 max-w-6xl">
-            {/* Header + Create */}
-            <div className="glass rounded-2xl p-6 border border-white/10">
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-ridge-brand/20 rounded-xl">
-                            <Users className="text-ridge-brand" size={20} />
-                        </div>
-                        <div>
-                            <h2 className="text-lg font-black italic uppercase tracking-tighter">Race Groups</h2>
-                            <p className="text-[10px] text-white/30 uppercase tracking-widest font-bold">{groups.length} groups // {rigs.length} rigs online</p>
-                        </div>
+        <div className="flex h-[calc(100vh-120px)]">
+            {/* ===== LEFT SIDEBAR — Group List ===== */}
+            <div className="w-72 border-r border-white/10 bg-black/20 flex flex-col shrink-0">
+                {/* Create group */}
+                <div className="p-4 border-b border-white/10">
+                    <div className="flex gap-2 mb-2">
+                        <input
+                            type="text"
+                            placeholder="New group..."
+                            value={newGroupName}
+                            onChange={e => setNewGroupName(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && createGroup()}
+                            className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 outline-none focus:border-ridge-brand transition-all font-bold text-xs"
+                        />
+                        <button
+                            onClick={createGroup}
+                            disabled={!newGroupName.trim()}
+                            className="bg-ridge-brand hover:bg-orange-600 disabled:opacity-30 disabled:cursor-not-allowed p-2 rounded-lg transition-all"
+                        >
+                            <Plus size={14} />
+                        </button>
                     </div>
-                </div>
-
-                <div className="flex gap-3">
-                    <input
-                        type="text"
-                        placeholder="New group name..."
-                        value={newGroupName}
-                        onChange={e => setNewGroupName(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && createGroup()}
-                        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 outline-none focus:border-ridge-brand transition-all font-bold text-sm"
-                    />
                     <select
                         value={newGroupMode}
                         onChange={e => setNewGroupMode(e.target.value as 'multiplayer' | 'solo')}
-                        className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 outline-none font-bold text-xs uppercase appearance-none cursor-pointer"
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 outline-none font-bold text-[10px] uppercase appearance-none cursor-pointer"
                     >
                         <option value="multiplayer">Multiplayer</option>
                         <option value="solo">Solo</option>
                     </select>
-                    <button
-                        onClick={createGroup}
-                        disabled={!newGroupName.trim()}
-                        className="bg-ridge-brand hover:bg-orange-600 disabled:opacity-30 disabled:cursor-not-allowed px-5 py-2.5 rounded-xl font-black uppercase text-xs flex items-center gap-2 transition-all"
-                    >
-                        <Plus size={14} /> Create
-                    </button>
                 </div>
-            </div>
 
-            {/* Group Cards */}
-            {groups.map(group => {
-                const serverInfo = getServerForGroup(group.id)
-                const isServerRunning = serverInfo?.status === 'running'
-                const isExpanded = expandedGroup === group.id
-                const trackName = tracks.find(t => t.id === group.track)?.name || group.track
-                const weatherName = weather.find(w => w.id === group.weather)?.name || group.weather
-
-                return (
-                    <div key={group.id} className="glass rounded-2xl border border-white/10 overflow-hidden">
-                        {/* Group Header */}
-                        <div className="p-5 flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className={`w-1 h-12 rounded-full ${isServerRunning ? 'bg-green-500' : 'bg-white/10'}`} />
-                                <div>
-                                    <div className="flex items-center gap-3">
-                                        <h3 className="text-lg font-black italic uppercase tracking-tighter">{group.name}</h3>
-                                        <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${
+                {/* Group list */}
+                <div className="flex-1 overflow-y-auto">
+                    {groups.map(group => {
+                        const serverInfo = getServerForGroup(group.id)
+                        const isActive = selectedGroupId === group.id
+                        const isRunning = serverInfo?.status === 'running'
+                        return (
+                            <button
+                                key={group.id}
+                                onClick={() => setSelectedGroupId(group.id)}
+                                className={`w-full text-left p-4 border-b border-white/5 transition-all group ${
+                                    isActive
+                                        ? 'bg-ridge-brand/10 border-l-2 border-l-ridge-brand'
+                                        : 'hover:bg-white/5 border-l-2 border-l-transparent'
+                                }`}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        {isRunning && <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shrink-0" />}
+                                        <span className="font-black italic text-sm uppercase tracking-tight truncate">{group.name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                        <span className={`px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-widest ${
                                             group.mode === 'multiplayer'
                                                 ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
                                                 : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                                        }`}>{group.mode}</span>
-                                        {isServerRunning && (
-                                            <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase bg-green-500/20 text-green-400 border border-green-500/30 flex items-center gap-1" title={`PID: ${serverInfo?.pid}`}>
-                                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> Server :{serverInfo?.port} // PID:{serverInfo?.pid} // {serverInfo?.ai_count || 0} AI
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-3 mt-1 text-[10px] text-white/30 font-mono">
-                                        <span className="flex items-center gap-1"><Map size={10} /> {trackName}</span>
-                                        <span>|</span>
-                                        <span className="flex items-center gap-1"><Cloud size={10} /> {weatherName}</span>
-                                        <span>|</span>
-                                        <span>{group.rig_ids.length} rigs + {group.ai_count} AI</span>
-                                        <span>|</span>
-                                        <span>{group.race_laps} laps</span>
+                                        }`}>{group.mode === 'multiplayer' ? 'MP' : 'SOLO'}</span>
+                                        <ChevronRight size={12} className="text-white/20" />
                                     </div>
                                 </div>
-                            </div>
+                                <div className="text-[9px] text-white/30 font-mono mt-1">
+                                    {group.rig_ids.length} rigs · {group.ai_count} AI · {group.race_laps} laps
+                                </div>
+                            </button>
+                        )
+                    })}
+                    {groups.length === 0 && (
+                        <div className="p-8 text-center">
+                            <Users size={32} className="mx-auto mb-3 text-white/10" />
+                            <p className="text-xs text-white/20 font-bold uppercase">No groups</p>
+                        </div>
+                    )}
+                </div>
 
+                {/* Unassigned rigs tray */}
+                {unassignedRigs.length > 0 && (
+                    <div className="border-t border-white/10 p-3">
+                        <h4 className="text-[9px] text-white/30 font-black uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                            <UserPlus size={10} className="text-amber-400" /> Unassigned ({unassignedRigs.length})
+                        </h4>
+                        <div className="flex flex-wrap gap-1.5">
+                            {unassignedRigs.map(rig => (
+                                <div
+                                    key={rig.rig_id}
+                                    className="bg-black/30 px-2 py-1 rounded-lg border border-white/5 text-[9px] font-bold flex items-center gap-1.5 cursor-pointer hover:border-ridge-brand/30 transition-all"
+                                    onClick={() => selectedGroupId && addRigToGroup(selectedGroupId, rig.rig_id)}
+                                    title={selectedGroupId ? `Click to add to selected group` : 'Select a group first'}
+                                >
+                                    <div className={`w-1.5 h-1.5 rounded-full ${rig.status === 'racing' ? 'bg-ridge-brand' : 'bg-white/20'}`} />
+                                    {rig.rig_id}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* ===== RIGHT PANEL — Selected Group Detail ===== */}
+            <div className="flex-1 overflow-y-auto">
+                {selectedGroup ? (
+                    <div className="p-6 space-y-6 max-w-5xl">
+                        {/* Group Header + Actions */}
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h2 className="text-2xl font-black italic uppercase tracking-tighter flex items-center gap-3">
+                                    {selectedGroup.name}
+                                    <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${
+                                        selectedGroup.mode === 'multiplayer'
+                                            ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                                            : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                    }`}>{selectedGroup.mode}</span>
+                                    {isSelectedServerRunning && (
+                                        <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase bg-green-500/20 text-green-400 border border-green-500/30 flex items-center gap-1">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> Server :{selectedServer?.port}
+                                        </span>
+                                    )}
+                                </h2>
+                            </div>
                             <div className="flex items-center gap-2">
-                                {/* Deploy / Stop Server */}
-                                {group.mode === 'multiplayer' && (
-                                    isServerRunning ? (
-                                        <button onClick={() => stopServerForGroup(group.id)}
-                                            className="bg-red-500/10 hover:bg-red-500/20 text-red-400 p-2.5 rounded-xl transition-all" title="Stop Server">
-                                            <Server size={16} />
+                                {selectedGroup.mode === 'multiplayer' && (
+                                    isSelectedServerRunning ? (
+                                        <button onClick={() => stopServerForGroup(selectedGroup.id)}
+                                            className="bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase">
+                                            <Server size={14} /> Stop Server
                                         </button>
                                     ) : (
-                                        <button onClick={() => startServerForGroup(group.id)}
-                                            className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 p-2.5 rounded-xl transition-all" title="Deploy Server">
-                                            <Server size={16} />
+                                        <button onClick={() => startServerForGroup(selectedGroup.id)}
+                                            className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-4 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase">
+                                            <Server size={14} /> Deploy Server
                                         </button>
                                     )
                                 )}
-
-                                <button onClick={() => sendGroupCommand(group.id, 'SETUP_MODE')}
-                                    className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 p-2.5 rounded-xl transition-all" title="Prepare Grid (Car Selection)">
-                                    <Car size={16} />
+                                <button onClick={() => sendGroupCommand(selectedGroup.id, 'LAUNCH_RACE')}
+                                    className="bg-ridge-brand/10 hover:bg-ridge-brand/20 text-ridge-brand px-4 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase">
+                                    <Play size={14} /> Start Race
                                 </button>
-                                <button onClick={() => sendGroupCommand(group.id, 'LAUNCH_RACE')}
-                                    className="bg-ridge-brand/10 hover:bg-ridge-brand/20 text-ridge-brand p-2.5 rounded-xl transition-all" title="Start Race">
-                                    <Play size={16} />
+                                <button onClick={() => sendGroupCommand(selectedGroup.id, 'KILL_RACE')}
+                                    className="bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase">
+                                    <Power size={14} /> Kill
                                 </button>
-                                <button onClick={() => sendGroupCommand(group.id, 'KILL_RACE')}
-                                    className="bg-red-500/10 hover:bg-red-500/20 text-red-400 p-2.5 rounded-xl transition-all" title="Kill Race">
-                                    <Power size={16} />
-                                </button>
-
-                                {/* Settings Toggle */}
-                                <button onClick={() => setExpandedGroup(isExpanded ? null : group.id)}
-                                    className="bg-white/5 hover:bg-white/10 p-2.5 rounded-xl transition-all text-white/40 hover:text-white" title="Configure">
-                                    {isExpanded ? <ChevronUp size={16} /> : <Settings size={16} />}
-                                </button>
-
-                                <button onClick={() => deleteGroup(group.id)}
-                                    className="bg-white/5 hover:bg-red-500/20 text-white/20 hover:text-red-400 p-2.5 rounded-xl transition-all" title="Delete Group">
-                                    <Trash2 size={16} />
+                                <button onClick={() => deleteGroup(selectedGroup.id)}
+                                    className="bg-white/5 hover:bg-red-500/20 text-white/20 hover:text-red-400 p-2 rounded-xl transition-all">
+                                    <Trash2 size={14} />
                                 </button>
                             </div>
                         </div>
 
-                        {/* Rig Roster */}
-                        <div className="px-5 pb-4">
-                            <div className="flex flex-wrap gap-2 mb-3">
-                                {group.rig_ids.map(rigId => {
+                        {/* ---- Rig Assignment Row ---- */}
+                        <div className="glass rounded-2xl p-5 border border-white/10">
+                            <h3 className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-3 flex items-center gap-1.5">
+                                <Users size={10} /> Assigned Rigs ({selectedGroup.rig_ids.length})
+                            </h3>
+                            <div className="flex flex-wrap gap-2">
+                                {selectedGroup.rig_ids.map(rigId => {
                                     const rig = rigs.find(r => r.rig_id === rigId)
                                     return (
-                                        <div key={rigId} className="bg-black/30 border border-white/5 rounded-xl px-3 py-2 flex items-center gap-3 group">
+                                        <div key={rigId} className="bg-black/30 border border-white/5 rounded-xl px-3 py-2.5 flex items-center gap-3 group hover:border-white/15 transition-all">
                                             <div className={`w-2 h-2 rounded-full ${
                                                 rig?.status === 'racing' ? 'bg-ridge-brand animate-pulse' :
                                                 rig?.status === 'ready' ? 'bg-green-500' :
@@ -365,15 +416,15 @@ export default function GroupManager({ rigs }: GroupManagerProps) {
                                             <select
                                                 value={rig?.selected_car || ''}
                                                 onChange={e => setRigCar(rigId, e.target.value)}
-                                                className="bg-white/5 border border-white/10 rounded-lg px-2 py-0.5 text-[10px] font-bold outline-none focus:border-ridge-brand appearance-none max-w-32 cursor-pointer"
+                                                className="bg-white/5 border border-white/10 rounded-lg px-2 py-0.5 text-[10px] font-bold outline-none focus:border-ridge-brand appearance-none max-w-40 cursor-pointer"
                                             >
                                                 <option value="">Auto</option>
-                                                {(group.car_pool.length > 0 ? cars.filter(c => group.car_pool.includes(c.id)) : cars).map(car => (
+                                                {(selectedGroup.car_pool.length > 0 ? cars.filter(c => selectedGroup.car_pool.includes(c.id)) : cars).map(car => (
                                                     <option key={car.id} value={car.id}>{car.name}</option>
                                                 ))}
                                             </select>
 
-                                            <button onClick={() => removeRigFromGroup(group.id, rigId)}
+                                            <button onClick={() => removeRigFromGroup(selectedGroup.id, rigId)}
                                                 className="text-white/10 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
                                                 <UserMinus size={12} />
                                             </button>
@@ -381,12 +432,12 @@ export default function GroupManager({ rigs }: GroupManagerProps) {
                                     )
                                 })}
 
-                                {/* Add rig dropdown inline */}
+                                {/* Add rig inline dropdown */}
                                 {unassignedRigs.length > 0 && (
                                     <select
-                                        className="bg-white/5 border border-dashed border-white/10 rounded-xl px-3 py-2 text-[10px] font-bold outline-none cursor-pointer hover:border-ridge-brand/40 transition-all appearance-none"
+                                        className="bg-white/5 border border-dashed border-white/10 rounded-xl px-3 py-2.5 text-[10px] font-bold outline-none cursor-pointer hover:border-ridge-brand/40 transition-all appearance-none"
                                         value=""
-                                        onChange={e => { if (e.target.value) { addRigToGroup(group.id, e.target.value); e.target.value = '' } }}
+                                        onChange={e => { if (e.target.value) { addRigToGroup(selectedGroup.id, e.target.value) } }}
                                     >
                                         <option value="" disabled>+ Add rig...</option>
                                         {unassignedRigs.map(r => (
@@ -395,180 +446,208 @@ export default function GroupManager({ rigs }: GroupManagerProps) {
                                     </select>
                                 )}
 
-                                {group.rig_ids.length === 0 && unassignedRigs.length === 0 && (
+                                {selectedGroup.rig_ids.length === 0 && unassignedRigs.length === 0 && (
                                     <div className="text-[10px] text-white/20 font-bold uppercase py-2">No rigs available</div>
                                 )}
                             </div>
                         </div>
 
-                        {/* Expanded Settings Panel */}
-                        {isExpanded && (
-                            <div className="border-t border-white/5 bg-black/20 p-5 space-y-5 animate-in slide-in-from-top-2 duration-200">
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    {/* Track */}
-                                    <div>
-                                        <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
-                                            <Map size={10} /> Circuit
-                                        </label>
-                                        <select
-                                            value={group.track}
-                                            onChange={e => updateGroup(group.id, { track: e.target.value })}
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-ridge-brand appearance-none cursor-pointer transition-all"
-                                        >
-                                            {tracks.map(t => (
-                                                <option key={t.id} value={t.id}>{t.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
+                        {/* ---- Configuration Panels ---- */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {/* Track */}
+                            <div className="glass rounded-2xl p-4 border border-white/10">
+                                <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
+                                    <Map size={10} /> Circuit
+                                </label>
+                                <select
+                                    value={selectedGroup.track}
+                                    onChange={e => updateGroup(selectedGroup.id, { track: e.target.value })}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-ridge-brand appearance-none cursor-pointer transition-all"
+                                >
+                                    {tracks.map(t => (
+                                        <option key={t.id} value={t.id}>{t.name}</option>
+                                    ))}
+                                </select>
+                            </div>
 
-                                    {/* Weather */}
-                                    <div>
-                                        <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
-                                            <Cloud size={10} /> Weather
-                                        </label>
-                                        <select
-                                            value={group.weather}
-                                            onChange={e => updateGroup(group.id, { weather: e.target.value })}
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-ridge-brand appearance-none cursor-pointer transition-all"
-                                        >
-                                            {weather.map(w => (
-                                                <option key={w.id} value={w.id}>{w.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    {/* Race Laps */}
-                                    <div>
-                                        <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
-                                            <Flag size={10} /> Race Laps
-                                        </label>
-                                        <input
-                                            type="number" min={1} max={100}
-                                            value={group.race_laps}
-                                            onChange={e => updateGroup(group.id, { race_laps: parseInt(e.target.value) || 10 })}
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-ridge-brand transition-all"
-                                        />
-                                    </div>
+                            {/* Time of Day (Sun Angle) — replaces weather for multiplayer */}
+                            <div className="glass rounded-2xl p-4 border border-white/10">
+                                <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
+                                    <Sun size={10} /> Time of Day
+                                </label>
+                                <div className="flex items-center gap-3">
+                                    <input
+                                        type="range" min={-80} max={80}
+                                        value={selectedGroup.sun_angle ?? 48}
+                                        onChange={e => updateGroup(selectedGroup.id, { sun_angle: parseInt(e.target.value) })}
+                                        className="flex-1 accent-ridge-brand cursor-pointer"
+                                    />
+                                    <span className="text-xs font-black tabular-nums w-20 text-right">
+                                        {selectedGroup.sun_angle ?? 48}° <span className="text-white/30 text-[8px]">{sunAngleToLabel(selectedGroup.sun_angle ?? 48)}</span>
+                                    </span>
                                 </div>
+                            </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                    {/* Practice */}
-                                    <div>
-                                        <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
-                                            <Timer size={10} /> Practice (min)
-                                        </label>
-                                        <input
-                                            type="number" min={0} max={60}
-                                            value={group.practice_time}
-                                            onChange={e => updateGroup(group.id, { practice_time: parseInt(e.target.value) || 0 })}
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-ridge-brand transition-all"
-                                        />
-                                    </div>
-
-                                    {/* Qualifying */}
-                                    <div>
-                                        <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
-                                            <Trophy size={10} /> Qualifying (min)
-                                        </label>
-                                        <input
-                                            type="number" min={0} max={60}
-                                            value={group.qualy_time}
-                                            onChange={e => updateGroup(group.id, { qualy_time: parseInt(e.target.value) || 0 })}
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-ridge-brand transition-all"
-                                        />
-                                    </div>
-
-                                    {/* AI Count */}
-                                    <div>
-                                        <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
-                                            <Cpu size={10} /> AI Drivers
-                                        </label>
-                                        <input
-                                            type="number" min={0} max={30}
-                                            value={group.ai_count}
-                                            onChange={e => updateGroup(group.id, { ai_count: parseInt(e.target.value) || 0 })}
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-ridge-brand transition-all"
-                                        />
-                                    </div>
-
-                                    {/* AI Difficulty */}
-                                    <div>
-                                        <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
-                                            <Gauge size={10} /> AI Difficulty
-                                        </label>
-                                        <div className="flex items-center gap-3">
-                                            <input
-                                                type="range" min={0} max={100}
-                                                value={group.ai_difficulty}
-                                                onChange={e => updateGroup(group.id, { ai_difficulty: parseInt(e.target.value) })}
-                                                className="flex-1 accent-ridge-brand cursor-pointer"
-                                            />
-                                            <span className="text-xs font-black tabular-nums w-8 text-right">{group.ai_difficulty}%</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Car Pool */}
-                                <div>
-                                    <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-3">
-                                        <Car size={10} /> Available Cars
+                            {/* Weather — only for solo mode */}
+                            {selectedGroup.mode === 'solo' ? (
+                                <div className="glass rounded-2xl p-4 border border-white/10">
+                                    <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
+                                        <Cloud size={10} /> Weather
                                     </label>
-                                    <div className="flex flex-wrap gap-2">
-                                        {cars.map(car => {
-                                            const active = group.car_pool.includes(car.id)
-                                            return (
-                                                <button
-                                                    key={car.id}
-                                                    onClick={() => {
-                                                        const updated = active
-                                                            ? group.car_pool.filter(c => c !== car.id)
-                                                            : [...group.car_pool, car.id]
-                                                        updateGroup(group.id, { car_pool: updated.length > 0 ? updated : [car.id] })
-                                                    }}
-                                                    className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all border ${
-                                                        active
-                                                            ? 'bg-ridge-brand/15 border-ridge-brand/40 text-ridge-brand shadow-sm shadow-ridge-brand/10'
-                                                            : 'bg-white/3 border-white/5 text-white/20 hover:text-white/40 hover:border-white/15'
-                                                    }`}
-                                                >
-                                                    <span className="opacity-50 mr-1">{car.brand}</span> {car.name.replace(car.brand + ' ', '')}
-                                                </button>
-                                            )
-                                        })}
+                                    <select
+                                        value={selectedGroup.weather}
+                                        onChange={e => updateGroup(selectedGroup.id, { weather: e.target.value })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-ridge-brand appearance-none cursor-pointer transition-all"
+                                    >
+                                        {weather.map(w => (
+                                            <option key={w.id} value={w.id}>{w.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            ) : (
+                                <div className="glass rounded-2xl p-4 border border-white/10">
+                                    <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
+                                        <Clock size={10} /> Time Speed
+                                    </label>
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="range" min={1} max={100}
+                                            value={selectedGroup.time_mult ?? 1}
+                                            onChange={e => updateGroup(selectedGroup.id, { time_mult: parseInt(e.target.value) })}
+                                            className="flex-1 accent-ridge-brand cursor-pointer"
+                                        />
+                                        <span className="text-xs font-black tabular-nums w-8 text-right">{selectedGroup.time_mult ?? 1}x</span>
                                     </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                            {/* Race Laps */}
+                            <div className="glass rounded-2xl p-4 border border-white/10">
+                                <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
+                                    <Flag size={10} /> Race Laps
+                                </label>
+                                <input
+                                    type="number" min={1} max={100}
+                                    value={selectedGroup.race_laps}
+                                    onChange={e => updateGroup(selectedGroup.id, { race_laps: parseInt(e.target.value) || 10 })}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-ridge-brand transition-all"
+                                />
+                            </div>
+
+                            {/* Practice */}
+                            <div className="glass rounded-2xl p-4 border border-white/10">
+                                <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
+                                    <Timer size={10} /> Practice (min)
+                                </label>
+                                <input
+                                    type="number" min={0} max={60}
+                                    value={selectedGroup.practice_time}
+                                    onChange={e => updateGroup(selectedGroup.id, { practice_time: parseInt(e.target.value) || 0 })}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-ridge-brand transition-all"
+                                />
+                            </div>
+
+                            {/* Qualifying */}
+                            <div className="glass rounded-2xl p-4 border border-white/10">
+                                <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
+                                    <Trophy size={10} /> Qualifying (min)
+                                </label>
+                                <input
+                                    type="number" min={0} max={60}
+                                    value={selectedGroup.qualy_time}
+                                    onChange={e => updateGroup(selectedGroup.id, { qualy_time: parseInt(e.target.value) || 0 })}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-ridge-brand transition-all"
+                                />
+                            </div>
+
+                            {/* AI Drivers */}
+                            <div className="glass rounded-2xl p-4 border border-white/10">
+                                <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
+                                    <Cpu size={10} /> AI Drivers
+                                </label>
+                                <input
+                                    type="number" min={0} max={30}
+                                    value={selectedGroup.ai_count}
+                                    onChange={e => updateGroup(selectedGroup.id, { ai_count: parseInt(e.target.value) || 0 })}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-ridge-brand transition-all"
+                                />
+                            </div>
+
+                            {/* Session Timer */}
+                            <div className="glass rounded-2xl p-4 border border-white/10">
+                                <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
+                                    <Clock size={10} /> Session (min)
+                                </label>
+                                <input
+                                    type="number" min={1} max={480}
+                                    value={selectedGroup.session_duration_min ?? 30}
+                                    onChange={e => updateGroup(selectedGroup.id, { session_duration_min: parseInt(e.target.value) || 30 })}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-ridge-brand transition-all"
+                                />
+                            </div>
+                        </div>
+
+                        {/* AI Difficulty slider */}
+                        {selectedGroup.ai_count > 0 && (
+                            <div className="glass rounded-2xl p-4 border border-white/10">
+                                <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
+                                    <Gauge size={10} /> AI Difficulty
+                                </label>
+                                <div className="flex items-center gap-3">
+                                    <input
+                                        type="range" min={0} max={100}
+                                        value={selectedGroup.ai_difficulty}
+                                        onChange={e => updateGroup(selectedGroup.id, { ai_difficulty: parseInt(e.target.value) })}
+                                        className="flex-1 accent-ridge-brand cursor-pointer"
+                                    />
+                                    <span className="text-xs font-black tabular-nums w-8 text-right">{selectedGroup.ai_difficulty}%</span>
                                 </div>
                             </div>
                         )}
-                    </div>
-                )
-            })}
 
-            {/* Empty State */}
-            {groups.length === 0 && (
-                <div className="py-20 flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-2xl">
-                    <Users size={40} className="mb-4 text-white/10" />
-                    <p className="text-lg font-black italic tracking-tighter uppercase opacity-20">No Groups Created</p>
-                    <p className="text-[10px] font-mono text-white/20 mt-2">Create a group above, then assign rigs and configure race settings</p>
-                </div>
-            )}
-
-            {/* Unassigned Rigs */}
-            {unassignedRigs.length > 0 && groups.length > 0 && (
-                <div className="glass rounded-2xl p-5 border border-white/10">
-                    <h3 className="text-xs font-black italic uppercase tracking-tighter mb-3 flex items-center gap-2">
-                        <UserPlus size={14} className="text-amber-400" /> Unassigned Rigs
-                        <span className="text-white/20 font-mono">({unassignedRigs.length})</span>
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                        {unassignedRigs.map(rig => (
-                            <div key={rig.rig_id} className="bg-black/20 px-3 py-1.5 rounded-xl border border-white/5 text-[10px] font-bold flex items-center gap-2">
-                                <div className={`w-1.5 h-1.5 rounded-full ${rig.status === 'racing' ? 'bg-ridge-brand' : 'bg-white/20'}`} />
-                                {rig.rig_id}
+                        {/* Car Pool */}
+                        <div className="glass rounded-2xl p-5 border border-white/10">
+                            <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-3">
+                                <Car size={10} /> Available Cars
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                                {cars.map(car => {
+                                    const active = selectedGroup.car_pool.includes(car.id)
+                                    return (
+                                        <button
+                                            key={car.id}
+                                            onClick={() => {
+                                                const updated = active
+                                                    ? selectedGroup.car_pool.filter(c => c !== car.id)
+                                                    : [...selectedGroup.car_pool, car.id]
+                                                updateGroup(selectedGroup.id, { car_pool: updated.length > 0 ? updated : [car.id] })
+                                            }}
+                                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all border ${
+                                                active
+                                                    ? 'bg-ridge-brand/15 border-ridge-brand/40 text-ridge-brand shadow-sm shadow-ridge-brand/10'
+                                                    : 'bg-white/3 border-white/5 text-white/20 hover:text-white/40 hover:border-white/15'
+                                            }`}
+                                        >
+                                            <span className="opacity-50 mr-1">{car.brand}</span> {car.name.replace(car.brand + ' ', '')}
+                                        </button>
+                                    )
+                                })}
                             </div>
-                        ))}
+                        </div>
                     </div>
-                </div>
-            )}
+                ) : (
+                    /* Empty state */
+                    <div className="flex items-center justify-center h-full">
+                        <div className="text-center">
+                            <Settings size={48} className="mx-auto mb-4 text-white/10" />
+                            <p className="text-lg font-black italic tracking-tighter uppercase opacity-20">Select a Group</p>
+                            <p className="text-[10px] font-mono text-white/20 mt-2">Choose a group from the sidebar to configure it</p>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     )
 }

@@ -80,11 +80,33 @@ def create_router(state: AppState) -> APIRouter:
 
     @router.get("/catalogs")
     async def get_catalogs() -> dict[str, object]:
-        """Return all available tracks, cars, weather for UI dropdowns."""
+        """Return all available tracks, cars, weather for UI dropdowns.
+
+        Dynamically scans the admin master content folder. Falls back to
+        hardcoded catalogs if the folder isn't available.
+        """
+        from apps.orchestrator.services.content_scanner import scan_cars, scan_tracks
         from shared.constants import CAR_CATALOG, TRACK_CATALOG, WEATHER_OPTIONS
+
+        content_folder = state.settings.content_folder
+
+        # Dynamic scan from admin master content
+        scanned_cars = scan_cars(content_folder)
+        scanned_tracks = scan_tracks(content_folder)
+
+        if scanned_cars:
+            cars_out = [{"id": c.id, "name": c.name, "brand": c.brand, "car_class": c.car_class} for c in scanned_cars]
+        else:
+            cars_out = [{"id": c.id, "name": c.name, "brand": c.brand, "car_class": c.car_class} for c in CAR_CATALOG]
+
+        if scanned_tracks:
+            tracks_out = [{"id": t.id, "name": t.name} for t in scanned_tracks]
+        else:
+            tracks_out = [{"id": t.id, "name": t.name} for t in TRACK_CATALOG]
+
         return {
-            "tracks": [{"id": t.id, "name": t.name} for t in TRACK_CATALOG],
-            "cars": [{"id": c.id, "name": c.name, "brand": c.brand, "car_class": c.car_class} for c in CAR_CATALOG],
+            "tracks": tracks_out,
+            "cars": cars_out,
             "weather": [{"id": w.id, "name": w.name} for w in WEATHER_OPTIONS],
         }
 

@@ -20,7 +20,7 @@ DEFAULT_AC_PATH: str = r"C:\Program Files (x86)\Steam\steamapps\common\assettoco
 DEFAULT_AC_FOLDER: str = r"C:\Program Files (x86)\Steam\steamapps\common\assettocorsa"
 DEFAULT_CM_PATH: str = r"C:\Program Files (x86)\Steam\steamapps\common\assettocorsa\Content Manager.exe"
 DEFAULT_ADMIN_SHARE: str = r"\\ADMIN-PC\RidgeContent"
-DEFAULT_CONTENT_FOLDER: str = r"C:\RidgeContent"
+DEFAULT_CONTENT_FOLDER: str = r"C:\Program Files (x86)\Steam\steamapps\common\assettocorsa"
 
 # --- Firewall Ports ---
 

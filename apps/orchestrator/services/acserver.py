@@ -99,6 +99,8 @@ class ACServerManager:
         weather: str = "3_clear",
         ai_count: int = 0,
         ai_difficulty: int = 80,
+        sun_angle: int = 48,
+        time_mult: int = 1,
     ) -> dict[str, object]:
         """Start an AC server for a group. Returns server info."""
         # Kill existing server for this group if running
@@ -123,6 +125,7 @@ class ACServerManager:
         self._write_server_cfg(
             config_dir, group_name, track, cars, udp_port, tcp_port, http_port,
             race_laps, practice_time, qualy_time, total_slots, weather,
+            sun_angle, time_mult,
         )
 
         # Get rigs in this group for entry_list
@@ -288,6 +291,8 @@ class ACServerManager:
         qualy_time: int,
         max_clients: int,
         weather: str,
+        sun_angle: int = 48,
+        time_mult: int = 1,
     ) -> None:
         """Write server_cfg.ini for an AC dedicated server."""
         car_str = ";".join(cars) if cars else "ks_ferrari_488_gt3"
@@ -298,7 +303,7 @@ class ACServerManager:
             f"CARS={car_str}\n"
             f"CONFIG_TRACK=\n"
             f"TRACK={track}\n"
-            f"SUN_ANGLE=48\n"
+            f"SUN_ANGLE={sun_angle}\n"
             f"PASSWORD=\n"
             f"ADMIN_PASSWORD=ridgeadmin\n"
             f"UDP_PORT={udp_port}\n"
@@ -339,6 +344,7 @@ class ACServerManager:
             f"RACE_EXTRA_LAP=0\n"
             f"REVERSED_GRID_RACE_POSITIONS=0\n"
             f"RESULT_SCREEN_TIME=60\n"
+            f"TIME_OF_DAY_MULT={time_mult}\n"
             f"CM_RACE_PIT_WINDOW_START_OFF=0\n"
             f"CM_RACE_PIT_WINDOW_END_OFF=0\n"
             f"LOCKED_ENTRY_LIST=0\n"

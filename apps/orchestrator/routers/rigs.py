@@ -104,9 +104,11 @@ def create_router(state: AppState) -> APIRouter:
 
         # Find which group this rig belongs to, and use that group's car_pool
         car_pool: list[str] = list(state.car_pool)  # fallback to global
+        session_duration_min: int = 30  # default
         for g in state.get_groups():
             if rig_id in g.rig_ids:
                 car_pool = list(g.car_pool)
+                session_duration_min = g.session_duration_min
                 break
 
         return {
@@ -114,6 +116,7 @@ def create_router(state: AppState) -> APIRouter:
             "status": rig.get("status", "idle"),
             "selected_car": rig.get("selected_car"),
             "car_pool": car_pool,
+            "session_duration_min": session_duration_min,
         }
 
     @router.post("/rigs/{rig_id}/mode")

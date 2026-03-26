@@ -180,7 +180,8 @@ class AppState:
                 return None
             for field in ("name", "mode", "track", "weather", "car_pool",
                           "ai_count", "ai_difficulty", "practice_time",
-                          "qualy_time", "race_laps"):
+                          "qualy_time", "race_laps", "sun_angle",
+                          "time_mult", "session_duration_min"):
                 value = kwargs.get(field)
                 if value is not None:
                     setattr(group, field, value)

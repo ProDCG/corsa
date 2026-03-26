@@ -2,6 +2,7 @@ import { Activity, Cpu, Monitor, Zap, Power, RotateCcw, Play, Check, Image, Car,
 import Kiosk from './Kiosk'
 import Lobby from './Lobby'
 import GroupManager from './components/GroupManager'
+import SessionTimerBar from './components/SessionTimerBar'
 
 interface Rig {
     rig_id: string
@@ -54,7 +55,7 @@ function App() {
         selected_track: 'monza',
         selected_weather: '3_clear',
         useMultiplayer: false,
-        content_folder: 'C:\\RidgeContent'
+        content_folder: 'C:\\Program Files (x86)\\Steam\\steamapps\\common\\assettocorsa'
     })
     const [serverStatus, setServerStatus] = useState<'online' | 'offline'>('offline')
     const [selectedCar, setSelectedCar] = useState('ks_ferrari_488_gt3')
@@ -381,6 +382,7 @@ function App() {
 
             {/* Main Content Area */}
             <main className="flex-1 overflow-y-auto relative">
+                <SessionTimerBar />
                 <header className="sticky top-0 z-40 bg-ridge-dark/80 backdrop-blur-xl p-8 flex justify-between items-center border-b border-white/5">
                     <div>
                         <h1 className="text-3xl font-black italic tracking-tighter uppercase flex items-center gap-2">

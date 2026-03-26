@@ -54,6 +54,9 @@ class RigGroup(BaseModel):
     practice_time: int = 0
     qualy_time: int = 0
     race_laps: int = 10
+    sun_angle: int = 48  # -80 to 80 degrees (time of day)
+    time_mult: int = 1  # Time speed multiplier (1 = real-time)
+    session_duration_min: int = 30  # Session countdown timer (minutes)
 
 
 class RigGroupCreate(BaseModel):
@@ -76,6 +79,9 @@ class RigGroupUpdate(BaseModel):
     practice_time: int | None = None
     qualy_time: int | None = None
     race_laps: int | None = None
+    sun_angle: int | None = None
+    time_mult: int | None = None
+    session_duration_min: int | None = None
 
 
 class RigGroupAddRig(BaseModel):
@@ -121,7 +127,7 @@ class GlobalSettings(BaseModel):
     allow_drs: bool = True
     selected_track: str = "monza"
     selected_weather: str = "3_clear"
-    content_folder: str = r"C:\RidgeContent"
+    content_folder: str = r"C:\Program Files (x86)\Steam\steamapps\common\assettocorsa"
 
 
 class Branding(BaseModel):

@@ -106,8 +106,11 @@ class DesktopBlocker:
         self._current_mode = "lockout"
         self._current_status = "idle"
         self._car_pool: list[str] = []
-        self._showing_cars = False
-        self._car_widgets: list[int] = []
+
+        # Session countdown timer
+        self._timer_end: float | None = None  # Unix timestamp when session ends
+        self._timer_label_id: int | None = None  # Canvas item for timer display
+        self._timer_after_id: str | None = None  # Tk after() handle
 
         self.root = tk.Tk()
         self.root.title("Ridge-Link")
@@ -421,118 +424,69 @@ class DesktopBlocker:
         else:
             logger.info("No logos loaded — keeping text fallback")
 
-    def _show_car_selection(self, cars: list[str]) -> None:
-        """Display a clickable car grid on the splash screen."""
-        if self._showing_cars:
-            return  # Already showing
-        self._showing_cars = True
-        self._clear_car_widgets()
+    # ------------------------------------------------------------------
+    # Session Countdown Timer
+    # ------------------------------------------------------------------
 
-        sw = self.sw
-
-        # Title
-        tid = self.canvas.create_text(
-            sw // 2, 60,
-            text="SELECT YOUR CAR",
-            font=("Arial", 32, "bold italic"),
-            fill=BRAND_COLOR,
-            tags="car_select",
-        )
-        self._car_widgets.append(tid)
-
-        tid2 = self.canvas.create_text(
-            sw // 2, 100,
-            text=f"TAP TO CHOOSE  //  {self.rig_id}",
-            font=("Arial", 10, "bold"),
-            fill="#555555",
-            tags="car_select",
-        )
-        self._car_widgets.append(tid2)
-
-        # Car grid layout
-        cols = min(4, len(cars))
-        if cols == 0:
+    def start_session_timer(self, duration_min: int) -> None:
+        """Start a countdown timer for the session."""
+        if duration_min <= 0:
             return
-        card_w = 280
-        card_h = 80
-        gap = 20
-        total_w = cols * card_w + (cols - 1) * gap
-        start_x = (sw - total_w) // 2
-        start_y = 160
-
-        for i, car_id in enumerate(cars):
-            col = i % cols
-            row = i // cols
-            x = start_x + col * (card_w + gap)
-            y = start_y + row * (card_h + gap)
-
-            # Shortened display name
-            display = car_id.replace("ks_", "").replace("_", " ").title()
-
-            # Card background
-            rect_id = self.canvas.create_rectangle(
-                x, y, x + card_w, y + card_h,
-                fill="#1a1a1a", outline="#333333", width=2,
-                tags=("car_select", f"car_{i}"),
-            )
-            # Car name
-            text_id = self.canvas.create_text(
-                x + card_w // 2, y + card_h // 2,
-                text=display,
-                font=("Arial", 12, "bold"),
+        self._timer_end = time.time() + duration_min * 60
+        logger.info("Session timer started: %d minutes", duration_min)
+        # Create timer label at top-center of canvas
+        if self._timer_label_id is None:
+            self._timer_label_id = self.canvas.create_text(
+                self.sw // 2, 40,
+                text="",
+                font=("Arial", 28, "bold"),
                 fill="#FFFFFF",
-                tags=("car_select", f"car_{i}"),
+                tags="timer",
             )
+        self._tick_timer()
 
-            # Make clickable
-            self.canvas.tag_bind(f"car_{i}", "<Button-1>",
-                                 lambda e, cid=car_id: self._on_car_selected(cid))
-            # Hover effects
-            self.canvas.tag_bind(f"car_{i}", "<Enter>",
-                                 lambda e, rid=rect_id: self.canvas.itemconfig(rid, fill="#FF6B00", outline="#FF6B00"))
-            self.canvas.tag_bind(f"car_{i}", "<Leave>",
-                                 lambda e, rid=rect_id: self.canvas.itemconfig(rid, fill="#1a1a1a", outline="#333333"))
+    def _tick_timer(self) -> None:
+        """Update the countdown timer display."""
+        if self._timer_end is None:
+            return
+        remaining = max(0, self._timer_end - time.time())
+        if remaining <= 0:
+            # Session over
+            if self._timer_label_id:
+                self.canvas.itemconfig(self._timer_label_id, text="SESSION COMPLETE", fill="#FF4444")
+            self._timer_end = None
+            logger.info("Session timer expired")
+            return
+        # Format as HH:MM:SS or MM:SS
+        mins, secs = divmod(int(remaining), 60)
+        hours, mins = divmod(mins, 60)
+        if hours > 0:
+            time_str = f"{hours}:{mins:02d}:{secs:02d}"
+        else:
+            time_str = f"{mins:02d}:{secs:02d}"
+        # Color: red when < 5 min, yellow when < 15 min
+        if remaining < 300:
+            color = "#FF4444"
+        elif remaining < 900:
+            color = "#FFAA00"
+        else:
+            color = "#FFFFFF"
+        if self._timer_label_id:
+            self.canvas.itemconfig(self._timer_label_id, text=time_str, fill=color)
+        self._timer_after_id = self.root.after(1000, self._tick_timer)
 
-            self._car_widgets.extend([rect_id, text_id])
-
-        # Show cursor for car selection
-        self.root.configure(cursor="hand2")
-
-    def _on_car_selected(self, car_id: str) -> None:
-        """Handle car selection — report back to orchestrator."""
-        logger.info("Car selected: %s", car_id)
-        self._clear_car_widgets()
-        self._showing_cars = False
-        self.root.configure(cursor="none")
-
-        display = car_id.replace("ks_", "").replace("_", " ").title()
-        self.update_status(f"SELECTED: {display.upper()}")
-
-        # Report to orchestrator in background
-        threading.Thread(target=self._report_car_selection, args=(car_id,), daemon=True).start()
-
-    def _report_car_selection(self, car_id: str) -> None:
-        """POST selected car to orchestrator."""
-        try:
-            url = f"http://{self.orchestrator_ip}:8000/rigs/{self.rig_id}/status"
-            data = json.dumps({"selected_car": car_id, "status": "ready"}).encode()
-            req = urlrequest.Request(url, data=data, headers={"Content-Type": "application/json"})
-            urlrequest.urlopen(req, timeout=3)
-            logger.info("Car selection reported: %s", car_id)
-        except Exception as e:
-            logger.error("Failed to report car selection: %s", e)
-
-    def _clear_car_widgets(self) -> None:
-        """Remove all car selection widgets from canvas."""
-        self.canvas.delete("car_select")
-        self._car_widgets.clear()
-
-    def _hide_car_selection(self) -> None:
-        """Hide car selection grid."""
-        if self._showing_cars:
-            self._clear_car_widgets()
-            self._showing_cars = False
-            self.root.configure(cursor="none")
+    def stop_session_timer(self) -> None:
+        """Stop and hide the countdown timer."""
+        self._timer_end = None
+        if self._timer_after_id:
+            try:
+                self.root.after_cancel(self._timer_after_id)
+            except Exception:
+                pass
+            self._timer_after_id = None
+        if self._timer_label_id:
+            self.canvas.delete(self._timer_label_id)
+            self._timer_label_id = None
 
     # ------------------------------------------------------------------
     # Orchestrator Polling (mode + status)
@@ -554,6 +508,7 @@ class DesktopBlocker:
             new_mode = str(data.get("mode", "lockout"))
             new_status = str(data.get("status", "idle"))
             car_pool = data.get("car_pool", [])
+            session_duration = int(data.get("session_duration_min", 0))
 
             logger.debug("Poll result: mode=%s status=%s (current: mode=%s status=%s)",
                          new_mode, new_status, self._current_mode, self._current_status)
@@ -570,6 +525,9 @@ class DesktopBlocker:
                 self._current_status = new_status
                 self._car_pool = list(car_pool) if isinstance(car_pool, list) else []
                 self.root.after(0, lambda s=new_status: self._apply_status(s))
+                # Start session timer when race begins
+                if new_status == "racing" and session_duration > 0 and self._timer_end is None:
+                    self.root.after(0, lambda d=session_duration: self.start_session_timer(d))
 
         except URLError:
             logger.debug("Orchestrator unreachable at %s", self.orchestrator_ip)
@@ -581,51 +539,40 @@ class DesktopBlocker:
         logger.info("Applying mode: %s", mode)
         if mode == "freeuse":
             # FREEUSE — completely hide the splash window
-            self._hide_car_selection()
             self.root.attributes("-topmost", False)
             self.root.overrideredirect(False)
-            self.root.withdraw()  # Completely hide (iconify doesn't work with overrideredirect)
+            self.root.withdraw()
             self.canvas.itemconfig(self.mode_indicator, text="FREEUSE", fill="#00CC66")
             logger.info("FREEUSE mode — splash hidden, desktop accessible")
         else:
             # LOCKOUT — restore fullscreen blocker
             self._restore_for_lockout()
             self.canvas.itemconfig(self.mode_indicator, text="LOCKOUT", fill="#333333")
-            self._hide_car_selection()
             logger.info("LOCKOUT mode — splash restored")
 
     def _apply_status(self, status: str) -> None:
         """React to status changes from orchestrator."""
         if status == "setup" and self._current_mode == "lockout":
-            # Show car selection — need splash visible
+            # Admin is assigning cars — show waiting state
             self._restore_for_lockout()
-            self.update_status("CHOOSE YOUR CAR")
-            # Show cursor for car selection
-            self.root.configure(cursor="hand2")
-            if self._car_pool:
-                self._show_car_selection(self._car_pool)
-            else:
-                self.update_status("WAITING FOR CAR POOL...")
+            self.update_status("ADMIN ASSIGNING CARS — STAND BY")
         elif status == "racing":
             # HIDE splash completely so AC can render fullscreen
-            self._hide_car_selection()
             self.root.attributes("-topmost", False)
             self.root.overrideredirect(False)
             self.root.withdraw()
             self.update_status("RACE IN PROGRESS")
             logger.info("Racing detected — splash hidden for AC")
         elif status == "ready":
-            self._hide_car_selection()
             # Keep splash visible (lockout) but lower behind AC if it opens
             if self._current_mode == "lockout":
                 self._restore_for_lockout()
             self.update_status("READY — WAITING FOR GREEN LIGHT")
         elif status == "syncing":
-            self._hide_car_selection()
             self.update_status("SYNCING MODS...")
         else:
-            # idle / other — restore splash based on mode
-            self._hide_car_selection()
+            # idle / other — restore splash based on mode, stop timer
+            self.stop_session_timer()
             if self._current_mode == "lockout":
                 self._restore_for_lockout()
             self.update_status("SYSTEMS ONLINE — READY")
