@@ -174,12 +174,20 @@ class DesktopBlocker:
             tags="branding",
         )
 
-        # --- Bottom-right: media collaboration logos ---
+        # --- Bottom-right: media collaboration splash ---
         self.canvas.create_text(
-            sw - 30, sh - 40,
-            text="RIDGE MEDIA  |  TALBOT MEDIA",
-            font=("Arial", 10, "bold"),
-            fill="#555555",
+            sw - 30, sh - 50,
+            text="TALBOT MEDIA  \u2715  RIDGE SIM RACING",
+            font=("Arial", 13, "bold italic"),
+            fill=BRAND_COLOR,
+            anchor="e",
+            tags="branding",
+        )
+        self.canvas.create_text(
+            sw - 30, sh - 30,
+            text="POWERED BY RIDGE-LINK",
+            font=("Arial", 8, "bold"),
+            fill="#444444",
             anchor="e",
             tags="branding",
         )

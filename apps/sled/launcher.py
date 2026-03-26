@@ -133,6 +133,7 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
             f"JUMP_START_PENALTY=1\n"
             f"AUTO_START=0\n"
             f"OPEN_CONTROL_CONFIG=0\n"
+            f"PIT_MODE=0\n"
             f"CONF_MODE=\n\n"
             f"[CAR_0]\n"
             f"MODEL={car}\n"
@@ -188,6 +189,24 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
 
         with open(cfg_path, "w") as f:
             f.write(content.strip())
+
+        # --- Verification: re-read and confirm AI difficulty ---
+        if ai_count > 0:
+            try:
+                with open(cfg_path) as f:
+                    written = f.read()
+                for line in written.splitlines():
+                    if line.startswith("AI_LEVEL="):
+                        written_level = int(line.split("=", 1)[1])
+                        if written_level == ai_difficulty:
+                            logger.info("AI DIFFICULTY VERIFIED: requested=%d written=%d ✓",
+                                         ai_difficulty, written_level)
+                        else:
+                            logger.warning("AI DIFFICULTY MISMATCH: requested=%d written=%d",
+                                            ai_difficulty, written_level)
+                        break
+            except Exception as ve:
+                logger.warning("AI difficulty verification failed: %s", ve)
 
         logger.info("Wrote race.ini: CAR=%s TRACK=%s AI=%d/%d%% SERVER=%s",
                      car, track, ai_count, ai_difficulty, use_server)

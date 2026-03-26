@@ -52,7 +52,7 @@ class RigGroup(BaseModel):
     ai_count: int = 0
     ai_difficulty: int = 80  # 0-100 (AC's AI strength)
     practice_time: int = 0
-    qualy_time: int = 10
+    qualy_time: int = 0
     race_laps: int = 10
 
 
@@ -115,7 +115,7 @@ class GlobalSettings(BaseModel):
     """Global race/session configuration."""
 
     practice_time: int = 0
-    qualy_time: int = 10
+    qualy_time: int = 0
     race_laps: int = 10
     race_time: int = 0
     allow_drs: bool = True

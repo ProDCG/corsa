@@ -50,11 +50,18 @@ def create_router(state: AppState) -> APIRouter:
             current_status = str(rig.get("status", "idle"))
             new_status = update.status
 
-            # Don't let heartbeats downgrade READY/RACING to SETUP/IDLE easily
+            # Prevent heartbeats from accidentally downgrading RACING/READY
+            # to IDLE/SETUP within 10 seconds of the last state change.
             if current_status in ("racing", "ready") and new_status in ("idle", "setup"):
                 last_seen = rig.get("last_seen")
-                if isinstance(last_seen, (int, float)) and time.time() - last_seen > 5:
+                if isinstance(last_seen, (int, float)) and time.time() - last_seen < 10:
+                    logger.debug("Rig %s: blocking heartbeat downgrade %s -> %s (too soon)",
+                                  rig_id, current_status, new_status)
+                else:
+                    # Enough time has passed — allow the transition (e.g. AC truly finished)
                     state.update_rig_field(rig_id, "status", new_status)
+                    logger.info("Rig %s: stale %s -> %s (allowed after timeout)",
+                                 rig_id, current_status, new_status)
             else:
                 state.update_rig_field(rig_id, "status", new_status)
                 if current_status != new_status:

@@ -49,6 +49,10 @@ class RigAgent:
         self._telem_thread = threading.Thread(target=self._telemetry_loop, daemon=True)
         self._telem_thread.start()
 
+        # Start process watchdog — catches stuck 'racing' state
+        self._watchdog_thread = threading.Thread(target=self._process_watchdog, daemon=True)
+        self._watchdog_thread.start()
+
         logger.info("Rig agent '%s' initialised", config.rig_id)
 
     # ------------------------------------------------------------------
@@ -64,13 +68,30 @@ class RigAgent:
                 if data:
                     self.telemetry_data = data
                     now = time.time()
-                    if now - last_print > 2:
-                        logger.debug("Telemetry active (status=%s)", data.get("status"))
+                    if now - last_print > 5:
+                        logger.info("Telemetry: status=%s speed=%.0f gear=%s laps=%s",
+                                     data.get("status"), data.get("velocity", [0])[0] if isinstance(data.get("velocity"), list) else 0,
+                                     data.get("gear", "?"), data.get("completed_laps", "?"))
                         last_print = now
                 time.sleep(0.1)
             except Exception as e:
                 logger.error("Telemetry error: %s", e)
                 time.sleep(1)
+
+    def _process_watchdog(self) -> None:
+        """Monitor AC process health — auto-revert to idle if it exits while racing."""
+        while True:
+            try:
+                if self.status == "racing" and self.current_process is not None:
+                    if self.current_process.poll() is not None:
+                        exit_code = self.current_process.returncode
+                        logger.warning("AC process exited (code=%s) while status=racing — reverting to idle",
+                                        exit_code)
+                        self.current_process = None
+                        self.status = "idle"
+            except Exception as e:
+                logger.error("Watchdog error: %s", e)
+            time.sleep(5)
 
     # ------------------------------------------------------------------
     # System info

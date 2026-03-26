@@ -365,6 +365,8 @@ class ACServerManager:
         cfg_path = os.path.join(config_dir, "cfg", "server_cfg.ini")
         with open(cfg_path, "w") as f:
             f.write(cfg)
+        logger.info("Wrote server_cfg.ini: track=%s cars=%s max_clients=%d port=%d",
+                      track, car_str, max_clients, udp_port)
 
     def _write_entry_list(
         self, config_dir: str, rig_ids: list[str], cars: list[str],
@@ -398,6 +400,7 @@ class ACServerManager:
         # AI bot slots
         for ai_idx in range(ai_count):
             ai_car = cars[ai_idx % len(cars)] if cars else default_car
+            logger.info("AI Entry CAR_%d: model=%s difficulty=%d", idx, ai_car, ai_difficulty)
             entries.append(
                 f"[CAR_{idx}]\n"
                 f"MODEL={ai_car}\n"

@@ -172,13 +172,14 @@ export default function Kiosk() {
                 .locked-pane {
                     height: 500px;
                     width: 900px;
-                    background: rgba(0, 0, 0, 0.6);
-                    backdrop-blur: 40px;
-                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    background: rgba(0, 0, 0, 0.85);
+                    backdrop-filter: blur(40px);
+                    border: 1px solid rgba(255, 255, 255, 0.12);
                     border-radius: 40px;
                     overflow: hidden;
                     display: flex;
                     flex-direction: column;
+                    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
                 }
                 `}
             </style>
@@ -209,10 +210,10 @@ export default function Kiosk() {
                 <div className="absolute inset-0 flex items-center justify-center z-40 bg-black/20 animate-in fade-in duration-700">
                     <div className="flex flex-col items-center">
                         <div className="text-center mb-10">
-                            <h1 className="text-5xl font-black uppercase tracking-tighter italic leading-none">
+                            <h1 className="text-5xl font-black uppercase tracking-tighter italic leading-none" style={{ textShadow: '0 2px 20px rgba(0,0,0,0.8)' }}>
                                 {selectedBrand ? selectedBrand.toUpperCase() : 'MISSION PREP'}
                             </h1>
-                            <p className="text-ridge-brand font-black tracking-[0.4em] uppercase text-[10px] mt-2">
+                            <p className="text-ridge-brand font-black tracking-[0.4em] uppercase text-[10px] mt-2" style={{ textShadow: '0 1px 10px rgba(0,0,0,0.6)' }}>
                                 {selectedBrand ? 'Select Your Model' : 'CHOOSE MANUFACTURER'}
                             </p>
                         </div>
@@ -240,7 +241,7 @@ export default function Kiosk() {
                                             <button
                                                 key={brand}
                                                 onClick={() => setSelectedBrand(brand)}
-                                                className="aspect-square rounded-3xl bg-white/5 border border-white/5 hover:border-ridge-brand/50 hover:bg-ridge-brand/5 transition-all flex flex-col items-center justify-center group p-6"
+                                                className="aspect-square rounded-3xl bg-black/40 border border-white/15 hover:border-ridge-brand/50 hover:bg-ridge-brand/10 transition-all flex flex-col items-center justify-center group p-6"
                                             >
                                                 {BRAND_LOGOS[brand] ? (
                                                     <img src={BRAND_LOGOS[brand]} alt={brand} className="w-20 h-20 object-contain mb-4 filter grayscale group-hover:grayscale-0 transition-all duration-500" />
@@ -259,7 +260,7 @@ export default function Kiosk() {
                                                 onClick={() => handleCarSelect(car.id)}
                                                 className={`p-6 rounded-3xl border-2 text-left relative transition-all duration-500 overflow-hidden ${selectedCar === car.id
                                                     ? 'bg-ridge-brand/20 border-ridge-brand shadow-[0_0_40px_rgba(255,81,0,0.2)]'
-                                                    : 'bg-white/5 border-white/5 hover:border-white/10'
+                                                    : 'bg-black/40 border-white/15 hover:border-white/25'
                                                     }`}
                                             >
                                                 <div className="relative z-10">

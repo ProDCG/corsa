@@ -30,15 +30,25 @@ class HeartbeatProtocol(asyncio.DatagramProtocol):
             if not rig_id:
                 return
 
+            status = payload.get("status", "idle")
+            existing = self.state.get_rig(rig_id)
+            old_status = str(existing.get("status", "unknown")) if existing else "new"
+
             self.state.upsert_rig(
                 rig_id,
                 {
                     "ip": addr[0],
-                    "status": payload.get("status", "idle"),
+                    "status": status,
                     "cpu_temp": payload.get("cpu_temp", 0),
                     "mod_version": payload.get("mod_version", "unknown"),
                 },
             )
+
+            # Log meaningful state transitions at INFO level
+            if old_status != status:
+                logger.info("Rig %s heartbeat: %s -> %s (ip=%s, car=%s)",
+                            rig_id, old_status, status, addr[0],
+                            payload.get("selected_car", "none"))
         except Exception as e:
             logger.error("Error processing heartbeat: %s", e)
 

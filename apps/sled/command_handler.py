@@ -53,6 +53,10 @@ class CommandHandler:
         action = str(payload.get("action", ""))
 
         if action == "LAUNCH_RACE":
+            # Handle re-launch while already racing — kill first
+            if self.agent.status == "racing":
+                logger.info("LAUNCH_RACE received while racing — killing existing session first")
+                self.agent.kill_race()
             self.agent.stop_kiosk()
             # Resolve car: payload (from orchestrator) > agent selection > None
             payload_car = payload.get("car")
