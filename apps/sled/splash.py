@@ -374,7 +374,7 @@ class DesktopBlocker:
 
         # Run in background thread to avoid blocking UI
         def _load():
-            talbot = self._load_logo("talbot_media_logo.png", max_height=120)
+            talbot = self._load_logo("talbot_media_logo.png", max_height=240)
             rsr = self._load_logo("rsr_logo.png", max_height=120)
             self.root.after_idle(lambda: self._place_logos(talbot, rsr))
 
