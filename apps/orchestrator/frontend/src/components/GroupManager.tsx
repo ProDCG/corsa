@@ -58,12 +58,41 @@ interface GroupManagerProps {
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-function sunAngleToLabel(angle: number): string {
-    if (angle <= -60) return 'Night'
-    if (angle <= -20) return 'Sunset'
-    if (angle <= 20) return 'Morning'
-    if (angle <= 50) return 'Midday'
-    return 'Afternoon'
+const TIME_STEPS = [
+    { angle: -80, label: 'Night' },
+    { angle: -60, label: 'Late Night' },
+    { angle: -30, label: 'Sunset' },
+    { angle: -10, label: 'Dusk' },
+    { angle: 16,  label: 'Morning' },
+    { angle: 30,  label: 'Late Morning' },
+    { angle: 48,  label: 'Midday' },
+    { angle: 60,  label: 'Early Afternoon' },
+    { angle: 72,  label: 'Afternoon' },
+    { angle: 80,  label: 'Late Afternoon' },
+]
+
+function angleToStepIndex(angle: number): number {
+    let best = 0
+    let bestDist = Math.abs(angle - TIME_STEPS[0].angle)
+    for (let i = 1; i < TIME_STEPS.length; i++) {
+        const d = Math.abs(angle - TIME_STEPS[i].angle)
+        if (d < bestDist) { best = i; bestDist = d }
+    }
+    return best
+}
+
+/** Strip common AC prefixes (ks_, ac_, etc.) and format for display */
+function displayName(id: string): string {
+    let name = id
+    // Strip common prefixes
+    for (const prefix of ['ks_', 'ac_', 'acu_', 'rss_', 'tc_']) {
+        if (name.toLowerCase().startsWith(prefix)) {
+            name = name.slice(prefix.length)
+            break
+        }
+    }
+    // Replace underscores with spaces, title case
+    return name.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 }
 
 /* ------------------------------------------------------------------ */
@@ -380,8 +409,14 @@ export default function GroupManager({ rigs }: GroupManagerProps) {
                                     )
                                 )}
                                 <button onClick={() => sendGroupCommand(selectedGroup.id, 'LAUNCH_RACE')}
-                                    className="bg-ridge-brand/10 hover:bg-ridge-brand/20 text-ridge-brand px-4 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase">
-                                    <Play size={14} /> Start Race
+                                    disabled={selectedGroup.mode === 'multiplayer' && !isSelectedServerRunning}
+                                    className={`px-4 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase ${
+                                        selectedGroup.mode === 'multiplayer' && !isSelectedServerRunning
+                                            ? 'bg-white/5 text-white/20 cursor-not-allowed'
+                                            : 'bg-ridge-brand/10 hover:bg-ridge-brand/20 text-ridge-brand'
+                                    }`}
+                                    title={selectedGroup.mode === 'multiplayer' && !isSelectedServerRunning ? 'Deploy server first' : 'Start Race'}>
+                                    <Play size={14} /> {selectedGroup.mode === 'multiplayer' && !isSelectedServerRunning ? 'Server Required' : 'Start Race'}
                                 </button>
                                 <button onClick={() => sendGroupCommand(selectedGroup.id, 'KILL_RACE')}
                                     className="bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase">
@@ -412,15 +447,15 @@ export default function GroupManager({ rigs }: GroupManagerProps) {
                                             }`} />
                                             <span className="font-black italic text-xs">{rigId}</span>
 
-                                            {/* Per-rig car selector */}
+                                            {/* Per-rig car selector — shows all globally available cars */}
                                             <select
                                                 value={rig?.selected_car || ''}
                                                 onChange={e => setRigCar(rigId, e.target.value)}
                                                 className="bg-white/5 border border-white/10 rounded-lg px-2 py-0.5 text-[10px] font-bold outline-none focus:border-ridge-brand appearance-none max-w-40 cursor-pointer"
                                             >
                                                 <option value="">Auto</option>
-                                                {(selectedGroup.car_pool.length > 0 ? cars.filter(c => selectedGroup.car_pool.includes(c.id)) : cars).map(car => (
-                                                    <option key={car.id} value={car.id}>{car.name}</option>
+                                                {cars.map(car => (
+                                                    <option key={car.id} value={car.id}>{displayName(car.id)}</option>
                                                 ))}
                                             </select>
 
@@ -432,21 +467,26 @@ export default function GroupManager({ rigs }: GroupManagerProps) {
                                     )
                                 })}
 
-                                {/* Add rig inline dropdown */}
-                                {unassignedRigs.length > 0 && (
+                                {/* Add / move rig dropdown — shows ALL rigs with current group label */}
+                                {rigs.filter(r => !selectedGroup.rig_ids.includes(r.rig_id)).length > 0 && (
                                     <select
                                         className="bg-white/5 border border-dashed border-white/10 rounded-xl px-3 py-2.5 text-[10px] font-bold outline-none cursor-pointer hover:border-ridge-brand/40 transition-all appearance-none"
                                         value=""
                                         onChange={e => { if (e.target.value) { addRigToGroup(selectedGroup.id, e.target.value) } }}
                                     >
-                                        <option value="" disabled>+ Add rig...</option>
-                                        {unassignedRigs.map(r => (
-                                            <option key={r.rig_id} value={r.rig_id}>{r.rig_id}</option>
-                                        ))}
+                                        <option value="" disabled>+ Add / move rig...</option>
+                                        {rigs.filter(r => !selectedGroup.rig_ids.includes(r.rig_id)).map(r => {
+                                            const currentGroup = groups.find(g => g.rig_ids.includes(r.rig_id))
+                                            return (
+                                                <option key={r.rig_id} value={r.rig_id}>
+                                                    {r.rig_id}{currentGroup ? ` (in ${currentGroup.name})` : ''}
+                                                </option>
+                                            )
+                                        })}
                                     </select>
                                 )}
 
-                                {selectedGroup.rig_ids.length === 0 && unassignedRigs.length === 0 && (
+                                {selectedGroup.rig_ids.length === 0 && rigs.length === 0 && (
                                     <div className="text-[10px] text-white/20 font-bold uppercase py-2">No rigs available</div>
                                 )}
                             </div>
@@ -465,31 +505,34 @@ export default function GroupManager({ rigs }: GroupManagerProps) {
                                     className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-ridge-brand appearance-none cursor-pointer transition-all"
                                 >
                                     {tracks.map(t => (
-                                        <option key={t.id} value={t.id}>{t.name}</option>
+                                        <option key={t.id} value={t.id}>{displayName(t.id)}</option>
                                     ))}
                                 </select>
                             </div>
 
-                            {/* Time of Day (Sun Angle) — replaces weather for multiplayer */}
+                            {/* Time of Day — stepped labels instead of degrees */}
                             <div className="glass rounded-2xl p-4 border border-white/10">
                                 <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
                                     <Sun size={10} /> Time of Day
                                 </label>
                                 <div className="flex items-center gap-3">
                                     <input
-                                        type="range" min={-80} max={80}
-                                        value={selectedGroup.sun_angle ?? 48}
-                                        onChange={e => updateGroup(selectedGroup.id, { sun_angle: parseInt(e.target.value) })}
+                                        type="range" min={0} max={TIME_STEPS.length - 1} step={1}
+                                        value={angleToStepIndex(selectedGroup.sun_angle ?? 48)}
+                                        onChange={e => {
+                                            const step = TIME_STEPS[parseInt(e.target.value)]
+                                            updateGroup(selectedGroup.id, { sun_angle: step.angle })
+                                        }}
                                         className="flex-1 accent-ridge-brand cursor-pointer"
                                     />
-                                    <span className="text-xs font-black tabular-nums w-20 text-right">
-                                        {selectedGroup.sun_angle ?? 48}° <span className="text-white/30 text-[8px]">{sunAngleToLabel(selectedGroup.sun_angle ?? 48)}</span>
+                                    <span className="text-xs font-black w-28 text-right">
+                                        {TIME_STEPS[angleToStepIndex(selectedGroup.sun_angle ?? 48)].label}
                                     </span>
                                 </div>
                             </div>
 
                             {/* Weather — only for solo mode */}
-                            {selectedGroup.mode === 'solo' ? (
+                            {selectedGroup.mode === 'solo' && (
                                 <div className="glass rounded-2xl p-4 border border-white/10">
                                     <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
                                         <Cloud size={10} /> Weather
@@ -504,22 +547,23 @@ export default function GroupManager({ rigs }: GroupManagerProps) {
                                         ))}
                                     </select>
                                 </div>
-                            ) : (
-                                <div className="glass rounded-2xl p-4 border border-white/10">
-                                    <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
-                                        <Clock size={10} /> Time Speed
-                                    </label>
-                                    <div className="flex items-center gap-3">
-                                        <input
-                                            type="range" min={1} max={100}
-                                            value={selectedGroup.time_mult ?? 1}
-                                            onChange={e => updateGroup(selectedGroup.id, { time_mult: parseInt(e.target.value) })}
-                                            className="flex-1 accent-ridge-brand cursor-pointer"
-                                        />
-                                        <span className="text-xs font-black tabular-nums w-8 text-right">{selectedGroup.time_mult ?? 1}x</span>
-                                    </div>
-                                </div>
                             )}
+
+                            {/* Time Speed — shown for both modes */}
+                            <div className="glass rounded-2xl p-4 border border-white/10">
+                                <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
+                                    <Clock size={10} /> Time Speed
+                                </label>
+                                <div className="flex items-center gap-3">
+                                    <input
+                                        type="range" min={1} max={100}
+                                        value={selectedGroup.time_mult ?? 1}
+                                        onChange={e => updateGroup(selectedGroup.id, { time_mult: parseInt(e.target.value) })}
+                                        className="flex-1 accent-ridge-brand cursor-pointer"
+                                    />
+                                    <span className="text-xs font-black tabular-nums w-8 text-right">{selectedGroup.time_mult ?? 1}x</span>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">

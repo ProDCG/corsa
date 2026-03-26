@@ -97,7 +97,7 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
             f"LAPS={race_laps}\n"
             f"DURATION_MINUTES={race_time}\n"
             f"WAIT_TIME=0\n"
-            f"START_RULE=2\n"  # 2 = standing start from grid
+            f"START_RULE=1\n"  # 1 = teleport to grid (avoids floating)
         )
         session_id += 1
 
@@ -169,7 +169,7 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
                 f"RESTRICTOR=0\n"
                 f"SPECTATOR_MODE=0\n"
                 f"AI=auto\n"
-                f"STARTING_POSITION={i + 1}\n\n"
+                f"STARTING_POSITION={i + 2}\n\n"  # 2-indexed: player is 1
             )
 
         content += (
