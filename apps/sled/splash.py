@@ -275,7 +275,7 @@ class DesktopBlocker:
             logger.warning("Could not open video: %s", self._video_path)
             return
 
-        target_fps = 15
+        target_fps = 30
         frame_delay = 1.0 / target_fps
 
         while self._video_running:
@@ -406,7 +406,7 @@ class DesktopBlocker:
         """Place loaded logos on the canvas (runs on main thread)."""
         sw, sh = self.sw, self.sh
         x_right = sw - 30
-        y_base = sh - 65
+        y_base = sh - 160
 
         placed = False
 
