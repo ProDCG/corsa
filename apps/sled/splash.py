@@ -23,9 +23,24 @@ import sys
 import threading
 import time
 import tkinter as tk
+from io import BytesIO
 from pathlib import Path
 from urllib import request as urlrequest
 from urllib.error import URLError
+
+# Optional deps — graceful fallback if missing
+try:
+    from PIL import Image, ImageTk, ImageOps
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
+
+try:
+    import cv2
+    import numpy as np
+    HAS_CV2 = True
+except ImportError:
+    HAS_CV2 = False
 
 _LOG_HANDLERS: list[logging.Handler] = [logging.StreamHandler()]
 try:
@@ -143,9 +158,118 @@ class DesktopBlocker:
         # Start polling orchestrator for mode/status
         self.root.after(POLL_INTERVAL_MS, self._poll_orchestrator)
 
+    # ------------------------------------------------------------------
+    # Asset loading helpers
+    # ------------------------------------------------------------------
+
+    def _fetch_asset(self, filename: str) -> bytes | None:
+        """Download an asset from the orchestrator's static server."""
+        url = f"http://{self.orchestrator_ip}:8000/assets/{filename}"
+        try:
+            with urlrequest.urlopen(url, timeout=5) as resp:
+                data = resp.read()
+            logger.info("Fetched asset: %s (%d bytes)", filename, len(data))
+            return data
+        except Exception as e:
+            logger.warning("Failed to fetch asset %s: %s", filename, e)
+            return None
+
+    def _load_logo(self, filename: str, max_height: int = 50) -> "ImageTk.PhotoImage | None":
+        """Fetch a logo from the orchestrator and return a Tk-compatible image."""
+        if not HAS_PIL:
+            return None
+        raw = self._fetch_asset(filename)
+        if not raw:
+            return None
+        try:
+            img = Image.open(BytesIO(raw)).convert("RGBA")
+            # Invert dark logos for visibility on dark background
+            if filename.endswith(".jpg"):
+                rgb = img.convert("RGB")
+                rgb = ImageOps.invert(rgb)
+                img = rgb.convert("RGBA")
+            # Scale to max_height preserving aspect ratio
+            ratio = max_height / img.height
+            new_size = (int(img.width * ratio), max_height)
+            img = img.resize(new_size, Image.LANCZOS)
+            return ImageTk.PhotoImage(img)
+        except Exception as e:
+            logger.warning("Failed to load logo %s: %s", filename, e)
+            return None
+
+    def _start_video_background(self) -> None:
+        """Start looping sled_background.mp4 as the canvas background."""
+        if not HAS_CV2 or not HAS_PIL:
+            logger.info("Video background disabled (cv2=%s, PIL=%s)", HAS_CV2, HAS_PIL)
+            return
+
+        # Download video to temp file
+        raw = self._fetch_asset("sled_background.mp4")
+        if not raw:
+            return
+
+        import tempfile
+        self._video_tmp = tempfile.NamedTemporaryFile(suffix=".mp4", delete=False)
+        self._video_tmp.write(raw)
+        self._video_tmp.flush()
+        self._video_path = self._video_tmp.name
+        logger.info("Video background cached: %s", self._video_path)
+
+        self._video_running = True
+        self._bg_photo = None  # Keep reference so GC doesn't collect it
+        self._bg_canvas_id = self.canvas.create_image(0, 0, anchor="nw", tags="video_bg")
+        # Push video behind all other elements
+        self.canvas.tag_lower("video_bg")
+
+        t = threading.Thread(target=self._video_reader_thread, daemon=True)
+        t.start()
+
+    def _video_reader_thread(self) -> None:
+        """Read video frames in background, push to canvas at ~15fps."""
+        cap = cv2.VideoCapture(self._video_path)
+        if not cap.isOpened():
+            logger.warning("Could not open video: %s", self._video_path)
+            return
+
+        target_fps = 15
+        frame_delay = 1.0 / target_fps
+
+        while self._video_running:
+            ret, frame = cap.read()
+            if not ret:
+                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # Loop
+                continue
+
+            # Resize to screen, darken slightly for text readability
+            frame = cv2.resize(frame, (self.sw, self.sh))
+            frame = (frame * 0.35).astype(np.uint8)  # Dim to 35%
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            img = Image.fromarray(frame)
+            photo = ImageTk.PhotoImage(img)
+
+            # Schedule canvas update on main thread
+            self.root.after_idle(self._update_bg_frame, photo)
+            time.sleep(frame_delay)
+
+        cap.release()
+
+    def _update_bg_frame(self, photo: "ImageTk.PhotoImage") -> None:
+        """Update the background canvas image (must run on main thread)."""
+        self._bg_photo = photo  # Prevent GC
+        self.canvas.itemconfig(self._bg_canvas_id, image=photo)
+        self.canvas.tag_lower("video_bg")  # Keep behind other elements
+
+    # ------------------------------------------------------------------
+    # Splash drawing
+    # ------------------------------------------------------------------
+
     def _draw_splash(self) -> None:
-        """Draw the branded splash screen."""
+        """Draw the branded splash screen with logos and video background."""
         sw, sh = self.sw, self.sh
+
+        # Start video background (async, non-blocking)
+        self.root.after(500, self._start_video_background)
+
         # Top accent line
         self.canvas.create_rectangle(0, 0, sw, 3, fill=BRAND_COLOR, outline="", tags="branding")
 
@@ -174,8 +298,13 @@ class DesktopBlocker:
             tags="branding",
         )
 
-        # --- Bottom-right: media collaboration splash ---
-        self.canvas.create_text(
+        # --- Bottom-right: Talbot Media + RSR logos ---
+        # Load logos asynchronously (after mainloop starts)
+        self._logo_refs: list[ImageTk.PhotoImage] = []  # Prevent GC
+        self.root.after(1000, self._load_and_place_logos)
+
+        # Fallback text (will be hidden if logos load successfully)
+        self._collab_text_id = self.canvas.create_text(
             sw - 30, sh - 50,
             text="TALBOT MEDIA  \u2715  RIDGE SIM RACING",
             font=("Arial", 13, "bold italic"),
@@ -214,6 +343,60 @@ class DesktopBlocker:
     # ------------------------------------------------------------------
     # Car Selection UI
     # ------------------------------------------------------------------
+
+    def _load_and_place_logos(self) -> None:
+        """Fetch and display Talbot Media + RSR logos in the bottom-right corner."""
+        if not HAS_PIL:
+            logger.info("PIL not available — keeping text fallback for logos")
+            return
+
+        # Run in background thread to avoid blocking UI
+        def _load():
+            talbot = self._load_logo("talbot_media_logo.jpg", max_height=40)
+            rsr = self._load_logo("rsr_logo.jpg", max_height=40)
+            self.root.after_idle(lambda: self._place_logos(talbot, rsr))
+
+        threading.Thread(target=_load, daemon=True).start()
+
+    def _place_logos(self, talbot, rsr) -> None:
+        """Place loaded logos on the canvas (runs on main thread)."""
+        sw, sh = self.sw, self.sh
+        x_right = sw - 30
+        y_base = sh - 65
+
+        placed = False
+
+        if talbot and rsr:
+            # Place them side by side: [Talbot] ✕ [RSR]
+            gap = 20  # pixels between logos
+            cross_width = 20
+            total_w = talbot.width() + cross_width + gap + rsr.width()
+            x_start = x_right - total_w
+
+            self._logo_refs.append(talbot)
+            self.canvas.create_image(x_start, y_base, anchor="nw", image=talbot, tags="branding")
+            self.canvas.create_text(
+                x_start + talbot.width() + gap // 2 + cross_width // 2, y_base + talbot.height() // 2,
+                text="\u2715", font=("Arial", 14, "bold"), fill=BRAND_COLOR, tags="branding",
+            )
+            self._logo_refs.append(rsr)
+            self.canvas.create_image(x_start + talbot.width() + cross_width + gap, y_base, anchor="nw", image=rsr, tags="branding")
+            placed = True
+        elif talbot:
+            self._logo_refs.append(talbot)
+            self.canvas.create_image(x_right, y_base, anchor="ne", image=talbot, tags="branding")
+            placed = True
+        elif rsr:
+            self._logo_refs.append(rsr)
+            self.canvas.create_image(x_right, y_base, anchor="ne", image=rsr, tags="branding")
+            placed = True
+
+        if placed:
+            # Hide fallback text since logos loaded
+            self.canvas.itemconfigure(self._collab_text_id, state="hidden")
+            logger.info("Logos placed successfully")
+        else:
+            logger.info("No logos loaded — keeping text fallback")
 
     def _show_car_selection(self, cars: list[str]) -> None:
         """Display a clickable car grid on the splash screen."""
