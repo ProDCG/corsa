@@ -721,7 +721,7 @@ function App() {
                                                 {rig.status === 'racing' && (
                                                     <button
                                                         onClick={async () => {
-                                                            await fetch(`/api/command/${rig.rig_id}`, {
+                                                            await fetch('/api/command', {
                                                                 method: 'POST',
                                                                 headers: { 'Content-Type': 'application/json' },
                                                                 body: JSON.stringify({ rig_id: rig.rig_id, action: 'KILL_RACE' })
