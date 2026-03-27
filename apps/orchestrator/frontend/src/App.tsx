@@ -1,4 +1,4 @@
-import { Activity, Cpu, Monitor, Zap, Power, RotateCcw, Play, Check, Image, Car, Settings2, Flag, Clock, ShieldCheck, LayoutGrid, Users, Lock, Unlock, Wrench } from 'lucide-react'
+import { Activity, Cpu, Monitor, Zap, Power, RotateCcw, Play, Check, Image, Car, Settings2, Flag, Clock, ShieldCheck, LayoutGrid, Users, Lock, Unlock, Wrench, ChevronLeft, ChevronRight } from 'lucide-react'
 import Kiosk from './Kiosk'
 import Lobby from './Lobby'
 import GroupManager from './components/GroupManager'
@@ -56,7 +56,7 @@ function App() {
         return <Lobby />
     }
 
-    const [activeTab, setActiveTab] = useState<'sims' | 'media' | 'cars' | 'monitor' | 'leaderboard' | 'groups' | 'settings'>('sims')
+    const [activeTab, setActiveTab] = useState<'sims' | 'cars' | 'monitor' | 'leaderboard' | 'groups' | 'settings'>('groups')
 
     // Dynamic car catalog from backend
     const [catalogCars, setCatalogCars] = useState<{id: string; name: string; brand: string; car_class: string}[]>([])
@@ -86,6 +86,7 @@ function App() {
     const [leaderboardTrack, setLeaderboardTrack] = useState<string>('')
     const [presets, setPresets] = useState<any[]>([])
     const [activeTelemFields, setActiveTelemFields] = useState<string[]>(['velocity', 'gforce', 'normalized_pos', 'gear', 'completed_laps', 'gas'])
+    const [showRigPanel, setShowRigPanel] = useState(true)
 
     const TELEM_FIELDS = [
         { id: 'velocity', name: 'Velocity (KM/H)', icon: Zap },
@@ -403,17 +404,16 @@ function App() {
                 </div>
 
                 <div className="flex-1 w-full space-y-4">
+                    <SidebarItem id="groups" activeTab={activeTab} setActiveTab={setActiveTab} icon={Users} label="Groups" />
                     <SidebarItem id="sims" activeTab={activeTab} setActiveTab={setActiveTab} icon={LayoutGrid} label="Sims" />
-                    <SidebarItem id="monitor" activeTab={activeTab} setActiveTab={setActiveTab} icon={Activity} label="Live Monitor" />
+                    <SidebarItem id="monitor" activeTab={activeTab} setActiveTab={setActiveTab} icon={Activity} label="Monitor" />
                     <SidebarItem id="leaderboard" activeTab={activeTab} setActiveTab={setActiveTab} icon={Flag} label="Standings" />
                     <SidebarItem id="cars" activeTab={activeTab} setActiveTab={setActiveTab} icon={Car} label="Cars" />
-                    <SidebarItem id="groups" activeTab={activeTab} setActiveTab={setActiveTab} icon={Users} label="Groups" />
-                    <SidebarItem id="media" activeTab={activeTab} setActiveTab={setActiveTab} icon={Image} label="Media" />
                     <SidebarItem id="settings" activeTab={activeTab} setActiveTab={setActiveTab} icon={Wrench} label="Settings" />
                 </div>
 
                 <div className="mt-auto">
-                    <button onClick={() => sendGlobalCommand('KILL_RACE')} className="p-4 text-red-500 hover:bg-red-500/10 rounded-full transition-all">
+                    <button onClick={() => sendGlobalCommand('KILL_RACE')} className="p-4 text-red-500 hover:bg-red-500/10 rounded-full transition-all" title="Emergency Kill All">
                         <Power size={24} />
                     </button>
                 </div>
@@ -422,35 +422,27 @@ function App() {
             {/* Main Content Area */}
             <main className="flex-1 overflow-y-auto relative">
                 <SessionTimerBar />
-                <header className="sticky top-0 z-40 bg-ridge-dark/80 backdrop-blur-xl p-8 flex justify-between items-center border-b border-white/5">
+                <header className="sticky top-0 z-40 bg-ridge-dark/80 backdrop-blur-xl px-8 py-5 flex justify-between items-center border-b border-white/5">
                     <div>
-                        <h1 className="text-3xl font-black italic tracking-tighter uppercase flex items-center gap-2">
+                        <h1 className="text-2xl font-black italic tracking-tighter uppercase flex items-center gap-2">
                             <span className="text-ridge-brand">Ridge</span>
                             <span>{
                                 activeTab === 'sims' ? 'Sim Manager' :
-                                    activeTab === 'media' ? 'Media Center' :
-                                        activeTab === 'cars' ? 'Car Pool' :
-                                            activeTab === 'monitor' ? 'Telemetry Feed' :
-                                                activeTab === 'leaderboard' ? 'Facility Standings' :
-                                                    activeTab === 'groups' ? 'Rig Groups' :
-                                                        activeTab === 'settings' ? 'System Settings' :
-                                                            'Ridge-Link'
+                                    activeTab === 'cars' ? 'Fleet Authorization' :
+                                        activeTab === 'monitor' ? 'Telemetry Feed' :
+                                            activeTab === 'leaderboard' ? 'Facility Standings' :
+                                                activeTab === 'groups' ? 'Race Groups' :
+                                                    activeTab === 'settings' ? 'Settings' :
+                                                        'Ridge-Link'
                             }</span>
                         </h1>
                         <p className="text-white/30 font-mono text-[10px] uppercase tracking-widest leading-none mt-1">
-                            {rigs.length} Units Online // {raceSettings.selected_track.toUpperCase()} // ENV {raceSettings.selected_weather.split('_').slice(1).join(' ')}
+                            {rigs.length} rigs online // {rigs.filter(r => r.status === 'racing').length} racing
                         </p>
                     </div>
-
-                    <div className="flex gap-4">
-                        <button onClick={async () => { try { await fetch('/api/sync', { method: 'POST' }); alert('Sync command sent to all rigs!') } catch { alert('Sync failed') } }} className="bg-emerald-600 hover:bg-emerald-700 px-6 py-2 rounded-full font-black italic uppercase text-xs flex items-center gap-2 transition-all shadow-lg shadow-emerald-500/20">
-                            <RotateCcw size={16} /> Sync Rigs
-                        </button>
-                        <button onClick={() => sendGlobalCommand('SETUP_MODE')} className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-full font-black italic uppercase text-xs flex items-center gap-2 transition-all shadow-lg shadow-blue-500/20">
-                            <Monitor size={16} /> Prepare Grid
-                        </button>
-                        <button onClick={() => sendGlobalCommand('LAUNCH_RACE')} className="bg-ridge-brand hover:bg-orange-600 px-8 py-2 rounded-full font-black italic uppercase text-xs flex items-center gap-2 transition-all shadow-lg shadow-ridge-brand/40">
-                            <Play size={16} /> Start Session
+                    <div className="flex items-center gap-3">
+                        <button onClick={async () => { try { await fetch('/api/sync', { method: 'POST' }); alert('Sync command sent to all rigs!') } catch { alert('Sync failed') } }} className="bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 transition-all">
+                            <RotateCcw size={14} /> Sync
                         </button>
                     </div>
                 </header>
@@ -572,9 +564,29 @@ function App() {
                                     <h2 className="text-xl font-black italic uppercase">Fleet Authorization</h2>
                                     <p className="text-xs text-white/40 uppercase tracking-widest font-bold">Enable or disable cars available across all groups</p>
                                 </div>
-                                <div className="text-right">
-                                    <p className="text-xs font-black uppercase text-white/40">Authorized</p>
-                                    <p className="text-2xl font-black italic text-ridge-brand">{activeCarPool.length} / {catalogCars.length || ALL_CARS.length}</p>
+                                <div className="flex items-center gap-4">
+                                    <button
+                                        onClick={async () => {
+                                            const allIds = (catalogCars.length > 0 ? catalogCars : ALL_CARS).map(c => c.id)
+                                            const allSelected = allIds.every(id => activeCarPool.includes(id))
+                                            const newPool = allSelected ? [] : allIds
+                                            setActiveCarPool(newPool)
+                                            try {
+                                                await fetch('/api/carpool', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ cars: newPool })
+                                                })
+                                            } catch {}
+                                        }}
+                                        className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border bg-white/5 border-white/10 text-white/50 hover:border-ridge-brand/50 hover:text-ridge-brand"
+                                    >
+                                        {((catalogCars.length > 0 ? catalogCars : ALL_CARS).map(c => c.id)).every(id => activeCarPool.includes(id)) ? 'Deselect All' : 'Select All'}
+                                    </button>
+                                    <div className="text-right">
+                                        <p className="text-xs font-black uppercase text-white/40">Authorized</p>
+                                        <p className="text-2xl font-black italic text-ridge-brand">{activeCarPool.length} / {catalogCars.length || ALL_CARS.length}</p>
+                                    </div>
                                 </div>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -869,12 +881,13 @@ function App() {
                         </div>
                     )})()}
 
-                    {/* MEDIA VIEW */}
-                    {activeTab === 'media' && (
-                        <div className="max-w-2xl space-y-6">
+                    {/* SETTINGS VIEW — includes branding + system config + presets */}
+                    {activeTab === 'settings' && (
+                        <div className="max-w-3xl space-y-6">
+                            {/* Brand Identity (merged from Media) */}
                             <div className="glass rounded-3xl p-8 border border-white/10">
-                                <h2 className="text-xl font-black italic uppercase mb-6 flex items-center gap-2"><Image className="text-ridge-brand" size={24} /> Brand Identity</h2>
-                                <div className="space-y-6">
+                                <h2 className="text-lg font-black italic uppercase mb-6 flex items-center gap-2"><Image className="text-ridge-brand" size={20} /> Brand Identity</h2>
+                                <div className="space-y-4">
                                     <div>
                                         <label className="block text-[10px] uppercase font-black text-white/40 mb-2">Corporate Logo URL (PNG/SVG)</label>
                                         <input
@@ -896,31 +909,19 @@ function App() {
                                     </div>
                                     <button
                                         onClick={handleBrandingPush}
-                                        className="w-full bg-ridge-brand hover:bg-orange-600 py-4 rounded-xl font-black tracking-tighter italic uppercase text-sm transition-all shadow-lg shadow-ridge-brand/20"
+                                        className="w-full bg-ridge-brand hover:bg-orange-600 py-3 rounded-xl font-black tracking-tighter italic uppercase text-xs transition-all shadow-lg shadow-ridge-brand/20"
                                     >
                                         Deploy Branding to Network
                                     </button>
                                 </div>
                             </div>
 
-                            <div className="p-6 border border-zinc-800 rounded-3xl opacity-50">
-                                <p className="text-[10px] font-black uppercase text-white/30 mb-2">Preview</p>
-                                <div className="aspect-video bg-zinc-900 rounded-2xl flex items-center justify-center border border-white/5">
-                                    <Monitor size={32} className="text-white/5" />
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* SETTINGS VIEW */}
-                    {activeTab === 'settings' && (
-                        <div className="max-w-3xl space-y-6">
+                            {/* System Configuration */}
                             <div className="glass rounded-3xl p-8 border border-white/10">
-                                <h2 className="text-xl font-black italic uppercase mb-6 flex items-center gap-2"><Wrench className="text-ridge-brand" size={24} /> System Configuration</h2>
-                                <div className="space-y-6">
+                                <h2 className="text-lg font-black italic uppercase mb-6 flex items-center gap-2"><Wrench className="text-ridge-brand" size={20} /> System Configuration</h2>
+                                <div className="space-y-4">
                                     <div>
                                         <label className="block text-[10px] uppercase font-black text-white/40 mb-2">Assetto Corsa Install Path</label>
-                                        <p className="text-[9px] text-white/20 uppercase font-black mb-2 tracking-widest italic">Path to the AC installation folder — used for car/track scanning</p>
                                         <input
                                             type="text"
                                             value={raceSettings.content_folder}
@@ -940,15 +941,16 @@ function App() {
                                                 alert('Settings saved!')
                                             } catch { alert('Failed to save settings') }
                                         }}
-                                        className="bg-ridge-brand hover:bg-orange-600 px-8 py-3 rounded-xl font-black italic uppercase text-sm transition-all shadow-lg shadow-ridge-brand/20"
+                                        className="bg-ridge-brand hover:bg-orange-600 px-8 py-3 rounded-xl font-black italic uppercase text-xs transition-all shadow-lg shadow-ridge-brand/20"
                                     >
                                         Save Settings
                                     </button>
                                 </div>
                             </div>
 
+                            {/* Presets */}
                             <div className="glass rounded-3xl p-8 border border-white/10">
-                                <h2 className="text-xl font-black italic uppercase mb-6 flex items-center gap-2"><ShieldCheck className="text-ridge-brand" size={24} /> Configuration Presets</h2>
+                                <h2 className="text-lg font-black italic uppercase mb-6 flex items-center gap-2"><ShieldCheck className="text-ridge-brand" size={20} /> Configuration Presets</h2>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {presets.map(preset => (
                                         <div key={preset.id} className="bg-black/20 border border-white/5 p-4 rounded-2xl group relative">
@@ -997,6 +999,101 @@ function App() {
                     </div>
                 </div>
             </main>
+
+            {/* Right Rig Status Panel */}
+            {showRigPanel && (
+                <aside className="w-72 border-l border-white/5 bg-[#0a0a0a] flex flex-col overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30">Rig Status</span>
+                        <button onClick={() => setShowRigPanel(false)} className="text-white/20 hover:text-white/50 transition-colors" title="Hide panel">
+                            <ChevronRight size={14} />
+                        </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto">
+                        {rigs.length === 0 && (
+                            <div className="px-4 py-12 text-center">
+                                <p className="text-[10px] text-white/15 font-black uppercase tracking-widest">No rigs connected</p>
+                            </div>
+                        )}
+                        {rigs.map((rig: Rig) => {
+                            const statusColor = rig.status === 'racing' ? 'bg-ridge-brand' :
+                                rig.status === 'ready' ? 'bg-green-500' :
+                                rig.status === 'setup' ? 'bg-blue-500' :
+                                rig.status === 'offline' ? 'bg-red-500' : 'bg-zinc-600'
+                            const laps = rig.telemetry?.completed_laps ?? 0
+                            return (
+                                <div key={rig.rig_id} className="px-4 py-3 border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                                    {/* Row 1: Name + status */}
+                                    <div className="flex items-center justify-between mb-1">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusColor}`} />
+                                            <span className="text-xs font-black italic uppercase tracking-tight truncate">
+                                                {rig.driver_name || rig.rig_id}
+                                            </span>
+                                        </div>
+                                        <span className={`text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded shrink-0 ${
+                                            rig.status === 'racing' ? 'bg-ridge-brand/20 text-ridge-brand' :
+                                            rig.status === 'ready' ? 'bg-green-500/20 text-green-400' :
+                                            rig.status === 'setup' ? 'bg-blue-500/20 text-blue-400' :
+                                            'bg-white/5 text-white/20'
+                                        }`}>{rig.status}</span>
+                                    </div>
+
+                                    {/* Row 2: Rig ID (if name set) + meta */}
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            {rig.driver_name && (
+                                                <span className="text-[8px] font-mono text-white/15">{rig.rig_id}</span>
+                                            )}
+                                            {rig.status === 'racing' && (
+                                                <span className="text-[8px] font-black text-white/30">
+                                                    <Flag size={7} className="inline mr-0.5" />Lap {laps}
+                                                </span>
+                                            )}
+                                            {rig.selected_car && (
+                                                <span className="text-[7px] font-bold text-white/15 uppercase truncate max-w-20">
+                                                    {rig.selected_car.split('_').slice(1, 3).join(' ')}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Lock/Unlock */}
+                                        <button
+                                            onClick={async () => {
+                                                const newMode = (rig.mode || 'lockout') === 'lockout' ? 'freeuse' : 'lockout'
+                                                await fetch(`/api/rigs/${rig.rig_id}/mode`, {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ mode: newMode })
+                                                })
+                                            }}
+                                            className={`p-1 rounded transition-all ${
+                                                (rig.mode || 'lockout') === 'lockout'
+                                                    ? 'text-white/15 hover:text-amber-400'
+                                                    : 'text-green-400/60 hover:text-red-400'
+                                            }`}
+                                            title={(rig.mode || 'lockout') === 'lockout' ? 'Unlock' : 'Lock'}
+                                        >
+                                            {(rig.mode || 'lockout') === 'lockout' ? <Lock size={10} /> : <Unlock size={10} />}
+                                        </button>
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </aside>
+            )}
+
+            {/* Toggle button when panel is hidden */}
+            {!showRigPanel && (
+                <button
+                    onClick={() => setShowRigPanel(true)}
+                    className="fixed top-1/2 right-0 -translate-y-1/2 z-50 bg-[#0a0a0a] border border-white/10 border-r-0 rounded-l-lg px-1 py-3 text-white/20 hover:text-white/50 transition-colors"
+                    title="Show rig panel"
+                >
+                    <ChevronLeft size={12} />
+                </button>
+            )}
         </div>
     )
 }

@@ -511,222 +511,149 @@ export default function GroupManager({ rigs }: GroupManagerProps) {
                             </div>
                         </div>
 
-                        {/* ---- Configuration Panels ---- */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {/* Track */}
-                            <div className="glass rounded-2xl p-4 border border-white/10">
-                                <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
-                                    <Map size={10} /> Circuit
-                                </label>
-                                <select
-                                    value={selectedGroup.track}
-                                    onChange={e => updateGroup(selectedGroup.id, { track: e.target.value })}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-ridge-brand appearance-none cursor-pointer transition-all"
-                                >
-                                    {tracks.map(t => (
-                                        <option key={t.id} value={t.id}>{displayName(t.id)}</option>
-                                    ))}
-                                </select>
-                            </div>
+                        {/* ---- ENVIRONMENT ---- */}
+                        <div className="glass rounded-2xl p-5 border border-white/10 space-y-3">
+                            <h4 className="text-[9px] uppercase font-black text-white/30 tracking-[0.3em] mb-1">Environment</h4>
 
-                            {/* Time of Day — stepped labels instead of degrees */}
-                            <div className="glass rounded-2xl p-4 border border-white/10">
-                                <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
-                                    <Sun size={10} /> Time of Day
-                                </label>
-                                <div className="flex items-center gap-3">
-                                    <input
-                                        type="range" min={0} max={TIME_STEPS.length - 1} step={1}
-                                        value={angleToStepIndex(selectedGroup.sun_angle ?? 48)}
-                                        onChange={e => {
-                                            const step = TIME_STEPS[parseInt(e.target.value)]
-                                            updateGroup(selectedGroup.id, { sun_angle: step.angle })
-                                        }}
-                                        className="flex-1 accent-ridge-brand cursor-pointer"
-                                    />
-                                    <span className="text-xs font-black w-28 text-right">
-                                        {TIME_STEPS[angleToStepIndex(selectedGroup.sun_angle ?? 48)].label}
-                                    </span>
-                                </div>
-                            </div>
-
-                            {/* Weather — only for solo mode */}
-                            {selectedGroup.mode === 'solo' && (
-                                <div className="glass rounded-2xl p-4 border border-white/10">
-                                    <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
-                                        <Cloud size={10} /> Weather
-                                    </label>
+                            {/* Track + Weather row */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="flex items-center gap-1 text-[8px] uppercase font-black text-white/25 tracking-widest mb-1"><Map size={8} /> Circuit</label>
                                     <select
-                                        value={selectedGroup.weather}
-                                        onChange={e => updateGroup(selectedGroup.id, { weather: e.target.value })}
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-ridge-brand appearance-none cursor-pointer transition-all"
+                                        value={selectedGroup.track}
+                                        onChange={e => updateGroup(selectedGroup.id, { track: e.target.value })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none focus:border-ridge-brand appearance-none cursor-pointer"
                                     >
-                                        {weather.map(w => (
-                                            <option key={w.id} value={w.id}>{w.name}</option>
-                                        ))}
+                                        {tracks.map(t => <option key={t.id} value={t.id}>{displayName(t.id)}</option>)}
                                     </select>
                                 </div>
-                            )}
-
-                            {/* Time Speed — shown for both modes */}
-                            <div className="glass rounded-2xl p-4 border border-white/10">
-                                <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
-                                    <Clock size={10} /> Time Speed
-                                </label>
-                                <div className="flex items-center gap-3">
-                                    <input
-                                        type="range" min={1} max={100}
-                                        value={selectedGroup.time_mult ?? 1}
-                                        onChange={e => updateGroup(selectedGroup.id, { time_mult: parseInt(e.target.value) })}
-                                        className="flex-1 accent-ridge-brand cursor-pointer"
-                                    />
-                                    <span className="text-xs font-black tabular-nums w-8 text-right">{selectedGroup.time_mult ?? 1}x</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                            {/* Race Laps */}
-                            <div className="glass rounded-2xl p-4 border border-white/10">
-                                <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
-                                    <Flag size={10} /> Race Laps
-                                </label>
-                                <input
-                                    type="number" min={1} max={100}
-                                    value={selectedGroup.race_laps}
-                                    onChange={e => updateGroup(selectedGroup.id, { race_laps: parseInt(e.target.value) || 10 })}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-ridge-brand transition-all"
-                                />
-                            </div>
-
-                            {/* Practice */}
-                            <div className="glass rounded-2xl p-4 border border-white/10">
-                                <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
-                                    <Timer size={10} /> Practice (min)
-                                </label>
-                                <input
-                                    type="number" min={0} max={60}
-                                    value={selectedGroup.practice_time}
-                                    onChange={e => updateGroup(selectedGroup.id, { practice_time: parseInt(e.target.value) || 0 })}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-ridge-brand transition-all"
-                                />
-                            </div>
-
-                            {/* Qualifying */}
-                            <div className="glass rounded-2xl p-4 border border-white/10">
-                                <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
-                                    <Trophy size={10} /> Qualifying (min)
-                                </label>
-                                <input
-                                    type="number" min={0} max={60}
-                                    value={selectedGroup.qualy_time}
-                                    onChange={e => updateGroup(selectedGroup.id, { qualy_time: parseInt(e.target.value) || 0 })}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-ridge-brand transition-all"
-                                />
-                            </div>
-
-                            {/* AI Drivers */}
-                            <div className="glass rounded-2xl p-4 border border-white/10">
-                                <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
-                                    <Cpu size={10} /> AI Drivers
-                                </label>
-                                <input
-                                    type="number" min={0} max={30}
-                                    value={selectedGroup.ai_count}
-                                    onChange={e => updateGroup(selectedGroup.id, { ai_count: parseInt(e.target.value) || 0 })}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-ridge-brand transition-all"
-                                />
-                            </div>
-                        </div>
-
-                        {/* ---- Track Conditions ---- */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="glass rounded-2xl p-4 border border-white/10">
-                                <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
-                                    <Sun size={10} /> Temperature
-                                </label>
-                                <div className="flex items-center gap-3">
-                                    <input
-                                        type="range" min={5} max={45}
-                                        value={selectedGroup.ambient_temp ?? 26}
-                                        onChange={e => updateGroup(selectedGroup.id, { ambient_temp: parseInt(e.target.value) })}
-                                        className="flex-1 accent-ridge-brand cursor-pointer"
-                                    />
-                                    <span className="text-xs font-black tabular-nums w-12 text-right">{selectedGroup.ambient_temp ?? 26}°C</span>
-                                </div>
-                            </div>
-
-                            <div className="glass rounded-2xl p-4 border border-white/10">
-                                <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
-                                    <Gauge size={10} /> Track Grip
-                                </label>
-                                <div className="flex items-center gap-3">
-                                    <input
-                                        type="range" min={50} max={100}
-                                        value={selectedGroup.track_grip ?? 100}
-                                        onChange={e => updateGroup(selectedGroup.id, { track_grip: parseInt(e.target.value) })}
-                                        className="flex-1 accent-ridge-brand cursor-pointer"
-                                    />
-                                    <span className="text-xs font-black tabular-nums w-10 text-right">{selectedGroup.track_grip ?? 100}%</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Session Timer + Freeplay */}
-                        <div className="glass rounded-2xl p-4 border border-white/10">
-                            <div className="flex items-center justify-between mb-2">
-                                <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest">
-                                    <Clock size={10} /> Session Timer
-                                </label>
-                                <button
-                                    onClick={() => updateGroup(selectedGroup.id, { freeplay: !selectedGroup.freeplay })}
-                                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${
-                                        selectedGroup.freeplay
-                                            ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                                            : 'bg-white/5 text-white/30 border border-white/10 hover:border-white/20'
-                                    }`}
-                                >
-                                    <Zap size={8} /> {selectedGroup.freeplay ? 'Freeplay ON' : 'Freeplay'}
-                                </button>
-                            </div>
-                            {!selectedGroup.freeplay && (
-                                <input
-                                    type="number" min={1} max={480}
-                                    value={selectedGroup.session_duration_min ?? 30}
-                                    onChange={e => updateGroup(selectedGroup.id, { session_duration_min: parseInt(e.target.value) || 30 })}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-ridge-brand transition-all"
-                                    placeholder="Duration in minutes"
-                                />
-                            )}
-                            {selectedGroup.freeplay && (
-                                <p className="text-[10px] text-amber-400/60 font-bold uppercase tracking-widest">No time limit — session runs until manually stopped</p>
-                            )}
-                        </div>
-
-                        {/* AI Difficulty stepped selector */}
-                        {selectedGroup.ai_count > 0 && (
-                            <div className="glass rounded-2xl p-4 border border-white/10">
-                                <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-3">
-                                    <Gauge size={10} /> AI Difficulty
-                                </label>
-                                <div className="grid grid-cols-6 gap-1.5">
-                                    {AI_STEPS.map(step => (
-                                        <button
-                                            key={step.value}
-                                            onClick={() => updateGroup(selectedGroup.id, { ai_difficulty: step.value })}
-                                            className={`py-2 rounded-xl text-center transition-all border ${
-                                                selectedGroup.ai_difficulty === step.value
-                                                    ? 'bg-ridge-brand/20 border-ridge-brand/50 text-ridge-brand'
-                                                    : 'bg-white/5 border-white/10 text-white/30 hover:border-white/20'
-                                            }`}
+                                {selectedGroup.mode === 'solo' && (
+                                    <div>
+                                        <label className="flex items-center gap-1 text-[8px] uppercase font-black text-white/25 tracking-widest mb-1"><Cloud size={8} /> Weather</label>
+                                        <select
+                                            value={selectedGroup.weather}
+                                            onChange={e => updateGroup(selectedGroup.id, { weather: e.target.value })}
+                                            className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none focus:border-ridge-brand appearance-none cursor-pointer"
                                         >
-                                            <div className="text-xs font-black">{step.value}</div>
-                                            <div className="text-[7px] font-bold uppercase tracking-wider mt-0.5">{step.label}</div>
-                                        </button>
-                                    ))}
+                                            {weather.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Time of Day */}
+                            <div className="flex items-center gap-3">
+                                <label className="flex items-center gap-1 text-[8px] uppercase font-black text-white/25 tracking-widest w-20 shrink-0"><Sun size={8} /> Time</label>
+                                <input
+                                    type="range" min={0} max={TIME_STEPS.length - 1} step={1}
+                                    value={angleToStepIndex(selectedGroup.sun_angle ?? 48)}
+                                    onChange={e => updateGroup(selectedGroup.id, { sun_angle: TIME_STEPS[parseInt(e.target.value)].angle })}
+                                    className="flex-1 accent-ridge-brand cursor-pointer h-1"
+                                />
+                                <span className="text-[10px] font-black w-24 text-right text-white/60">{TIME_STEPS[angleToStepIndex(selectedGroup.sun_angle ?? 48)].label}</span>
+                            </div>
+
+                            {/* Time Speed */}
+                            <div className="flex items-center gap-3">
+                                <label className="flex items-center gap-1 text-[8px] uppercase font-black text-white/25 tracking-widest w-20 shrink-0"><Clock size={8} /> Speed</label>
+                                <input type="range" min={1} max={100} value={selectedGroup.time_mult ?? 1}
+                                    onChange={e => updateGroup(selectedGroup.id, { time_mult: parseInt(e.target.value) })}
+                                    className="flex-1 accent-ridge-brand cursor-pointer h-1" />
+                                <span className="text-[10px] font-black tabular-nums w-24 text-right text-white/60">{selectedGroup.time_mult ?? 1}x</span>
+                            </div>
+
+                            {/* Temperature */}
+                            <div className="flex items-center gap-3">
+                                <label className="flex items-center gap-1 text-[8px] uppercase font-black text-white/25 tracking-widest w-20 shrink-0"><Sun size={8} /> Temp</label>
+                                <input type="range" min={5} max={45} value={selectedGroup.ambient_temp ?? 26}
+                                    onChange={e => updateGroup(selectedGroup.id, { ambient_temp: parseInt(e.target.value) })}
+                                    className="flex-1 accent-ridge-brand cursor-pointer h-1" />
+                                <span className="text-[10px] font-black tabular-nums w-24 text-right text-white/60">{selectedGroup.ambient_temp ?? 26}°C</span>
+                            </div>
+
+                            {/* Track Grip */}
+                            <div className="flex items-center gap-3">
+                                <label className="flex items-center gap-1 text-[8px] uppercase font-black text-white/25 tracking-widest w-20 shrink-0"><Gauge size={8} /> Grip</label>
+                                <input type="range" min={50} max={100} value={selectedGroup.track_grip ?? 100}
+                                    onChange={e => updateGroup(selectedGroup.id, { track_grip: parseInt(e.target.value) })}
+                                    className="flex-1 accent-ridge-brand cursor-pointer h-1" />
+                                <span className="text-[10px] font-black tabular-nums w-24 text-right text-white/60">{selectedGroup.track_grip ?? 100}%</span>
+                            </div>
+                        </div>
+
+                        {/* ---- RACE SETTINGS ---- */}
+                        <div className="glass rounded-2xl p-5 border border-white/10 space-y-3">
+                            <h4 className="text-[9px] uppercase font-black text-white/30 tracking-[0.3em] mb-1">Race Settings</h4>
+
+                            {/* Compact number inputs row */}
+                            <div className="grid grid-cols-4 gap-3">
+                                <div>
+                                    <label className="flex items-center gap-1 text-[8px] uppercase font-black text-white/25 tracking-widest mb-1"><Flag size={8} /> Laps</label>
+                                    <input type="number" min={1} max={100} value={selectedGroup.race_laps}
+                                        onChange={e => updateGroup(selectedGroup.id, { race_laps: parseInt(e.target.value) || 10 })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none focus:border-ridge-brand" />
+                                </div>
+                                <div>
+                                    <label className="flex items-center gap-1 text-[8px] uppercase font-black text-white/25 tracking-widest mb-1"><Timer size={8} /> Practice</label>
+                                    <input type="number" min={0} max={60} value={selectedGroup.practice_time}
+                                        onChange={e => updateGroup(selectedGroup.id, { practice_time: parseInt(e.target.value) || 0 })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none focus:border-ridge-brand" />
+                                </div>
+                                <div>
+                                    <label className="flex items-center gap-1 text-[8px] uppercase font-black text-white/25 tracking-widest mb-1"><Trophy size={8} /> Qualy</label>
+                                    <input type="number" min={0} max={60} value={selectedGroup.qualy_time}
+                                        onChange={e => updateGroup(selectedGroup.id, { qualy_time: parseInt(e.target.value) || 0 })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none focus:border-ridge-brand" />
+                                </div>
+                                <div>
+                                    <label className="flex items-center gap-1 text-[8px] uppercase font-black text-white/25 tracking-widest mb-1"><Cpu size={8} /> AI Cars</label>
+                                    <input type="number" min={0} max={30} value={selectedGroup.ai_count}
+                                        onChange={e => updateGroup(selectedGroup.id, { ai_count: parseInt(e.target.value) || 0 })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none focus:border-ridge-brand" />
                                 </div>
                             </div>
-                        )}
+
+                            {/* AI Difficulty — compact slider */}
+                            {selectedGroup.ai_count > 0 && (
+                                <div className="flex items-center gap-3">
+                                    <label className="flex items-center gap-1 text-[8px] uppercase font-black text-white/25 tracking-widest w-20 shrink-0"><Gauge size={8} /> AI Skill</label>
+                                    <input type="range" min={0} max={5} step={1}
+                                        value={AI_STEPS.findIndex(s => s.value === selectedGroup.ai_difficulty) >= 0 ? AI_STEPS.findIndex(s => s.value === selectedGroup.ai_difficulty) : 3}
+                                        onChange={e => updateGroup(selectedGroup.id, { ai_difficulty: AI_STEPS[parseInt(e.target.value)].value })}
+                                        className="flex-1 accent-ridge-brand cursor-pointer h-1" />
+                                    <span className="text-[10px] font-black w-24 text-right text-white/60">
+                                        {AI_STEPS.find(s => s.value === selectedGroup.ai_difficulty)?.label ?? 'Medium'} ({selectedGroup.ai_difficulty})
+                                    </span>
+                                </div>
+                            )}
+
+                            {/* Session Timer + Freeplay */}
+                            <div className="pt-2 border-t border-white/5">
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="flex items-center gap-1 text-[8px] uppercase font-black text-white/25 tracking-widest"><Clock size={8} /> Session Timer</label>
+                                    <button
+                                        onClick={() => updateGroup(selectedGroup.id, { freeplay: !selectedGroup.freeplay })}
+                                        className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[7px] font-black uppercase tracking-widest transition-all ${
+                                            selectedGroup.freeplay
+                                                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                                : 'bg-white/5 text-white/30 border border-white/10'
+                                        }`}
+                                    >
+                                        <Zap size={7} /> {selectedGroup.freeplay ? 'Freeplay ON' : 'Freeplay'}
+                                    </button>
+                                </div>
+                                {!selectedGroup.freeplay ? (
+                                    <div className="flex items-center gap-3">
+                                        <input type="number" min={1} max={480} value={selectedGroup.session_duration_min ?? 30}
+                                            onChange={e => updateGroup(selectedGroup.id, { session_duration_min: parseInt(e.target.value) || 30 })}
+                                            className="w-24 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none focus:border-ridge-brand" />
+                                        <span className="text-[9px] text-white/30 font-bold uppercase">minutes per session</span>
+                                    </div>
+                                ) : (
+                                    <p className="text-[9px] text-amber-400/50 font-bold uppercase tracking-widest">No time limit — session runs until manually stopped</p>
+                                )}
+                            </div>
+                        </div>
 
 
                     </div>
