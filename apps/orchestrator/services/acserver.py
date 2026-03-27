@@ -134,9 +134,8 @@ class ACServerManager:
                 rc = str(r.get("selected_car", ""))
                 if rc and rc != "None":
                     all_cars_set.add(rc)
-        unique_car_count = max(len(all_cars_set), 1)
-        slots_per_car = max(2, len(rig_ids))
-        total_slots = ai_count + (unique_car_count * slots_per_car)
+        # Hardcode generous slot count to avoid "not enough slots"
+        total_slots = 50
         all_cars_list = list(all_cars_set)  # unique list for CARS= and entry_list
 
         self._write_server_cfg(
@@ -511,7 +510,7 @@ class ACServerManager:
         # Open human slots — create multiple open slots per car so any
         # client can find a matching empty slot regardless of selection.
         # At minimum: 2 open slots per unique car, or enough for all rigs.
-        slots_per_car = max(2, len(rig_ids))
+        slots_per_car = 24
         for car_model in all_cars:
             for _ in range(slots_per_car):
                 entries.append(
