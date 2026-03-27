@@ -30,6 +30,22 @@ _CM_WEATHER_TYPES: dict[str, int] = {
 }
 
 
+def _sun_angle_to_seconds(angle: float) -> int:
+    """Convert a sun angle to seconds from midnight for CSP's [TIME] section.
+
+    Approximate mapping based on AC/CSP behavior:
+      -16 (dawn)  ~ 06:00 = 21600s
+        0         ~ 07:30 = 27000s
+       56 (noon)  ~ 12:00 = 43200s
+      120 (sunset)~ 18:00 = 64800s
+      163 (night) ~ 22:00 = 79200s
+    """
+    # Linear interpolation: angle -16 -> 21600s (6am), angle 163 -> 79200s (10pm)
+    t = (angle - (-16)) / (163 - (-16))  # 0..1 across our range
+    seconds = int(21600 + t * (79200 - 21600))
+    return max(0, min(86400, seconds))
+
+
 def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | None:
     """Generate a race.ini for direct acs.exe launch.
 
@@ -268,10 +284,23 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
             f"__TRACK_TIMEZONE_DTS=0"
         )
 
-        # [WEATHER]
+        # [WEATHER] — expanded for CSP Weather FX
         lines.append(
             f"\n[WEATHER]\n"
-            f"NAME={weather}"
+            f"NAME={weather}\n"
+            f"GRAPHICS={weather}\n"
+            f"CONTROLLER=base\n"
+            f"TYPE=1"
+        )
+
+        # [TIME] — seconds from midnight for CSP
+        time_seconds = _sun_angle_to_seconds(sun_angle)
+        lines.append(
+            f"\n[TIME]\n"
+            f"TIME={time_seconds}\n"
+            f"DAYS=0\n"
+            f"MONTHS=0\n"
+            f"YEARS=2026"
         )
 
         # Trailing standard sections
@@ -300,6 +329,26 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
 
         with open(cfg_path, "w") as f:
             f.write(content)
+
+        # --- Write CSP weather_fx.ini sidecar ---
+        ext_dir = os.path.join(os.path.dirname(cfg_path), "extension")
+        os.makedirs(ext_dir, exist_ok=True)
+        weather_fx_path = os.path.join(ext_dir, "weather_fx.ini")
+        with open(weather_fx_path, "w") as wf:
+            wf.write(
+                "[BASIC]\n"
+                "ENABLED=1\n\n"
+                "[CONTROLLER]\n"
+                "ACTIVE=1\n"
+                "IMPLEMENTATION=base\n"
+            )
+        logger.info("Wrote weather_fx.ini: %s", weather_fx_path)
+
+        # --- Delete last_race.ini to prevent CSP caching ---
+        last_race = os.path.join(os.path.dirname(cfg_path), "last_race.ini")
+        if os.path.exists(last_race):
+            os.remove(last_race)
+            logger.info("Deleted stale last_race.ini")
 
         # --- DIAGNOSTIC: dump full race.ini content to log ---
         logger.info("=" * 60)
