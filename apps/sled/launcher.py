@@ -17,6 +17,18 @@ IS_WINDOWS = os.name == "nt"
 # Using Monza (central European) coords; difference between tracks is negligible.
 _DEFAULT_GEOTAG = (45.6156, 9.2811)
 
+# Content Manager weather type IDs — maps AC weather preset to CM's internal type.
+# Without the correct type, CM may override sun angle and weather settings.
+_CM_WEATHER_TYPES: dict[str, int] = {
+    "0_sun":           16,   # LightThunderstorm base -> CM Clear
+    "1_nosun":         16,
+    "2_clouds":        16,
+    "3_clear":         16,
+    "4_mid_clouds":    16,
+    "5_light_clouds":  17,
+    "6_heavy_clouds":  18,
+}
+
 
 def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | None:
     """Generate a race.ini for direct acs.exe launch.
@@ -239,13 +251,14 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
         )
 
         # [LIGHTING] — sun angle, time multiplier, and CM-specific weather fields
+        cm_weather_type = _CM_WEATHER_TYPES.get(weather, 16)
         lines.append(
             f"\n[LIGHTING]\n"
             f"SPECULAR_MULT=1.0\n"
             f"CLOUD_SPEED=0.200\n"
             f"SUN_ANGLE={sun_angle:.2f}\n"
             f"TIME_MULT={time_mult:.1f}\n"
-            f"__CM_WEATHER_TYPE=-1\n"
+            f"__CM_WEATHER_TYPE={cm_weather_type}\n"
             f"__CM_WEATHER_CONTROLLER=base\n"
             f"__TRACK_GEOTAG_LAT={_DEFAULT_GEOTAG[0]}\n"
             f"__TRACK_GEOTAG_LONG={_DEFAULT_GEOTAG[1]}\n"
