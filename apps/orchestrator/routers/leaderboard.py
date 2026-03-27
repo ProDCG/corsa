@@ -39,6 +39,7 @@ def create_router(state: AppState) -> APIRouter:
         active_rigs = [
             {
                 "rig_id": r["rig_id"],
+                "driver_name": r.get("driver_name"),
                 "status": r.get("status", "idle"),
                 "selected_car": r.get("selected_car"),
                 "telemetry": r.get("telemetry"),
@@ -48,7 +49,18 @@ def create_router(state: AppState) -> APIRouter:
         ]
 
         return {
-            "top_10": [e.model_dump() for e in entries],
+            "top_10": [
+                {
+                    "rig_id": e.rig_id,
+                    "driver_name": e.driver_name,
+                    "car": e.car,
+                    "track": e.track,
+                    "lap": e.lap,
+                    "lap_time_ms": e.lap_time_ms,
+                    "timestamp": e.timestamp,
+                }
+                for e in entries
+            ],
             "active_rigs": active_rigs,
             "total_rigs": len(state.get_rigs()),
             "server_status": state.server_status,

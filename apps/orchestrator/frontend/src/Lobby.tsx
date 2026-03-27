@@ -4,12 +4,16 @@ import { Flag, Zap, Activity } from 'lucide-react'
 interface LobbyData {
     top_10: Array<{
         rig_id: string
+        driver_name?: string | null
         car: string | null
+        track: string | null
         timestamp: number
         lap: number
+        lap_time_ms?: number | null
     }>
     active_rigs: Array<{
         rig_id: string
+        driver_name?: string | null
         status: string
         selected_car: string | null
         telemetry: {
@@ -22,6 +26,9 @@ interface LobbyData {
     total_rigs: number
     server_status: string
 }
+
+const formatCarName = (id: string) => id ? id.split('_').slice(1).join(' ').toUpperCase() : '—'
+const formatTrack = (id: string) => id ? id.charAt(0).toUpperCase() + id.slice(1).replace(/_/g, ' ') : '—'
 
 export default function Lobby() {
     const [data, setData] = useState<LobbyData | null>(null)
@@ -59,14 +66,14 @@ export default function Lobby() {
                     <h1 className="text-5xl font-black italic uppercase tracking-tighter leading-none">
                         <span className="text-ridge-brand">Ridge</span> Racing
                     </h1>
-                    <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/30 mt-1">
+                    <p className="text-[11px] font-black uppercase tracking-[0.5em] text-white/40 mt-1">
                         Live Facility Leaderboard
                     </p>
                 </div>
                 <div className="flex items-center gap-6">
                     <div className="flex items-center gap-2">
                         <div className={`w-3 h-3 rounded-full ${data.active_rigs.length > 0 ? 'bg-green-500 animate-pulse' : 'bg-white/20'}`} />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-white/40">
+                        <span className="text-[11px] font-black uppercase tracking-widest text-white/50">
                             {data.active_rigs.length} Racing / {data.total_rigs} Online
                         </span>
                     </div>
@@ -90,19 +97,41 @@ export default function Lobby() {
                                     }`}
                                 >
                                     <div className={`text-4xl font-black italic w-16 text-center ${
-                                        idx === 0 ? 'text-ridge-brand' : idx < 3 ? 'text-white/60' : 'text-white/20'
+                                        idx === 0 ? 'text-ridge-brand' : idx < 3 ? 'text-white/60' : 'text-white/25'
                                     }`}>
                                         {idx + 1}
                                     </div>
                                     <div className="flex-1">
-                                        <p className="text-3xl font-black italic uppercase tracking-tighter">{entry.rig_id}</p>
-                                        <p className="text-[10px] font-bold uppercase text-white/30 tracking-widest mt-1">
-                                            {entry.car?.split('_').slice(1).join(' ').toUpperCase() || 'Unknown'}
+                                        <p className="text-3xl font-black italic uppercase tracking-tighter">
+                                            {entry.driver_name || entry.rig_id}
                                         </p>
+                                        <div className="flex items-center gap-3 mt-1">
+                                            {entry.driver_name && (
+                                                <span className="text-[10px] font-mono text-white/30">{entry.rig_id}</span>
+                                            )}
+                                            <span className="text-[10px] font-bold uppercase text-white/40 tracking-widest">
+                                                {formatCarName(entry.car || '')}
+                                            </span>
+                                            {entry.track && (
+                                                <span className="text-[10px] font-bold uppercase text-white/25 tracking-widest">
+                                                    {formatTrack(entry.track)}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-[8px] font-black uppercase text-ridge-brand tracking-widest mb-1">Laps</p>
+                                        <p className="text-[9px] font-black uppercase text-ridge-brand tracking-widest mb-1">Laps</p>
                                         <p className="text-4xl font-black italic tabular-nums">{entry.lap}</p>
+                                        {entry.lap_time_ms && (
+                                            <p className="text-[10px] font-bold text-white/30 tabular-nums mt-1">
+                                                {(entry.lap_time_ms / 1000).toFixed(3)}s
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div className="text-right w-24">
+                                        <p className="text-[9px] font-bold text-white/30 tabular-nums">
+                                            {entry.timestamp ? new Date(entry.timestamp * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                                        </p>
                                     </div>
                                 </div>
                             ))
@@ -126,20 +155,25 @@ export default function Lobby() {
                         {data.active_rigs.map(rig => (
                             <div key={rig.rig_id} className="bg-white/5 rounded-2xl p-4 border border-white/5">
                                 <div className="flex justify-between items-center mb-3">
-                                    <span className="font-black italic uppercase text-sm">{rig.rig_id}</span>
+                                    <div>
+                                        <span className="font-black italic uppercase text-sm">{rig.driver_name || rig.rig_id}</span>
+                                        {rig.driver_name && (
+                                            <span className="block text-[9px] font-mono text-white/25">{rig.rig_id}</span>
+                                        )}
+                                    </div>
                                     <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                                 </div>
                                 {rig.telemetry && (
                                     <div className="grid grid-cols-2 gap-2">
                                         <div className="bg-black/30 p-2 rounded-lg">
-                                            <p className="text-[7px] font-black uppercase opacity-30">Speed</p>
+                                            <p className="text-[8px] font-black uppercase text-white/40">Speed</p>
                                             <p className="text-lg font-black italic tabular-nums">
-                                                {rig.telemetry.velocity?.[0] || 0}
+                                                {Math.round(rig.telemetry.velocity?.[0] || 0)}
                                                 <span className="text-[8px] text-ridge-brand ml-1">KM/H</span>
                                             </p>
                                         </div>
                                         <div className="bg-black/30 p-2 rounded-lg">
-                                            <p className="text-[7px] font-black uppercase opacity-30">Gear</p>
+                                            <p className="text-[8px] font-black uppercase text-white/40">Gear</p>
                                             <p className="text-lg font-black italic">
                                                 {rig.telemetry.gear === -1 ? 'R' : rig.telemetry.gear === 0 ? 'N' : rig.telemetry.gear}
                                             </p>
@@ -147,7 +181,7 @@ export default function Lobby() {
                                     </div>
                                 )}
                                 {rig.selected_car && (
-                                    <p className="text-[8px] font-bold uppercase text-white/20 tracking-widest mt-2">
+                                    <p className="text-[9px] font-bold uppercase text-white/30 tracking-widest mt-2">
                                         {rig.selected_car.split('_').slice(1).join(' ')}
                                     </p>
                                 )}
@@ -156,7 +190,7 @@ export default function Lobby() {
                         {data.active_rigs.length === 0 && (
                             <div className="py-12 text-center opacity-20">
                                 <Zap size={32} className="mx-auto mb-2" />
-                                <p className="text-[10px] uppercase font-black tracking-widest">No Active Races</p>
+                                <p className="text-[11px] uppercase font-black tracking-widest">No Active Races</p>
                             </div>
                         )}
                     </div>

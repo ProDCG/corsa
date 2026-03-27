@@ -1,4 +1,4 @@
-import { Activity, Cpu, Monitor, Zap, Power, RotateCcw, Play, Check, Image, Car, Settings2, Flag, Clock, ShieldCheck, LayoutGrid, Users, Lock, Unlock, Wrench, ChevronLeft, ChevronRight, Thermometer, Fuel, Gauge } from 'lucide-react'
+import { Activity, Cpu, Monitor, Zap, Power, RotateCcw, Play, Check, Image, Car, Settings2, Flag, Clock, ShieldCheck, LayoutGrid, Users, Lock, Unlock, Wrench, ChevronLeft, ChevronRight, Thermometer, Fuel, Gauge, Square, ChevronDown } from 'lucide-react'
 import Kiosk from './Kiosk'
 import Lobby from './Lobby'
 import GroupManager from './components/GroupManager'
@@ -32,10 +32,10 @@ const SidebarItem = memo(({ id, activeTab, setActiveTab, icon: Icon, label }: {
 }) => (
     <button
         onClick={() => setActiveTab(id)}
-        className={`w-full flex flex-col items-center gap-2 p-4 transition-all ${activeTab === id ? 'text-ridge-brand bg-white/5 border-r-2 border-ridge-brand' : 'text-white/40 hover:text-white/60 hover:bg-white/5 border-r-2 border-transparent'}`}
+        className={`w-full flex flex-col items-center gap-2 p-4 transition-all ${activeTab === id ? 'text-ridge-brand bg-white/5 border-r-2 border-ridge-brand' : 'text-white/50 hover:text-white/70 hover:bg-white/5 border-r-2 border-transparent'}`}
     >
         <Icon size={24} />
-        <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
+        <span className="text-[11px] font-black uppercase tracking-widest">{label}</span>
     </button>
 ))
 
@@ -654,7 +654,7 @@ function App() {
                         // 2x2 corner grid helper
                         const CornerGrid = ({ label, fl, fr, rl, rr, unit, color }: { label: string, fl: number, fr: number, rl: number, rr: number, unit: string, color?: string }) => (
                             <div className="bg-black/30 p-2.5 rounded-xl">
-                                <p className="text-[7px] font-black uppercase text-white/25 mb-1.5">{label}</p>
+                                <p className="text-[8px] font-black uppercase text-white/40 mb-1.5">{label}</p>
                                 <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] font-bold tabular-nums">
                                     <span className={color || 'text-white/60'}>FL {fl}{unit}</span>
                                     <span className={color || 'text-white/60'}>FR {fr}{unit}</span>
@@ -669,20 +669,20 @@ function App() {
                             {/* Channel Selector — categorized columns */}
                             <div className="glass rounded-2xl p-5 border border-white/10">
                                 <div className="flex items-center justify-between mb-4">
-                                    <h3 className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30">Data Channels</h3>
+                                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/50">Data Channels</h3>
                                     <div className="flex gap-2">
                                         <button onClick={() => setActiveTelemFields(TELEM_CATEGORIES.flatMap(c => c.fields.map(f => f.id)))}
-                                            className="text-[8px] font-black uppercase tracking-widest text-ridge-brand/60 hover:text-ridge-brand px-2 py-0.5 rounded border border-ridge-brand/20 hover:border-ridge-brand/40 transition-all">All On</button>
+                                            className="text-[9px] font-black uppercase tracking-widest text-ridge-brand/70 hover:text-ridge-brand px-2 py-0.5 rounded border border-ridge-brand/20 hover:border-ridge-brand/40 transition-all">All On</button>
                                         <button onClick={() => setActiveTelemFields([])}
-                                            className="text-[8px] font-black uppercase tracking-widest text-white/20 hover:text-white/40 px-2 py-0.5 rounded border border-white/10 hover:border-white/20 transition-all">All Off</button>
+                                            className="text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-white/50 px-2 py-0.5 rounded border border-white/10 hover:border-white/20 transition-all">All Off</button>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
                                     {TELEM_CATEGORIES.map(cat => (
                                         <div key={cat.category}>
                                             <div className="flex items-center gap-1.5 mb-2">
-                                                <cat.icon size={10} className="text-white/25" />
-                                                <span className="text-[8px] font-black uppercase tracking-widest text-white/30">{cat.category}</span>
+                                                <cat.icon size={10} className="text-white/40" />
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-white/40">{cat.category}</span>
                                             </div>
                                             <div className="space-y-1">
                                                 {cat.fields.map(field => (
@@ -713,13 +713,30 @@ function App() {
                                             <div>
                                                 <h3 className="text-base font-black italic uppercase tracking-tight">{rig.driver_name || rig.rig_id}</h3>
                                                 <div className="flex items-center gap-2 mt-0.5">
-                                                    {rig.driver_name && <span className="text-[8px] font-mono text-white/20">{rig.rig_id}</span>}
-                                                    {rig.telemetry?.car_model && <span className="text-[8px] font-bold text-white/15 uppercase">{rig.telemetry.car_model}</span>}
+                                                    {rig.driver_name && <span className="text-[9px] font-mono text-white/30">{rig.rig_id}</span>}
+                                                    {rig.telemetry?.car_model && <span className="text-[9px] font-bold text-white/25 uppercase">{rig.telemetry.car_model}</span>}
                                                 </div>
                                             </div>
-                                            <span className={`px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-widest ${rig.status === 'racing' ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-white/20'}`}>
-                                                {rig.status === 'racing' ? 'LIVE' : rig.status.toUpperCase()}
-                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                {rig.status === 'racing' && (
+                                                    <button
+                                                        onClick={async () => {
+                                                            await fetch(`/api/command/${rig.rig_id}`, {
+                                                                method: 'POST',
+                                                                headers: { 'Content-Type': 'application/json' },
+                                                                body: JSON.stringify({ rig_id: rig.rig_id, action: 'KILL_RACE' })
+                                                            })
+                                                        }}
+                                                        className="bg-red-500/10 hover:bg-red-500/20 text-red-400 p-1.5 rounded-lg transition-all"
+                                                        title="Stop race for this rig"
+                                                    >
+                                                        <Square size={12} />
+                                                    </button>
+                                                )}
+                                                <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${rig.status === 'racing' ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-white/30'}`}>
+                                                    {rig.status === 'racing' ? 'LIVE' : rig.status.toUpperCase()}
+                                                </span>
+                                            </div>
                                         </div>
 
                                         {rig.status === 'racing' && rig.telemetry ? (
@@ -729,7 +746,7 @@ function App() {
                                                     <div className="flex gap-3">
                                                         {has('velocity') && (
                                                             <div className="flex-1 bg-black/30 p-3 rounded-xl">
-                                                                <p className="text-[7px] font-black uppercase text-white/25 mb-0.5">Speed</p>
+                                                                <p className="text-[8px] font-black uppercase text-white/40 mb-0.5">Speed</p>
                                                                 <div className="flex items-baseline gap-1">
                                                                     <span className="text-3xl font-black italic tabular-nums leading-none">{Math.round(t(rig, 'velocity', [0])?.[0] ?? 0)}</span>
                                                                     <span className="text-[9px] font-bold text-ridge-brand">km/h</span>
@@ -738,7 +755,7 @@ function App() {
                                                         )}
                                                         {has('rpms') && (
                                                             <div className="flex-1 bg-black/30 p-3 rounded-xl">
-                                                                <p className="text-[7px] font-black uppercase text-white/25 mb-0.5">RPM</p>
+                                                                <p className="text-[8px] font-black uppercase text-white/40 mb-0.5">RPM</p>
                                                                 <span className="text-3xl font-black italic tabular-nums leading-none">{Number(t(rig, 'rpms')).toLocaleString()}</span>
                                                             </div>
                                                         )}
@@ -748,14 +765,14 @@ function App() {
                                                 {/* Compact stats row */}
                                                 {(() => {
                                                     const cells: JSX.Element[] = []
-                                                    if (has('gear')) cells.push(<div key="gear" className="bg-black/30 p-2 rounded-xl text-center"><p className="text-[7px] font-black uppercase text-white/25">Gear</p><span className="text-lg font-black italic">{t(rig,'gear') === -1 ? 'R' : t(rig,'gear') === 0 ? 'N' : t(rig,'gear')}</span></div>)
-                                                    if (has('completed_laps')) cells.push(<div key="laps" className="bg-black/30 p-2 rounded-xl text-center"><p className="text-[7px] font-black uppercase text-white/25">Laps</p><span className="text-lg font-black italic">{t(rig,'completed_laps')}/{t(rig,'total_laps','-')}</span></div>)
-                                                    if (has('position')) cells.push(<div key="pos" className="bg-black/30 p-2 rounded-xl text-center"><p className="text-[7px] font-black uppercase text-white/25">Pos</p><span className="text-lg font-black italic text-amber-400">P{t(rig,'position')}</span></div>)
-                                                    if (has('remaining_laps')) cells.push(<div key="rem" className="bg-black/30 p-2 rounded-xl text-center"><p className="text-[7px] font-black uppercase text-white/25">Left</p><span className="text-lg font-black italic">{t(rig,'remaining_laps')}</span></div>)
-                                                    if (has('gforce')) cells.push(<div key="gf" className="bg-black/30 p-2 rounded-xl text-center"><p className="text-[7px] font-black uppercase text-white/25">G-Lat</p><span className="text-lg font-black italic text-blue-400">{Number(t(rig,'gforce',[0,0,0])?.[0] ?? 0).toFixed(1)}</span></div>)
-                                                    if (has('max_speed')) cells.push(<div key="maxspd" className="bg-black/30 p-2 rounded-xl text-center"><p className="text-[7px] font-black uppercase text-white/25">Top</p><span className="text-lg font-black italic">{t(rig,'max_speed')}</span></div>)
-                                                    if (has('engine_torque')) cells.push(<div key="torq" className="bg-black/30 p-2 rounded-xl text-center"><p className="text-[7px] font-black uppercase text-white/25">Nm</p><span className="text-lg font-black italic">{Math.round(t(rig,'engine_torque'))}</span></div>)
-                                                    if (has('clutch')) cells.push(<div key="clutch" className="bg-black/30 p-2 rounded-xl text-center"><p className="text-[7px] font-black uppercase text-white/25">Clutch</p><span className="text-lg font-black italic">{Math.round(t(rig,'clutch') * 100)}%</span></div>)
+                                                    if (has('gear')) cells.push(<div key="gear" className="bg-black/30 p-2 rounded-xl text-center"><p className="text-[8px] font-black uppercase text-white/40">Gear</p><span className="text-lg font-black italic">{t(rig,'gear') === -1 ? 'R' : t(rig,'gear') === 0 ? 'N' : t(rig,'gear')}</span></div>)
+                                                    if (has('completed_laps')) cells.push(<div key="laps" className="bg-black/30 p-2 rounded-xl text-center"><p className="text-[8px] font-black uppercase text-white/40">Laps</p><span className="text-lg font-black italic">{t(rig,'completed_laps')}/{t(rig,'total_laps','-')}</span></div>)
+                                                    if (has('position')) cells.push(<div key="pos" className="bg-black/30 p-2 rounded-xl text-center"><p className="text-[8px] font-black uppercase text-white/40">Pos</p><span className="text-lg font-black italic text-amber-400">P{t(rig,'position')}</span></div>)
+                                                    if (has('remaining_laps')) cells.push(<div key="rem" className="bg-black/30 p-2 rounded-xl text-center"><p className="text-[8px] font-black uppercase text-white/40">Left</p><span className="text-lg font-black italic">{t(rig,'remaining_laps')}</span></div>)
+                                                    if (has('gforce')) cells.push(<div key="gf" className="bg-black/30 p-2 rounded-xl text-center"><p className="text-[8px] font-black uppercase text-white/40">G-Lat</p><span className="text-lg font-black italic text-blue-400">{Number(t(rig,'gforce',[0,0,0])?.[0] ?? 0).toFixed(1)}</span></div>)
+                                                    if (has('max_speed')) cells.push(<div key="maxspd" className="bg-black/30 p-2 rounded-xl text-center"><p className="text-[8px] font-black uppercase text-white/40">Top</p><span className="text-lg font-black italic">{t(rig,'max_speed')}</span></div>)
+                                                    if (has('engine_torque')) cells.push(<div key="torq" className="bg-black/30 p-2 rounded-xl text-center"><p className="text-[8px] font-black uppercase text-white/40">Nm</p><span className="text-lg font-black italic">{Math.round(t(rig,'engine_torque'))}</span></div>)
+                                                    if (has('clutch')) cells.push(<div key="clutch" className="bg-black/30 p-2 rounded-xl text-center"><p className="text-[8px] font-black uppercase text-white/40">Clutch</p><span className="text-lg font-black italic">{Math.round(t(rig,'clutch') * 100)}%</span></div>)
                                                     if (cells.length === 0) return null
                                                     return <div className={`grid gap-2`} style={{ gridTemplateColumns: `repeat(${Math.min(cells.length, 4)}, 1fr)` }}>{cells}</div>
                                                 })()}
@@ -763,9 +780,9 @@ function App() {
                                                 {/* Lap times */}
                                                 {(has('current_lap_time') || has('last_lap_time') || has('best_lap_time')) && (
                                                     <div className="grid grid-cols-3 gap-2">
-                                                        {has('current_lap_time') && <div className="bg-black/30 p-2 rounded-xl text-center"><p className="text-[7px] font-black uppercase text-white/25">Current</p><span className="text-[11px] font-black tabular-nums text-white/70">{t(rig,'current_lap_time','--:--')}</span></div>}
-                                                        {has('last_lap_time') && <div className="bg-black/30 p-2 rounded-xl text-center"><p className="text-[7px] font-black uppercase text-white/25">Last</p><span className="text-[11px] font-black tabular-nums text-white/70">{t(rig,'last_lap_time','--:--')}</span></div>}
-                                                        {has('best_lap_time') && <div className="bg-black/30 p-2 rounded-xl text-center"><p className="text-[7px] font-black uppercase text-white/25">Best</p><span className="text-[11px] font-black tabular-nums text-purple-400">{t(rig,'best_lap_time','--:--')}</span></div>}
+                                                        {has('current_lap_time') && <div className="bg-black/30 p-2 rounded-xl text-center"><p className="text-[8px] font-black uppercase text-white/40">Current</p><span className="text-[11px] font-black tabular-nums text-white/70">{t(rig,'current_lap_time','--:--')}</span></div>}
+                                                        {has('last_lap_time') && <div className="bg-black/30 p-2 rounded-xl text-center"><p className="text-[8px] font-black uppercase text-white/40">Last</p><span className="text-[11px] font-black tabular-nums text-white/70">{t(rig,'last_lap_time','--:--')}</span></div>}
+                                                        {has('best_lap_time') && <div className="bg-black/30 p-2 rounded-xl text-center"><p className="text-[8px] font-black uppercase text-white/40">Best</p><span className="text-[11px] font-black tabular-nums text-purple-400">{t(rig,'best_lap_time','--:--')}</span></div>}
                                                     </div>
                                                 )}
 
@@ -774,13 +791,13 @@ function App() {
                                                     <div className="grid grid-cols-2 gap-2">
                                                         {has('gas') && (
                                                             <div>
-                                                                <div className="flex justify-between text-[7px] font-black uppercase text-white/25 mb-1"><span>Throttle</span><span className="text-green-400">{Math.round(t(rig,'gas') * 100)}%</span></div>
+                                                                <div className="flex justify-between text-[8px] font-black uppercase text-white/40 mb-1"><span>Throttle</span><span className="text-green-400">{Math.round(t(rig,'gas') * 100)}%</span></div>
                                                                 <div className="h-2 bg-black/40 rounded-full overflow-hidden"><div className="h-full bg-green-500 transition-all duration-75 rounded-full" style={{ width: `${t(rig,'gas') * 100}%` }} /></div>
                                                             </div>
                                                         )}
                                                         {has('brake') && (
                                                             <div>
-                                                                <div className="flex justify-between text-[7px] font-black uppercase text-white/25 mb-1"><span>Brake</span><span className="text-red-400">{Math.round(t(rig,'brake') * 100)}%</span></div>
+                                                                <div className="flex justify-between text-[8px] font-black uppercase text-white/40 mb-1"><span>Brake</span><span className="text-red-400">{Math.round(t(rig,'brake') * 100)}%</span></div>
                                                                 <div className="h-2 bg-black/40 rounded-full overflow-hidden"><div className="h-full bg-red-500 transition-all duration-75 rounded-full" style={{ width: `${t(rig,'brake') * 100}%` }} /></div>
                                                             </div>
                                                         )}
@@ -790,7 +807,7 @@ function App() {
                                                 {/* Circuit Progress */}
                                                 {has('normalized_pos') && (
                                                     <div>
-                                                        <div className="flex justify-between text-[7px] font-black uppercase text-white/25 mb-1"><span>Track Progress</span><span>{Math.round(t(rig,'normalized_pos') * 100)}%</span></div>
+                                                        <div className="flex justify-between text-[8px] font-black uppercase text-white/40 mb-1"><span>Track Progress</span><span>{Math.round(t(rig,'normalized_pos') * 100)}%</span></div>
                                                         <div className="h-1 bg-black/40 rounded-full overflow-hidden"><div className="h-full bg-ridge-brand transition-all duration-300 rounded-full" style={{ width: `${t(rig,'normalized_pos') * 100}%` }} /></div>
                                                     </div>
                                                 )}
@@ -800,11 +817,11 @@ function App() {
                                                     <div className="flex gap-3">
                                                         {has('fuel_percent') && (
                                                             <div className="flex-1">
-                                                                <div className="flex justify-between text-[7px] font-black uppercase text-white/25 mb-1"><span>Fuel</span><span className="text-amber-400">{t(rig,'fuel_percent')}%</span></div>
+                                                                <div className="flex justify-between text-[8px] font-black uppercase text-white/40 mb-1"><span>Fuel</span><span className="text-amber-400">{t(rig,'fuel_percent')}%</span></div>
                                                                 <div className="h-2 bg-black/40 rounded-full overflow-hidden"><div className="h-full bg-amber-500 transition-all duration-300 rounded-full" style={{ width: `${t(rig,'fuel_percent')}%` }} /></div>
                                                             </div>
                                                         )}
-                                                        {has('fuel') && <div className="bg-black/30 px-3 py-1.5 rounded-xl text-center shrink-0"><p className="text-[7px] font-black uppercase text-white/25">L</p><span className="text-sm font-black italic tabular-nums">{t(rig,'fuel')}</span></div>}
+                                                        {has('fuel') && <div className="bg-black/30 px-3 py-1.5 rounded-xl text-center shrink-0"><p className="text-[8px] font-black uppercase text-white/40">L</p><span className="text-sm font-black italic tabular-nums">{t(rig,'fuel')}</span></div>}
                                                     </div>
                                                 )}
 
@@ -818,7 +835,7 @@ function App() {
                                                 {/* Brakes */}
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                                     {has('brake_temps') && <CornerGrid label="Brake Temp °C" fl={t(rig,'brake_temp_fl')} fr={t(rig,'brake_temp_fr')} rl={t(rig,'brake_temp_rl')} rr={t(rig,'brake_temp_rr')} unit="°" color="text-orange-400/70" />}
-                                                    {has('brake_bias') && <div className="bg-black/30 p-2.5 rounded-xl"><p className="text-[7px] font-black uppercase text-white/25 mb-1">Brake Bias</p><span className="text-lg font-black italic">{t(rig,'brake_bias')}%</span><span className="text-[8px] text-white/20 ml-1">front</span></div>}
+                                                    {has('brake_bias') && <div className="bg-black/30 p-2.5 rounded-xl"><p className="text-[8px] font-black uppercase text-white/40 mb-1">Brake Bias</p><span className="text-lg font-black italic">{t(rig,'brake_bias')}%</span><span className="text-[8px] text-white/20 ml-1">front</span></div>}
                                                 </div>
 
                                                 {/* Electronics */}
@@ -834,8 +851,8 @@ function App() {
                                                 {/* Conditions */}
                                                 {(has('air_temp') || has('road_temp')) && (
                                                     <div className="flex gap-3">
-                                                        {has('air_temp') && <div className="bg-black/30 p-2 rounded-xl text-center flex-1"><p className="text-[7px] font-black uppercase text-white/25">Air</p><span className="text-sm font-black italic">{t(rig,'air_temp')}°C</span></div>}
-                                                        {has('road_temp') && <div className="bg-black/30 p-2 rounded-xl text-center flex-1"><p className="text-[7px] font-black uppercase text-white/25">Track</p><span className="text-sm font-black italic">{t(rig,'road_temp')}°C</span></div>}
+                                                        {has('air_temp') && <div className="bg-black/30 p-2 rounded-xl text-center flex-1"><p className="text-[8px] font-black uppercase text-white/40">Air</p><span className="text-sm font-black italic">{t(rig,'air_temp')}°C</span></div>}
+                                                        {has('road_temp') && <div className="bg-black/30 p-2 rounded-xl text-center flex-1"><p className="text-[8px] font-black uppercase text-white/40">Track</p><span className="text-sm font-black italic">{t(rig,'road_temp')}°C</span></div>}
                                                     </div>
                                                 )}
 
@@ -922,31 +939,34 @@ function App() {
                                     className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
                                         leaderboardFilter === 'recent'
                                             ? 'bg-amber-500/20 border-amber-500/50 text-amber-400'
-                                            : 'bg-white/5 border-white/10 text-white/30 hover:border-white/20'
+                                            : 'bg-white/5 border-white/10 text-white/40 hover:border-white/20'
                                     }`}
                                 >Recent Session</button>
 
                                 {tracks.length > 0 && (
-                                    <select
-                                        value={leaderboardTrack}
-                                        onChange={async (e) => {
-                                            setLeaderboardTrack(e.target.value)
-                                            setLeaderboardFilter('all')
-                                            try {
-                                                const params = e.target.value ? `?track=${e.target.value}` : ''
-                                                const res = await fetch(`/api/leaderboard${params}`)
-                                                const data = await res.json()
-                                                if (Array.isArray(data)) setLeaderboard(data)
-                                            } catch {}
-                                        }}
-                                        className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer"
-                                    >
-                                        <option value="">All Tracks</option>
-                                        {tracks.map(t => <option key={t} value={t}>{formatTrack(t)}</option>)}
-                                    </select>
+                                    <div className="relative">
+                                        <select
+                                            value={leaderboardTrack}
+                                            onChange={async (e) => {
+                                                setLeaderboardTrack(e.target.value)
+                                                setLeaderboardFilter('all')
+                                                try {
+                                                    const params = e.target.value ? `?track=${e.target.value}` : ''
+                                                    const res = await fetch(`/api/leaderboard${params}`)
+                                                    const data = await res.json()
+                                                    if (Array.isArray(data)) setLeaderboard(data)
+                                                } catch {}
+                                            }}
+                                            className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 pr-7 text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer appearance-none"
+                                        >
+                                            <option value="">All Tracks</option>
+                                            {tracks.map(t => <option key={t} value={t}>{formatTrack(t)}</option>)}
+                                        </select>
+                                        <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+                                    </div>
                                 )}
 
-                                <span className="ml-auto text-[9px] text-white/20 font-bold uppercase">{filtered.length} records</span>
+                                <span className="ml-auto text-[10px] text-white/30 font-bold uppercase">{filtered.length} records</span>
                             </div>
 
                             {/* Grid */}
@@ -954,44 +974,46 @@ function App() {
                                 <table className="w-full">
                                     <thead>
                                         <tr className="border-b border-white/10">
-                                            <th className="text-left px-5 py-4 text-[9px] font-black uppercase tracking-widest text-white/30 w-16">#</th>
-                                            <th className="text-left px-5 py-4 text-[9px] font-black uppercase tracking-widest text-white/30">Driver</th>
-                                            <th className="text-left px-5 py-4 text-[9px] font-black uppercase tracking-widest text-white/30">Car</th>
-                                            <th className="text-left px-5 py-4 text-[9px] font-black uppercase tracking-widest text-white/30">Track</th>
-                                            <th className="text-left px-5 py-4 text-[9px] font-black uppercase tracking-widest text-white/30">Group</th>
-                                            <th className="text-right px-5 py-4 text-[9px] font-black uppercase tracking-widest text-white/30">Laps</th>
-                                            <th className="text-right px-5 py-4 text-[9px] font-black uppercase tracking-widest text-white/30">Time</th>
+                                            <th className="text-left px-5 py-4 text-[10px] font-black uppercase tracking-widest text-white/50 w-16">#</th>
+                                            <th className="text-left px-5 py-4 text-[10px] font-black uppercase tracking-widest text-white/50">Driver</th>
+                                            <th className="text-left px-5 py-4 text-[10px] font-black uppercase tracking-widest text-white/50">Car</th>
+                                            <th className="text-left px-5 py-4 text-[10px] font-black uppercase tracking-widest text-white/50">Track</th>
+                                            <th className="text-right px-5 py-4 text-[10px] font-black uppercase tracking-widest text-white/50">Laps</th>
+                                            <th className="text-right px-5 py-4 text-[10px] font-black uppercase tracking-widest text-white/50">Time</th>
+                                            <th className="text-right px-5 py-4 text-[10px] font-black uppercase tracking-widest text-white/50">Date</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {filtered.length > 0 ? filtered.map((entry: any, idx: number) => (
                                             <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                                                 <td className="px-5 py-3.5">
-                                                    <span className={`text-lg font-black italic tabular-nums ${idx < 3 ? 'text-ridge-brand' : 'text-white/20'}`}>{idx + 1}</span>
+                                                    <span className={`text-lg font-black italic tabular-nums ${idx < 3 ? 'text-ridge-brand' : 'text-white/30'}`}>{idx + 1}</span>
                                                 </td>
                                                 <td className="px-5 py-3.5">
                                                     <div>
                                                         <span className="text-sm font-black italic uppercase tracking-tight">{entry.driver_name || entry.rig_id}</span>
                                                         {entry.driver_name && (
-                                                            <span className="block text-[8px] font-mono text-white/20">{entry.rig_id}</span>
+                                                            <span className="block text-[9px] font-mono text-white/30">{entry.rig_id}</span>
                                                         )}
                                                     </div>
                                                 </td>
                                                 <td className="px-5 py-3.5">
-                                                    <span className="text-[10px] font-bold uppercase text-white/50">{formatCarName(entry.car || '')}</span>
+                                                    <span className="text-[11px] font-bold uppercase text-white/60">{formatCarName(entry.car || '')}</span>
                                                 </td>
                                                 <td className="px-5 py-3.5">
-                                                    <span className="text-[10px] font-bold uppercase text-white/50">{formatTrack(entry.track || '')}</span>
-                                                </td>
-                                                <td className="px-5 py-3.5">
-                                                    <span className="text-[10px] font-bold text-white/30">{entry.group_name || '—'}</span>
+                                                    <span className="text-[11px] font-bold uppercase text-white/60">{formatTrack(entry.track || '')}</span>
                                                 </td>
                                                 <td className="px-5 py-3.5 text-right">
                                                     <span className="text-sm font-black italic tabular-nums">{entry.lap}</span>
                                                 </td>
                                                 <td className="px-5 py-3.5 text-right">
-                                                    <span className="text-[10px] font-bold text-white/30 tabular-nums">
+                                                    <span className="text-[11px] font-bold text-white/50 tabular-nums">
                                                         {entry.lap_time_ms ? `${(entry.lap_time_ms / 1000).toFixed(3)}s` : '—'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-5 py-3.5 text-right">
+                                                    <span className="text-[10px] font-bold text-white/40 tabular-nums">
+                                                        {entry.timestamp ? new Date(entry.timestamp * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                                                     </span>
                                                 </td>
                                             </tr>
@@ -999,7 +1021,7 @@ function App() {
                                             <tr>
                                                 <td colSpan={7} className="px-5 py-16 text-center">
                                                     <p className="text-sm font-black italic uppercase opacity-20 tracking-tighter">No race results recorded yet</p>
-                                                    <p className="text-[10px] text-white/15 font-bold uppercase mt-2">Results will appear as rigs complete laps</p>
+                                                    <p className="text-[11px] text-white/25 font-bold uppercase mt-2">Results will appear as rigs complete laps</p>
                                                 </td>
                                             </tr>
                                         )}
@@ -1091,7 +1113,7 @@ function App() {
                                             </div>
                                             <div className="text-[8px] font-bold uppercase tracking-widest text-white/30 space-y-1">
                                                 <p>{preset.track.toUpperCase()} // ENV {preset.weather.split('_').slice(1).join(' ')}</p>
-                                                <p>{preset.race_laps} Laps | {preset.qualy_time}m Qualy | DRS: {preset.allow_drs ? 'ON' : 'OFF'}</p>
+                                                <p>{preset.race_laps} Laps | {preset.qualy_time}m Qualify | DRS: {preset.allow_drs ? 'ON' : 'OFF'}</p>
                                             </div>
                                         </div>
                                     ))}
@@ -1115,24 +1137,14 @@ function App() {
                     )}
                 </div>
 
-                {/* Sub-Footer Contextual Label */}
-                <div className="fixed bottom-8 right-8 z-50 pointer-events-none">
-                    <div className="glass px-6 py-2 rounded-full border border-white/10 shadow-2xl flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                            <span className="text-[9px] font-black uppercase tracking-widest">Orchestrator Stable</span>
-                        </div>
-                        <div className="w-px h-4 bg-white/10" />
-                        <span className="text-[9px] font-black font-mono text-ridge-brand uppercase italic tracking-widest">Target: {raceSettings.selected_track.toUpperCase()}</span>
-                    </div>
-                </div>
+
             </main>
 
             {/* Right Rig Status Panel */}
             {showRigPanel && (
                 <aside className="w-80 border-l border-white/5 bg-[#0a0a0a] flex flex-col overflow-hidden">
                     <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
-                        <span className="text-[10px] font-black uppercase tracking-[0.25em] text-white/40">Rig Status</span>
+                        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white/60">Rig Status</span>
                         <button onClick={() => setShowRigPanel(false)} className="text-white/30 hover:text-white/60 transition-colors p-1 hover:bg-white/5 rounded" title="Hide panel">
                             <ChevronRight size={16} />
                         </button>
@@ -1141,7 +1153,7 @@ function App() {
                         {rigs.length === 0 && (
                             <div className="px-5 py-16 text-center">
                                 <Activity size={20} className="mx-auto mb-2 text-white/10" />
-                                <p className="text-[10px] text-white/20 font-black uppercase tracking-widest">No rigs connected</p>
+                                <p className="text-[11px] text-white/30 font-black uppercase tracking-widest">No rigs connected</p>
                             </div>
                         )}
                         {rigs.map((rig: Rig) => {
@@ -1155,16 +1167,16 @@ function App() {
                                     {/* Row 1: Name + status */}
                                     <div className="flex items-center justify-between mb-1.5">
                                         <div className="flex items-center gap-2.5 min-w-0">
-                                            <div className={`w-2 h-2 rounded-full shrink-0 ${statusColor}`} />
-                                            <span className="text-sm font-black italic uppercase tracking-tight truncate">
+                                            <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${statusColor}`} />
+                                            <span className="text-[13px] font-black italic uppercase tracking-tight truncate">
                                                 {rig.driver_name || rig.rig_id}
                                             </span>
                                         </div>
-                                        <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded shrink-0 ${
+                                        <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded shrink-0 ${
                                             rig.status === 'racing' ? 'bg-ridge-brand/20 text-ridge-brand' :
                                             rig.status === 'ready' ? 'bg-green-500/20 text-green-400' :
                                             rig.status === 'setup' ? 'bg-blue-500/20 text-blue-400' :
-                                            'bg-white/5 text-white/30'
+                                            'bg-white/5 text-white/40'
                                         }`}>{rig.status}</span>
                                     </div>
 
@@ -1172,15 +1184,15 @@ function App() {
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2.5">
                                             {rig.driver_name && (
-                                                <span className="text-[9px] font-mono text-white/25">{rig.rig_id}</span>
+                                                <span className="text-[10px] font-mono text-white/35">{rig.rig_id}</span>
                                             )}
                                             {rig.status === 'racing' && (
-                                                <span className="text-[9px] font-black text-white/40 flex items-center gap-0.5">
-                                                    <Flag size={8} /> Lap {laps}
+                                                <span className="text-[10px] font-black text-white/50 flex items-center gap-0.5">
+                                                    <Flag size={9} /> Lap {laps}
                                                 </span>
                                             )}
                                             {rig.selected_car && (
-                                                <span className="text-[8px] font-bold text-white/20 uppercase truncate max-w-24">
+                                                <span className="text-[9px] font-bold text-white/30 uppercase truncate max-w-28">
                                                     {rig.selected_car.split('_').slice(1, 3).join(' ')}
                                                 </span>
                                             )}
@@ -1198,12 +1210,12 @@ function App() {
                                             }}
                                             className={`p-1.5 rounded-md transition-all ${
                                                 (rig.mode || 'lockout') === 'lockout'
-                                                    ? 'text-white/25 hover:text-amber-400 hover:bg-amber-500/10'
+                                                    ? 'text-white/35 hover:text-amber-400 hover:bg-amber-500/10'
                                                     : 'text-green-400 hover:text-red-400 hover:bg-red-500/10 bg-green-500/10'
                                             }`}
                                             title={(rig.mode || 'lockout') === 'lockout' ? 'Unlock' : 'Lock'}
                                         >
-                                            {(rig.mode || 'lockout') === 'lockout' ? <Lock size={13} /> : <Unlock size={13} />}
+                                            {(rig.mode || 'lockout') === 'lockout' ? <Lock size={14} /> : <Unlock size={14} />}
                                         </button>
                                     </div>
                                 </div>
