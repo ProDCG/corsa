@@ -449,12 +449,17 @@ class ACServerManager:
             if not car or car == "None":
                 car = default_car
 
+            # Use custom driver name if set, otherwise fall back to rig_id
+            display_name = str(rig.get("driver_name", "")).strip() if rig else ""
+            if not display_name:
+                display_name = rig_id
+
             entries.append(
                 f"[CAR_{idx}]\n"
                 f"MODEL={car}\n"
                 f"SKIN=\n"
                 f"SPECTATOR_MODE=0\n"
-                f"DRIVERNAME={rig_id}\n"
+                f"DRIVERNAME={display_name}\n"
                 f"TEAM=Ridge Racing\n"
                 f"GUID=\n"
                 f"BALLAST=0\n"

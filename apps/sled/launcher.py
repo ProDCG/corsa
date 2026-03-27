@@ -158,7 +158,7 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
             f"MODEL_CONFIG=\n"
             f"BALLAST=0\n"
             f"RESTRICTOR=0\n"
-            f"DRIVER_NAME={config.rig_id}\n"
+            f"DRIVER_NAME={str(params.get('driver_name', '')).strip() or config.rig_id}\n"
             f"NATIONALITY=ITA\n"
             f"NATION_CODE=ITA"
         )
@@ -261,7 +261,7 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
             f"ACTIVE={'1' if use_server else '0'}\n"
             f"SERVER_IP={server_ip}\n"
             f"SERVER_PORT=9600\n"
-            f"NAME={config.rig_id}\n"
+            f"NAME={str(params.get('driver_name', '')).strip() or config.rig_id}\n"
             f"TEAM=Ridge-Link\n"
             f"GUID=\n"
             f"PASS=ridge"

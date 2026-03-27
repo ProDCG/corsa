@@ -34,6 +34,10 @@ def create_router(state: AppState) -> APIRouter:
         if rig_car and str(rig_car) not in ("", "None"):
             payload["car"] = str(rig_car)
             logger.info("Injecting car '%s' for rig %s", rig_car, rig.get("rig_id"))
+        # Inject driver name for in-game display
+        driver_name = rig.get("driver_name")
+        if driver_name and str(driver_name).strip():
+            payload["driver_name"] = str(driver_name).strip()
         return payload
 
     @router.post("/command")
