@@ -110,14 +110,15 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
             f"AI_LEVEL={ai_difficulty if ai_count > 0 else 100}\n"
             f"FIXED_SETUP=0\n"
             f"PENALTIES=1\n"
-            f"JUMP_START_PENALTY=0\n"
+            f"JUMP_START_PENALTY=1\n"
             f"AUTO_START=0\n"
             f"OPEN_CONTROL_CONFIG=0\n"
             f"PIT_MODE=0\n"
             f"CONF_MODE=\n"
             f"MODEL_CONFIG=\n"
             f"SKIN=\n"
-            f"DRIFT_MODE=0"
+            f"DRIFT_MODE=0\n"
+            f"RACE_LAPS={race_laps}"
         )
 
         # [CAR_0] — player car (matches CM format)
@@ -160,9 +161,9 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
         lines.append(
             f"\n[DYNAMIC_TRACK]\n"
             f"SESSION_START={track_grip}\n"
-            f"RANDOMNESS=0\n"
-            f"LAP_GAIN=1\n"
-            f"SESSION_TRANSFER=100"
+            f"RANDOMNESS=2\n"
+            f"LAP_GAIN=132\n"
+            f"SESSION_TRANSFER=0"
         )
 
         # [WIND]
@@ -183,26 +184,16 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
 
         # Sessions — only for offline (non-server) mode
         if not use_server:
-            session_id = 0
-            # Practice (SESSION_0 — matches CM using TYPE=1 for practice)
-            lines.append(
-                f"\n[SESSION_{session_id}]\n"
-                f"NAME=Practice\n"
-                f"TYPE=1\n"
-                f"DURATION_MINUTES={practice_time}\n"
-                f"SPAWN_SET=START"
-            )
-            session_id += 1
-
-            # Race session
+            # Single race session as SESSION_0 — matches CM's Quick Race format
             race_type = 3 if race_laps > 0 else 2
             lines.append(
-                f"\n[SESSION_{session_id}]\n"
-                f"NAME=Race\n"
+                f"\n[SESSION_0]\n"
+                f"NAME=Quick Race\n"
+                f"DURATION_MINUTES={race_time}\n"
+                f"SPAWN_SET=START\n"
                 f"TYPE={race_type}\n"
                 f"LAPS={race_laps}\n"
-                f"DURATION_MINUTES={race_time}\n"
-                f"SPAWN_SET=START"
+                f"STARTING_POSITION={total_cars}"
             )
 
         # [GROOVE]

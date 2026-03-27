@@ -61,17 +61,17 @@ interface GroupManagerProps {
 /* ------------------------------------------------------------------ */
 
 const TIME_STEPS = [
-    { angle: -208, label: 'Midnight' },
-    { angle: -160, label: 'Deep Night' },
-    { angle: -100, label: 'Late Night' },
-    { angle: -40,  label: 'Pre-Dawn' },
     { angle: -16,  label: 'Dawn' },
-    { angle: -4,   label: 'Sunrise' },
-    { angle: 16,   label: 'Morning' },
-    { angle: 32,   label: 'Late Morning' },
-    { angle: 48,   label: 'Midday' },
-    { angle: 64,   label: 'Afternoon' },
-    { angle: 80,   label: 'Late Afternoon' },
+    { angle: 8,    label: 'Sunrise' },
+    { angle: 24,   label: 'Morning' },
+    { angle: 40,   label: 'Late Morning' },
+    { angle: 56,   label: 'Midday' },
+    { angle: 72,   label: 'Early Afternoon' },
+    { angle: 88,   label: 'Afternoon' },
+    { angle: 104,  label: 'Late Afternoon' },
+    { angle: 120,  label: 'Sunset' },
+    { angle: 136,  label: 'Dusk' },
+    { angle: 163,  label: 'Night' },
 ]
 
 function angleToStepIndex(angle: number): number {
