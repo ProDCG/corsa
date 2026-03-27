@@ -235,7 +235,8 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
         # [HEADER]
         lines.append(
             f"\n[HEADER]\n"
-            f"VERSION=2"
+            f"VERSION=2\n"
+            f"CM_FEATURE_SET=2"
         )
 
         # [REMOTE]
@@ -250,26 +251,27 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
             f"PASS=ridge"
         )
 
-        # [LIGHTING] — FORCED OVERRIDE for testing (known-working values)
+        # [LIGHTING] — sun angle, time multiplier, and CM-specific weather fields
+        cm_weather_type = _CM_WEATHER_TYPES.get(weather, 16)
         lines.append(
             f"\n[LIGHTING]\n"
             f"SPECULAR_MULT=1.0\n"
             f"CLOUD_SPEED=0.200\n"
-            f"SUN_ANGLE=175.73\n"
-            f"TIME_MULT=1.0\n"
+            f"SUN_ANGLE={sun_angle:.2f}\n"
+            f"TIME_MULT={time_mult:.1f}\n"
             f"__CM_WEATHER_CONTROLLER=base\n"
-            f"__CM_WEATHER_TYPE=17\n"
+            f"__CM_WEATHER_TYPE={cm_weather_type}\n"
             f"__TRACK_TIMEZONE_OFFSET=3600\n"
-            f"__TRACK_GEOTAG_LONG=5.95238\n"
+            f"__TRACK_GEOTAG_LONG={_DEFAULT_GEOTAG[1]}\n"
             f"__TRACK_TIMEZONE_BASE_OFFSET=3600\n"
-            f"__TRACK_GEOTAG_LAT=50.4552\n"
+            f"__TRACK_GEOTAG_LAT={_DEFAULT_GEOTAG[0]}\n"
             f"__TRACK_TIMEZONE_DTS=0"
         )
 
-        # [WEATHER] — FORCED OVERRIDE for testing
+        # [WEATHER]
         lines.append(
             f"\n[WEATHER]\n"
-            f"NAME=5_light_clouds"
+            f"NAME={weather}"
         )
 
         # Trailing standard sections
@@ -328,41 +330,26 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
 
 
 def launch_ac(config: SledConfig, params: dict[str, object]) -> subprocess.Popen[bytes] | None:
-    """Launch Assetto Corsa via Content Manager / CSP entry point.
+    """Launch Assetto Corsa directly into a race.
 
-    Uses AssettoCorsa.exe (CM hook) instead of acs.exe so that Custom
-    Shaders Patch features like night lighting, headlights, and weather
-    effects work correctly. Falls back to acs.exe if CM isn't installed.
+    Uses acs.exe which loads the race from Documents/Assetto Corsa/cfg/race.ini.
+    CSP (Custom Shaders Patch) hooks into acs.exe via DLLs if installed,
+    enabling night lighting, weather effects, etc.
 
     Returns the process handle, or None on failure.
     """
     import time
 
-    # Prefer AssettoCorsa.exe (CM/CSP) over acs.exe (vanilla, no night)
-    ac_dir_from_config = os.path.dirname(config.ac_path)
-    steam_ac = r"C:\Program Files (x86)\Steam\steamapps\common\assettocorsa"
+    ac_path = config.ac_path
 
-    # Look for AssettoCorsa.exe in the configured dir, then Steam default
-    ac_path = None
-    for base_dir in [ac_dir_from_config, steam_ac]:
-        cm_exe = os.path.join(base_dir, "AssettoCorsa.exe")
-        if os.path.exists(cm_exe):
-            ac_path = cm_exe
-            logger.info("Using Content Manager entry: %s", ac_path)
-            break
-
-    # Fallback to acs.exe if CM not found
-    if not ac_path:
-        for base_dir in [ac_dir_from_config, steam_ac]:
-            acs_exe = os.path.join(base_dir, "acs.exe")
-            if os.path.exists(acs_exe):
-                ac_path = acs_exe
-                logger.warning("CM not found, falling back to acs.exe (no night/CSP): %s", ac_path)
-                break
-
-    if not ac_path:
-        logger.error("Neither AssettoCorsa.exe nor acs.exe found")
-        return None
+    if not os.path.exists(ac_path):
+        # Try Steam default
+        probable = r"C:\Program Files (x86)\Steam\steamapps\common\assettocorsa\acs.exe"
+        if os.path.exists(probable):
+            ac_path = probable
+        else:
+            logger.error("acs.exe not found at %s", ac_path)
+            return None
 
     ini_path = generate_race_ini(config, params)
     if not ini_path:
