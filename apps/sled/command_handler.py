@@ -77,6 +77,10 @@ class CommandHandler:
                 "ai_count": payload.get("ai_count", 0),
                 "ai_difficulty": payload.get("ai_difficulty", 80),
                 "car_pool": payload.get("car_pool", []),
+                "sun_angle": payload.get("sun_angle", -16),
+                "time_mult": payload.get("time_mult", 1),
+                "ambient_temp": payload.get("ambient_temp", 26),
+                "track_grip": payload.get("track_grip", 100),
             }
             self.agent.launch_race(params)
 
