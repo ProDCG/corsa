@@ -215,7 +215,15 @@ class ACServerManager:
         """Get the IP:port for a group's server (for rig connection)."""
         server = self._servers.get(group_id)
         if server and server.process and server.process.poll() is None:
-            return ("127.0.0.1", server.port)
+            # Return the actual LAN IP so rigs on other machines can connect
+            try:
+                import socket
+                with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+                    s.connect(("8.8.8.8", 80))
+                    lan_ip = str(s.getsockname()[0])
+            except Exception:
+                lan_ip = "127.0.0.1"
+            return (lan_ip, server.port)
         return None
 
     # ------------------------------------------------------------------

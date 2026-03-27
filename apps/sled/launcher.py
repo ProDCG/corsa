@@ -256,11 +256,12 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
         )
 
         # [REMOTE]
+        server_port = int(str(params.get("server_port", 9600) or 9600))
         lines.append(
             f"\n[REMOTE]\n"
             f"ACTIVE={'1' if use_server else '0'}\n"
             f"SERVER_IP={server_ip}\n"
-            f"SERVER_PORT=9600\n"
+            f"SERVER_PORT={server_port}\n"
             f"NAME={str(params.get('driver_name', '')).strip() or config.rig_id}\n"
             f"TEAM=Ridge-Link\n"
             f"GUID=\n"

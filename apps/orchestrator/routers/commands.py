@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import socket
 
 from fastapi import APIRouter, BackgroundTasks
 
@@ -19,6 +20,15 @@ def create_router(state: AppState) -> APIRouter:
     """Create the commands router bound to the given application state."""
 
     from shared.constants import COMMAND_PORT
+
+    def _get_orchestrator_ip() -> str:
+        """Best-effort LAN IP discovery for the orchestrator machine."""
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+                s.connect(("8.8.8.8", 80))
+                return str(s.getsockname()[0])
+        except Exception:
+            return "127.0.0.1"
 
     action_status_map: dict[str, str] = {
         "SETUP_MODE": "setup",
@@ -99,6 +109,27 @@ def create_router(state: AppState) -> APIRouter:
         responses: list[str] = []
         new_status = action_status_map.get(command.action, "idle")
 
+        # Resolve server IP + port for multiplayer groups
+        server_ip: str | None = None
+        server_port: int = 9600
+        if command.action == "LAUNCH_RACE" and group.mode == "multiplayer":
+            # Import the server manager to look up the running server's port
+            from apps.orchestrator.routers.server import _manager as srv_mgr
+            if srv_mgr:
+                srv_info = srv_mgr.get_server_ip_port(group_id)
+                if srv_info:
+                    server_ip = _get_orchestrator_ip()
+                    server_port = srv_info[1]
+                    logger.info(
+                        "Multiplayer group '%s': server at %s:%d",
+                        group.name, server_ip, server_port,
+                    )
+                else:
+                    logger.warning(
+                        "Multiplayer group '%s': no running server found! Rigs will launch offline.",
+                        group.name,
+                    )
+
         for rig in state.get_group_rigs(group_id):
             rig_id = str(rig["rig_id"])
 
@@ -129,6 +160,9 @@ def create_router(state: AppState) -> APIRouter:
                     payload["track_grip"] = group.track_grip
                     # Solo groups always run offline; multiplayer uses AC server
                     payload["use_server"] = group.mode == "multiplayer"
+                    if server_ip and group.mode == "multiplayer":
+                        payload["server_ip"] = server_ip
+                        payload["server_port"] = server_port
                 background_tasks.add_task(dispatch_command, str(rig["ip"]), COMMAND_PORT, payload)
                 responses.append(f"Sled {rig_id}")
 
