@@ -59,6 +59,7 @@ class RigGroup(BaseModel):
     session_duration_min: int = 30  # Session countdown timer (minutes)
     ambient_temp: int = 26  # Ambient temperature °C
     track_grip: int = 100  # Track grip 0-100%
+    freeplay: bool = False  # When true, session timer is disabled
 
 
 class RigGroupCreate(BaseModel):
@@ -86,6 +87,7 @@ class RigGroupUpdate(BaseModel):
     session_duration_min: int | None = None
     ambient_temp: int | None = None
     track_grip: int | None = None
+    freeplay: bool | None = None
 
 
 class RigGroupAddRig(BaseModel):
@@ -182,8 +184,12 @@ class LeaderboardEntry(BaseModel):
 
     rig_id: str
     car: str | None = None
-    timestamp: float = Field(default_factory=time.time)
+    track: str | None = None
+    group_name: str | None = None
     lap: int = 0
+    lap_time_ms: int | None = None  # Per-lap time in milliseconds
+    session_id: str | None = None
+    timestamp: float = Field(default_factory=time.time)
 
 
 # --- Heartbeat Models ---

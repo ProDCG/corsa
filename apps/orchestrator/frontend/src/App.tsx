@@ -29,7 +29,20 @@ interface Branding {
     video_url: string
 }
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
+
+/* Sidebar button — defined OUTSIDE App to prevent re-creation every render (fixes flicker) */
+const SidebarItem = memo(({ id, activeTab, setActiveTab, icon: Icon, label }: {
+    id: string, activeTab: string, setActiveTab: (t: any) => void, icon: any, label: string
+}) => (
+    <button
+        onClick={() => setActiveTab(id)}
+        className={`w-full flex flex-col items-center gap-2 p-4 transition-all ${activeTab === id ? 'text-ridge-brand bg-white/5 border-r-2 border-ridge-brand' : 'text-white/40 hover:text-white/60 hover:bg-white/5 border-r-2 border-transparent'}`}
+    >
+        <Icon size={24} />
+        <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
+    </button>
+))
 
 function App() {
     const isKiosk = window.location.pathname === '/kiosk'
@@ -68,6 +81,8 @@ function App() {
         video_url: '/assets/idle_race.mp4'
     })
     const [leaderboard, setLeaderboard] = useState<any[]>([])
+    const [leaderboardFilter, setLeaderboardFilter] = useState<'all' | 'recent'>('all')
+    const [leaderboardTrack, setLeaderboardTrack] = useState<string>('')
     const [presets, setPresets] = useState<any[]>([])
     const [activeTelemFields, setActiveTelemFields] = useState<string[]>(['velocity', 'gforce', 'normalized_pos', 'gear', 'completed_laps', 'gas'])
 
@@ -374,15 +389,7 @@ function App() {
     }
 
 
-    const SidebarItem = ({ id, icon: Icon, label }: { id: typeof activeTab, icon: any, label: string }) => (
-        <button
-            onClick={() => setActiveTab(id)}
-            className={`w-full flex flex-col items-center gap-2 p-4 transition-all ${activeTab === id ? 'text-ridge-brand bg-white/5 border-r-2 border-ridge-brand' : 'text-white/40 hover:text-white/60 hover:bg-white/5 border-r-2 border-transparent'}`}
-        >
-            <Icon size={24} />
-            <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
-        </button>
-    )
+
 
     return (
         <div className="flex min-h-screen bg-ridge-dark text-white overflow-hidden">
@@ -395,13 +402,13 @@ function App() {
                 </div>
 
                 <div className="flex-1 w-full space-y-4">
-                    <SidebarItem id="sims" icon={LayoutGrid} label="Sims" />
-                    <SidebarItem id="monitor" icon={Activity} label="Live Monitor" />
-                    <SidebarItem id="leaderboard" icon={Flag} label="Standings" />
-                    <SidebarItem id="cars" icon={Car} label="Cars" />
-                    <SidebarItem id="groups" icon={Users} label="Groups" />
-                    <SidebarItem id="media" icon={Image} label="Media" />
-                    <SidebarItem id="settings" icon={Wrench} label="Settings" />
+                    <SidebarItem id="sims" activeTab={activeTab} setActiveTab={setActiveTab} icon={LayoutGrid} label="Sims" />
+                    <SidebarItem id="monitor" activeTab={activeTab} setActiveTab={setActiveTab} icon={Activity} label="Live Monitor" />
+                    <SidebarItem id="leaderboard" activeTab={activeTab} setActiveTab={setActiveTab} icon={Flag} label="Standings" />
+                    <SidebarItem id="cars" activeTab={activeTab} setActiveTab={setActiveTab} icon={Car} label="Cars" />
+                    <SidebarItem id="groups" activeTab={activeTab} setActiveTab={setActiveTab} icon={Users} label="Groups" />
+                    <SidebarItem id="media" activeTab={activeTab} setActiveTab={setActiveTab} icon={Image} label="Media" />
+                    <SidebarItem id="settings" activeTab={activeTab} setActiveTab={setActiveTab} icon={Wrench} label="Settings" />
                 </div>
 
                 <div className="mt-auto">
@@ -413,6 +420,7 @@ function App() {
 
             {/* Main Content Area */}
             <main className="flex-1 overflow-y-auto relative">
+                <SessionTimerBar />
                 <header className="sticky top-0 z-40 bg-ridge-dark/80 backdrop-blur-xl p-8 flex justify-between items-center border-b border-white/5">
                     <div>
                         <h1 className="text-3xl font-black italic tracking-tighter uppercase flex items-center gap-2">
@@ -694,41 +702,144 @@ function App() {
                     )}
 
                     {/* LEADERBOARD VIEW */}
-                    {activeTab === 'leaderboard' && (
-                        <div className="glass rounded-[3rem] p-12 lg:p-16 border border-white/10 relative overflow-hidden max-w-5xl">
-                            <div className="flex justify-between items-start mb-12">
+                    {activeTab === 'leaderboard' && (() => {
+                        // Build query URL with filters
+                        const fetchFilteredLeaderboard = async () => {
+                            try {
+                                const params = new URLSearchParams()
+                                if (leaderboardFilter === 'recent') params.set('view', 'recent')
+                                if (leaderboardTrack) params.set('track', leaderboardTrack)
+                                const res = await fetch(`/api/leaderboard?${params.toString()}`)
+                                const data = await res.json()
+                                if (Array.isArray(data)) setLeaderboard(data)
+                            } catch { /* offline */ }
+                        }
+
+                        // Available tracks from leaderboard data
+                        const tracks = [...new Set(leaderboard.map((e: any) => e.track).filter(Boolean))]
+                        const filtered = leaderboard
+                            .sort((a: any, b: any) => b.lap - a.lap)
+                            .slice(0, 50)
+
+                        const formatCarName = (id: string) => id ? id.split('_').slice(1).join(' ').toUpperCase() : '—'
+                        const formatTrack = (id: string) => id ? id.charAt(0).toUpperCase() + id.slice(1).replace(/_/g, ' ') : '—'
+
+                        return (
+                        <div className="max-w-6xl">
+                            <div className="flex justify-between items-start mb-8">
                                 <div>
                                     <h2 className="text-4xl font-black italic uppercase tracking-tighter mb-2">Hall of Fame</h2>
-                                    <p className="text-sm text-white/40 uppercase tracking-[0.4em] font-bold">Fastest Laps // All Time</p>
+                                    <p className="text-sm text-white/40 uppercase tracking-[0.4em] font-bold">Race Results // Facility Leaderboard</p>
                                 </div>
                                 <div className="p-4 bg-ridge-brand rounded-2xl rotate-3 shadow-2xl shadow-ridge-brand/40">
                                     <Flag size={32} />
                                 </div>
                             </div>
 
-                            <div className="space-y-4">
-                                {leaderboard.length > 0 ? (
-                                    leaderboard.sort((a: any, b: any) => b.lap - a.lap).slice(0, 10).map((entry: any, idx: number) => (
-                                        <div key={idx} className="bg-white/5 hover:bg-white/10 p-6 rounded-2xl flex items-center gap-8 transition-all border border-white/5 group">
-                                            <div className="text-3xl font-black italic opacity-20 group-hover:opacity-100 group-hover:text-ridge-brand transition-all">#{idx + 1}</div>
-                                            <div className="flex-1">
-                                                <p className="text-2xl font-black italic uppercase tracking-tighter">{entry.rig_id}</p>
-                                                <p className="text-[10px] font-bold uppercase text-white/30 tracking-widest">{entry.car?.split('_').slice(1).join(' ').toUpperCase()}</p>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-[10px] font-black uppercase text-ridge-brand mb-1">Lap Completion</p>
-                                                <p className="text-3xl font-black italic tabular-nums italic">LAP {entry.lap}</p>
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="py-32 text-center">
-                                        <p className="text-xl font-black italic uppercase opacity-20 tracking-tighter">No Race Results Recorded Yet</p>
-                                    </div>
+                            {/* Filters */}
+                            <div className="flex items-center gap-3 mb-6">
+                                <button
+                                    onClick={() => { setLeaderboardFilter('all'); setLeaderboardTrack('') }}
+                                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
+                                        leaderboardFilter === 'all' && !leaderboardTrack
+                                            ? 'bg-ridge-brand/20 border-ridge-brand/50 text-ridge-brand'
+                                            : 'bg-white/5 border-white/10 text-white/30 hover:border-white/20'
+                                    }`}
+                                >All Time</button>
+                                <button
+                                    onClick={async () => {
+                                        setLeaderboardFilter('recent')
+                                        setLeaderboardTrack('')
+                                        try {
+                                            const res = await fetch('/api/leaderboard?view=recent')
+                                            const data = await res.json()
+                                            if (Array.isArray(data)) setLeaderboard(data)
+                                        } catch {}
+                                    }}
+                                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
+                                        leaderboardFilter === 'recent'
+                                            ? 'bg-amber-500/20 border-amber-500/50 text-amber-400'
+                                            : 'bg-white/5 border-white/10 text-white/30 hover:border-white/20'
+                                    }`}
+                                >Recent Session</button>
+
+                                {tracks.length > 0 && (
+                                    <select
+                                        value={leaderboardTrack}
+                                        onChange={async (e) => {
+                                            setLeaderboardTrack(e.target.value)
+                                            setLeaderboardFilter('all')
+                                            try {
+                                                const params = e.target.value ? `?track=${e.target.value}` : ''
+                                                const res = await fetch(`/api/leaderboard${params}`)
+                                                const data = await res.json()
+                                                if (Array.isArray(data)) setLeaderboard(data)
+                                            } catch {}
+                                        }}
+                                        className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer"
+                                    >
+                                        <option value="">All Tracks</option>
+                                        {tracks.map(t => <option key={t} value={t}>{formatTrack(t)}</option>)}
+                                    </select>
                                 )}
+
+                                <span className="ml-auto text-[9px] text-white/20 font-bold uppercase">{filtered.length} records</span>
+                            </div>
+
+                            {/* Grid */}
+                            <div className="glass rounded-2xl border border-white/10 overflow-hidden">
+                                <table className="w-full">
+                                    <thead>
+                                        <tr className="border-b border-white/10">
+                                            <th className="text-left px-5 py-4 text-[9px] font-black uppercase tracking-widest text-white/30 w-16">#</th>
+                                            <th className="text-left px-5 py-4 text-[9px] font-black uppercase tracking-widest text-white/30">Driver</th>
+                                            <th className="text-left px-5 py-4 text-[9px] font-black uppercase tracking-widest text-white/30">Car</th>
+                                            <th className="text-left px-5 py-4 text-[9px] font-black uppercase tracking-widest text-white/30">Track</th>
+                                            <th className="text-left px-5 py-4 text-[9px] font-black uppercase tracking-widest text-white/30">Group</th>
+                                            <th className="text-right px-5 py-4 text-[9px] font-black uppercase tracking-widest text-white/30">Laps</th>
+                                            <th className="text-right px-5 py-4 text-[9px] font-black uppercase tracking-widest text-white/30">Time</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filtered.length > 0 ? filtered.map((entry: any, idx: number) => (
+                                            <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                                <td className="px-5 py-3.5">
+                                                    <span className={`text-lg font-black italic tabular-nums ${idx < 3 ? 'text-ridge-brand' : 'text-white/20'}`}>{idx + 1}</span>
+                                                </td>
+                                                <td className="px-5 py-3.5">
+                                                    <span className="text-sm font-black italic uppercase tracking-tight">{entry.rig_id}</span>
+                                                </td>
+                                                <td className="px-5 py-3.5">
+                                                    <span className="text-[10px] font-bold uppercase text-white/50">{formatCarName(entry.car || '')}</span>
+                                                </td>
+                                                <td className="px-5 py-3.5">
+                                                    <span className="text-[10px] font-bold uppercase text-white/50">{formatTrack(entry.track || '')}</span>
+                                                </td>
+                                                <td className="px-5 py-3.5">
+                                                    <span className="text-[10px] font-bold text-white/30">{entry.group_name || '—'}</span>
+                                                </td>
+                                                <td className="px-5 py-3.5 text-right">
+                                                    <span className="text-sm font-black italic tabular-nums">{entry.lap}</span>
+                                                </td>
+                                                <td className="px-5 py-3.5 text-right">
+                                                    <span className="text-[10px] font-bold text-white/30 tabular-nums">
+                                                        {entry.lap_time_ms ? `${(entry.lap_time_ms / 1000).toFixed(3)}s` : '—'}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        )) : (
+                                            <tr>
+                                                <td colSpan={7} className="px-5 py-16 text-center">
+                                                    <p className="text-sm font-black italic uppercase opacity-20 tracking-tighter">No race results recorded yet</p>
+                                                    <p className="text-[10px] text-white/15 font-bold uppercase mt-2">Results will appear as rigs complete laps</p>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
-                    )}
+                    )})()}
 
                     {/* MEDIA VIEW */}
                     {activeTab === 'media' && (

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from apps.orchestrator.state import AppState
 from shared.models import LeaderboardEntry
@@ -14,16 +14,27 @@ def create_router(state: AppState) -> APIRouter:
     """Create the leaderboard/lobby router bound to the given application state."""
 
     @router.get("/leaderboard")
-    async def get_leaderboard() -> list[LeaderboardEntry]:
-        """Full leaderboard data for the admin dashboard."""
+    async def get_leaderboard(
+        track: str | None = Query(None),
+        session_id: str | None = Query(None),
+        group: str | None = Query(None),
+        view: str | None = Query(None),  # "recent" for most recent session
+    ) -> list[LeaderboardEntry]:
+        """Full leaderboard data for the admin dashboard.
+
+        Supports filtering by track, session_id, group, or 'recent' view.
+        """
+        if view == "recent":
+            return state.leaderboard_db.get_recent_session()
+        if session_id:
+            return state.leaderboard_db.get_by_session(session_id)
+        if track:
+            return state.leaderboard_db.get_by_track(track)
         return state.leaderboard
 
     @router.get("/lobby")
     async def get_lobby() -> dict[str, object]:
-        """Public feed for TV displays — top 10, current active rigs, and race status.
-
-        Designed to be consumed by a full-screen lobby page on wall-mounted screens.
-        """
+        """Public feed for TV displays — top 10, current active rigs, and race status."""
         entries = sorted(state.leaderboard, key=lambda e: e.lap, reverse=True)[:10]
         active_rigs = [
             {

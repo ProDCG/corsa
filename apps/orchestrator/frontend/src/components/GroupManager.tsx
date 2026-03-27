@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Users, Plus, Trash2, UserPlus, UserMinus, Play, Power, Server, Settings, Cpu, Gauge, Cloud, Map, Car, Trophy, Timer, Flag, Sun, Clock, ChevronRight } from 'lucide-react'
+import { Users, Plus, Trash2, UserPlus, UserMinus, Play, Power, Server, Settings, Cpu, Gauge, Cloud, Map, Car, Trophy, Timer, Flag, Sun, Clock, ChevronRight, Zap } from 'lucide-react'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -23,7 +23,17 @@ interface RigGroup {
     session_duration_min: number
     ambient_temp: number
     track_grip: number
+    freeplay: boolean
 }
+
+const AI_STEPS = [
+    { value: 0,   label: 'Off' },
+    { value: 20,  label: 'Beginner' },
+    { value: 40,  label: 'Easy' },
+    { value: 60,  label: 'Medium' },
+    { value: 80,  label: 'Hard' },
+    { value: 100, label: 'Alien' },
+]
 
 interface ServerInfo {
     group_id: string
@@ -463,7 +473,7 @@ export default function GroupManager({ rigs }: GroupManagerProps) {
                                                 className="bg-white/5 border border-white/10 rounded-lg px-2 py-0.5 text-[10px] font-bold outline-none focus:border-ridge-brand appearance-none max-w-40 cursor-pointer"
                                             >
                                                 <option value="">Auto</option>
-                                                {cars.map(car => (
+                                                {cars.filter((car, i, arr) => arr.findIndex(c => c.id === car.id) === i).map(car => (
                                                     <option key={car.id} value={car.id}>{displayName(car.id)}</option>
                                                 ))}
                                             </select>
@@ -627,19 +637,6 @@ export default function GroupManager({ rigs }: GroupManagerProps) {
                                     className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-ridge-brand transition-all"
                                 />
                             </div>
-
-                            {/* Session Timer */}
-                            <div className="glass rounded-2xl p-4 border border-white/10">
-                                <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
-                                    <Clock size={10} /> Session (min)
-                                </label>
-                                <input
-                                    type="number" min={1} max={480}
-                                    value={selectedGroup.session_duration_min ?? 30}
-                                    onChange={e => updateGroup(selectedGroup.id, { session_duration_min: parseInt(e.target.value) || 30 })}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-ridge-brand transition-all"
-                                />
-                            </div>
                         </div>
 
                         {/* ---- Track Conditions ---- */}
@@ -675,20 +672,58 @@ export default function GroupManager({ rigs }: GroupManagerProps) {
                             </div>
                         </div>
 
-                        {/* AI Difficulty slider */}
+                        {/* Session Timer + Freeplay */}
+                        <div className="glass rounded-2xl p-4 border border-white/10">
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest">
+                                    <Clock size={10} /> Session Timer
+                                </label>
+                                <button
+                                    onClick={() => updateGroup(selectedGroup.id, { freeplay: !selectedGroup.freeplay })}
+                                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${
+                                        selectedGroup.freeplay
+                                            ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                            : 'bg-white/5 text-white/30 border border-white/10 hover:border-white/20'
+                                    }`}
+                                >
+                                    <Zap size={8} /> {selectedGroup.freeplay ? 'Freeplay ON' : 'Freeplay'}
+                                </button>
+                            </div>
+                            {!selectedGroup.freeplay && (
+                                <input
+                                    type="number" min={1} max={480}
+                                    value={selectedGroup.session_duration_min ?? 30}
+                                    onChange={e => updateGroup(selectedGroup.id, { session_duration_min: parseInt(e.target.value) || 30 })}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold outline-none focus:border-ridge-brand transition-all"
+                                    placeholder="Duration in minutes"
+                                />
+                            )}
+                            {selectedGroup.freeplay && (
+                                <p className="text-[10px] text-amber-400/60 font-bold uppercase tracking-widest">No time limit — session runs until manually stopped</p>
+                            )}
+                        </div>
+
+                        {/* AI Difficulty stepped selector */}
                         {selectedGroup.ai_count > 0 && (
                             <div className="glass rounded-2xl p-4 border border-white/10">
-                                <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-2">
+                                <label className="flex items-center gap-1.5 text-[9px] uppercase font-black text-white/40 tracking-widest mb-3">
                                     <Gauge size={10} /> AI Difficulty
                                 </label>
-                                <div className="flex items-center gap-3">
-                                    <input
-                                        type="range" min={0} max={100}
-                                        value={selectedGroup.ai_difficulty}
-                                        onChange={e => updateGroup(selectedGroup.id, { ai_difficulty: parseInt(e.target.value) })}
-                                        className="flex-1 accent-ridge-brand cursor-pointer"
-                                    />
-                                    <span className="text-xs font-black tabular-nums w-8 text-right">{selectedGroup.ai_difficulty}%</span>
+                                <div className="grid grid-cols-6 gap-1.5">
+                                    {AI_STEPS.map(step => (
+                                        <button
+                                            key={step.value}
+                                            onClick={() => updateGroup(selectedGroup.id, { ai_difficulty: step.value })}
+                                            className={`py-2 rounded-xl text-center transition-all border ${
+                                                selectedGroup.ai_difficulty === step.value
+                                                    ? 'bg-ridge-brand/20 border-ridge-brand/50 text-ridge-brand'
+                                                    : 'bg-white/5 border-white/10 text-white/30 hover:border-white/20'
+                                            }`}
+                                        >
+                                            <div className="text-xs font-black">{step.value}</div>
+                                            <div className="text-[7px] font-bold uppercase tracking-wider mt-0.5">{step.label}</div>
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
                         )}

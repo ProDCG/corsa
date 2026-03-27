@@ -85,10 +85,16 @@ def create_router(state: AppState) -> APIRouter:
             if isinstance(completed, (int, float)) and isinstance(last_count, (int, float)):
                 if completed > last_count:
                     state.update_rig_field(rig_id, "last_lap_count", completed)
+                    # Look up track/group context from the rig's group
+                    rig_group = next(
+                        (g for g in state.get_groups() if rig_id in g.rig_ids), None
+                    )
                     state.add_leaderboard_entry(
                         LeaderboardEntry(
                             rig_id=rig_id,
                             car=str(rig.get("selected_car", "")),
+                            track=rig_group.track if rig_group else None,
+                            group_name=rig_group.name if rig_group else None,
                             lap=int(completed),
                         )
                     )

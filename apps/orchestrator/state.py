@@ -12,6 +12,7 @@ import os
 import threading
 import time
 
+from apps.orchestrator.services.leaderboard_db import LeaderboardDB
 from shared.constants import DEFAULT_CAR_POOL
 from shared.models import (
     Branding,
@@ -46,6 +47,9 @@ class AppState:
         self._presets_file = os.path.join(self._data_dir, "presets.json")
         self._telem_config_file = os.path.join(self._data_dir, "telem_config.json")
         self._groups_file = os.path.join(self._data_dir, "groups.json")
+
+        # SQLite leaderboard
+        self._leaderboard_db = LeaderboardDB(os.path.join(self._data_dir, "leaderboard.db"))
 
         self._load_persisted()
 
@@ -181,7 +185,8 @@ class AppState:
             for field in ("name", "mode", "track", "weather", "car_pool",
                           "ai_count", "ai_difficulty", "practice_time",
                           "qualy_time", "race_laps", "sun_angle",
-                          "time_mult", "session_duration_min"):
+                          "time_mult", "session_duration_min",
+                          "ambient_temp", "track_grip", "freeplay"):
                 value = kwargs.get(field)
                 if value is not None:
                     setattr(group, field, value)
@@ -284,12 +289,14 @@ class AppState:
 
     @property
     def leaderboard(self) -> list[LeaderboardEntry]:
-        with self._lock:
-            return list(self._leaderboard)
+        return self._leaderboard_db.get_all()
 
     def add_leaderboard_entry(self, entry: LeaderboardEntry) -> None:
-        with self._lock:
-            self._leaderboard.append(entry)
+        self._leaderboard_db.insert(entry)
+
+    @property
+    def leaderboard_db(self) -> LeaderboardDB:
+        return self._leaderboard_db
 
     # ------------------------------------------------------------------
     # Presets
