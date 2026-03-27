@@ -472,29 +472,29 @@ export default function GroupManager({ rigs }: GroupManagerProps) {
                                 </h2>
                             </div>
                             <div className="flex items-center gap-2">
-                                {selectedGroup.mode === 'multiplayer' && (
-                                    isSelectedServerRunning ? (
-                                        <button onClick={() => stopServerForGroup(selectedGroup.id)}
-                                            className="bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase">
-                                            <Server size={14} /> Stop Server
-                                        </button>
-                                    ) : (
-                                        <button onClick={() => startServerForGroup(selectedGroup.id)}
-                                            className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-4 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase">
-                                            <Server size={14} /> Deploy Server
-                                        </button>
-                                    )
-                                )}
-                                <button onClick={() => sendGroupCommand(selectedGroup.id, 'LAUNCH_RACE')}
-                                    disabled={selectedGroup.mode === 'multiplayer' && !isSelectedServerRunning}
-                                    className={`px-4 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase ${
-                                        selectedGroup.mode === 'multiplayer' && !isSelectedServerRunning
-                                            ? 'bg-white/5 text-white/20 cursor-not-allowed'
-                                            : 'bg-ridge-brand/10 hover:bg-ridge-brand/20 text-ridge-brand'
-                                    }`}
-                                    title={selectedGroup.mode === 'multiplayer' && !isSelectedServerRunning ? 'Deploy server first' : 'Start Race'}>
-                                    <Play size={14} /> {selectedGroup.mode === 'multiplayer' && !isSelectedServerRunning ? 'Server Required' : 'Start Race'}
+                                {/* Single START RACE button — auto-deploys server for multiplayer */}
+                                <button
+                                    onClick={async () => {
+                                        if (selectedGroup.mode === 'multiplayer' && !isSelectedServerRunning) {
+                                            // Deploy server first, then launch race after a short delay
+                                            await startServerForGroup(selectedGroup.id)
+                                            // Small delay to let the server spin up
+                                            await new Promise(r => setTimeout(r, 2000))
+                                        }
+                                        sendGroupCommand(selectedGroup.id, 'LAUNCH_RACE')
+                                    }}
+                                    className="bg-ridge-brand/10 hover:bg-ridge-brand/20 text-ridge-brand px-5 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase">
+                                    <Play size={14} /> Start Race
                                 </button>
+
+                                {/* Stop Server — only shows when server is running */}
+                                {selectedGroup.mode === 'multiplayer' && isSelectedServerRunning && (
+                                    <button onClick={() => stopServerForGroup(selectedGroup.id)}
+                                        className="bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase">
+                                        <Server size={14} /> Stop Server
+                                    </button>
+                                )}
+
                                 <button onClick={() => sendGroupCommand(selectedGroup.id, 'KILL_RACE')}
                                     className="bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase">
                                     <Power size={14} /> Kill
