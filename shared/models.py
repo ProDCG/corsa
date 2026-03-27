@@ -183,6 +183,7 @@ class LeaderboardEntry(BaseModel):
     """A single lap record on the leaderboard."""
 
     rig_id: str
+    driver_name: str | None = None
     car: str | None = None
     track: str | None = None
     group_name: str | None = None

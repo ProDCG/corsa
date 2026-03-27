@@ -10,6 +10,7 @@ interface Rig {
     status: 'idle' | 'racing' | 'offline' | 'setup' | 'ready'
     mode?: 'lockout' | 'freeuse'
     selected_car?: string | null
+    driver_name?: string | null
     cpu_temp: number
     mod_version: string
     last_seen: number
@@ -478,6 +479,28 @@ function App() {
                                         </div>
                                     </div>
 
+                                    {/* Driver Name */}
+                                    <div className="mb-4">
+                                        <label className="flex items-center gap-1.5 text-[8px] uppercase font-black text-white/30 tracking-widest mb-1">
+                                            <Users size={8} /> Driver Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="Enter name..."
+                                            defaultValue={rig.driver_name || ''}
+                                            onBlur={async (e) => {
+                                                const name = e.target.value.trim()
+                                                await fetch(`/api/rigs/${rig.rig_id}/driver_name`, {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ driver_name: name })
+                                                })
+                                            }}
+                                            onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+                                            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs font-bold outline-none focus:border-ridge-brand transition-all placeholder:text-white/15"
+                                        />
+                                    </div>
+
                                     <div className="space-y-4 mb-8">
                                         <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-widest">
                                             <div className="flex items-center gap-2 text-white/40">
@@ -807,7 +830,12 @@ function App() {
                                                     <span className={`text-lg font-black italic tabular-nums ${idx < 3 ? 'text-ridge-brand' : 'text-white/20'}`}>{idx + 1}</span>
                                                 </td>
                                                 <td className="px-5 py-3.5">
-                                                    <span className="text-sm font-black italic uppercase tracking-tight">{entry.rig_id}</span>
+                                                    <div>
+                                                        <span className="text-sm font-black italic uppercase tracking-tight">{entry.driver_name || entry.rig_id}</span>
+                                                        {entry.driver_name && (
+                                                            <span className="block text-[8px] font-mono text-white/20">{entry.rig_id}</span>
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 <td className="px-5 py-3.5">
                                                     <span className="text-[10px] font-bold uppercase text-white/50">{formatCarName(entry.car || '')}</span>

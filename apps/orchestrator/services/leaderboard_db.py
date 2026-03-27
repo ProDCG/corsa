@@ -16,6 +16,7 @@ _SCHEMA = """
 CREATE TABLE IF NOT EXISTS laps (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     rig_id        TEXT NOT NULL,
+    driver_name   TEXT,
     car           TEXT,
     track         TEXT,
     group_name    TEXT,
@@ -54,10 +55,11 @@ class LeaderboardDB:
         with self._lock:
             conn = self._connect()
             conn.execute(
-                """INSERT INTO laps (rig_id, car, track, group_name, lap, lap_time_ms, session_id, timestamp)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                """INSERT INTO laps (rig_id, driver_name, car, track, group_name, lap, lap_time_ms, session_id, timestamp)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     entry.rig_id,
+                    entry.driver_name,
                     entry.car,
                     entry.track,
                     entry.group_name,
@@ -74,6 +76,7 @@ class LeaderboardDB:
         return [
             LeaderboardEntry(
                 rig_id=r["rig_id"],
+                driver_name=r["driver_name"],
                 car=r["car"],
                 track=r["track"],
                 group_name=r["group_name"],
