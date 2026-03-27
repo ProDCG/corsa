@@ -372,9 +372,7 @@ def launch_ac(config: SledConfig, params: dict[str, object]) -> subprocess.Popen
             logger.warning("PRE-LAUNCH check failed: %s", e)
 
         ac_dir = os.path.dirname(ac_path)
-        # NOTE: acs.exe reads race.ini from Documents/Assetto Corsa/cfg/ automatically
-        # No -race= flag needed — AC doesn't support custom config paths
-        cmd = [ac_path]
+        cmd = [ac_path, f"-race={ini_path}"]
         logger.info("Executing: %s (cwd=%s)", " ".join(cmd), ac_dir)
         logger.info("race.ini location: %s", ini_path)
         return subprocess.Popen(cmd, cwd=ac_dir)  # type: ignore[return-value]
