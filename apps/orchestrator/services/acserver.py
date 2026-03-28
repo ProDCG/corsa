@@ -122,6 +122,10 @@ class ACServerManager:
         udp_port = BASE_UDP_PORT + port_offset
         tcp_port = BASE_TCP_PORT + port_offset
         http_port = BASE_HTTP_PORT + port_offset
+        logger.info(
+            "Port allocation for '%s': offset=%d, UDP=%d, TCP=%d, HTTP=%d (used offsets: %s)",
+            group_name, port_offset, udp_port, tcp_port, http_port, sorted(used_offsets),
+        )
 
         # Create config directory for this server
         config_dir = os.path.join(self._work_dir, group_id)
@@ -199,29 +203,52 @@ class ACServerManager:
 
         self._write_entry_list(config_dir, rig_ids, all_cars_list, ai_count, ai_difficulty)
 
-        # AC dedicated server reads cfg/ relative to its own exe location,
-        # so we ALSO write configs into the server's own directory.
+        # Each server instance needs its own isolated directory to avoid
+        # config collisions when running parallel servers.  We copy the
+        # acServer executable into the per-group config_dir and launch from
+        # there so each process reads its own cfg/ folder.
         ac_server_dir = os.path.dirname(self.ac_server_exe)
-        ac_cfg_dir = os.path.join(ac_server_dir, "cfg")
-        os.makedirs(ac_cfg_dir, exist_ok=True)
+        ac_server_name = os.path.basename(self.ac_server_exe)
+        local_exe = os.path.join(config_dir, ac_server_name)
 
-        # Sync car/track content from main AC install to server content dir
-        self._sync_server_content(ac_server_dir, all_cars_list, track)
-
+        # Copy the server executable into the isolated dir (small file)
         try:
-            shutil.copy2(
-                os.path.join(config_dir, "cfg", "server_cfg.ini"),
-                os.path.join(ac_cfg_dir, "server_cfg.ini"),
-            )
-            shutil.copy2(
-                os.path.join(config_dir, "cfg", "entry_list.ini"),
-                os.path.join(ac_cfg_dir, "entry_list.ini"),
-            )
+            shutil.copy2(self.ac_server_exe, local_exe)
         except Exception as e:
-            logger.error("Failed to copy configs to server dir: %s", e)
-            return {"status": "error", "message": f"Could not write server configs: {e}"}
+            logger.error("Failed to copy acServer exe to %s: %s", config_dir, e)
+            return {"status": "error", "message": f"Could not copy server exe: {e}"}
 
-        # Launch acServer.exe from its own directory
+        # Sync car/track content from main AC install to this server's content dir
+        self._sync_server_content(config_dir, all_cars_list, track)
+
+        # Also link/copy any additional DLLs the server needs from the
+        # original server directory (e.g. steam_api.dll, etc.)
+        for extra in os.listdir(ac_server_dir):
+            src_path = os.path.join(ac_server_dir, extra)
+            dst_path = os.path.join(config_dir, extra)
+            if extra == ac_server_name or extra == "cfg":
+                continue  # Already handled
+            if os.path.exists(dst_path):
+                continue  # Already present from a previous run
+            try:
+                if os.path.isfile(src_path):
+                    shutil.copy2(src_path, dst_path)
+                elif os.path.isdir(src_path) and extra == "content":
+                    # Content dir is handled by _sync_server_content
+                    continue
+                elif os.path.isdir(src_path):
+                    # For other dirs, create a junction/symlink to save space
+                    if IS_WINDOWS:
+                        subprocess.run(
+                            ["cmd", "/c", "mklink", "/J", dst_path, src_path],
+                            check=False, capture_output=True,
+                        )
+                    else:
+                        os.symlink(src_path, dst_path)
+            except Exception:
+                pass  # Non-critical
+
+        # Launch acServer from the isolated per-group directory
         try:
             # Log server output to a file for debugging
             log_path = os.path.join(config_dir, "server_output.log")
@@ -229,8 +256,8 @@ class ACServerManager:
             logger.info("AC server log → %s", log_path)
 
             proc = subprocess.Popen(
-                [self.ac_server_exe],
-                cwd=ac_server_dir,
+                [local_exe],
+                cwd=config_dir,
                 stdout=log_file,
                 stderr=subprocess.STDOUT,
                 creationflags=subprocess.CREATE_NO_WINDOW if IS_WINDOWS else 0,  # type: ignore[attr-defined]
