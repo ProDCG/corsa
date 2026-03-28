@@ -426,7 +426,7 @@ class ACServerManager:
             f"HTTP_PORT={http_port}\n"
             f"MAX_BALLAST_KG=0\n"
             f"QUALIFY_MAX_WAIT_PERC=120\n"
-            f"PICKUP_MODE_ENABLED=0\n"
+            f"PICKUP_MODE_ENABLED=1\n"
             f"LOOP_MODE=1\n"
             f"SLEEP_TIME=1\n"
             f"CLIENT_SEND_INTERVAL_HZ=18\n"
