@@ -177,15 +177,11 @@ class ACServerManager:
         all_cars_list = sorted(set(all_cars_set))  # deduplicate and sort
         logger.info("Validated cars for server: %s", all_cars_list)
 
-        # Calculate open human slots: enough for each rig to find a slot
-        # per car model, with generous padding for flexibility
-        slots_per_car = max(4, len(rig_ids) + 2)
-        total_human_slots = len(all_cars_list) * slots_per_car
-        # Total entries = AI slots + human open slots
-        total_slots = ai_count + total_human_slots
+        # Total slots = one per rig + AI count (exact, no padding needed)
+        total_slots = len(rig_ids) + ai_count
         logger.info(
-            "Slot calculation: %d AI + %d human (%d cars × %d per car) = %d total",
-            ai_count, total_human_slots, len(all_cars_list), slots_per_car, total_slots,
+            "Slot calculation: %d rigs + %d AI = %d total",
+            len(rig_ids), ai_count, total_slots,
         )
 
         self._write_server_cfg(
@@ -194,7 +190,7 @@ class ACServerManager:
             sun_angle, time_mult,
         )
 
-        self._write_entry_list(config_dir, rig_ids, all_cars_list, ai_count, ai_difficulty, slots_per_car)
+        self._write_entry_list(config_dir, rig_ids, all_cars_list, ai_count, ai_difficulty)
 
         # AC dedicated server reads cfg/ relative to its own exe location,
         # so we ALSO write configs into the server's own directory.
@@ -250,9 +246,15 @@ class ACServerManager:
 
             # Dump the generated configs to the orchestrator log for quick debugging
             cfg_path = os.path.join(config_dir, "cfg", "server_cfg.ini")
+            entry_path = os.path.join(config_dir, "cfg", "entry_list.ini")
             try:
                 with open(cfg_path) as f:
                     logger.info("=== server_cfg.ini for '%s' ===\n%s", group_name, f.read())
+            except Exception:
+                pass
+            try:
+                with open(entry_path) as f:
+                    logger.info("=== entry_list.ini for '%s' ===\n%s", group_name, f.read())
             except Exception:
                 pass
 
@@ -516,30 +518,49 @@ class ACServerManager:
     def _write_entry_list(
         self, config_dir: str, rig_ids: list[str], cars: list[str],
         ai_count: int = 0, ai_difficulty: int = 80,
-        slots_per_car: int = 4,
     ) -> None:
-        """Write entry_list.ini — open slots for humans + AI bots.
+        """Write entry_list.ini — one slot per rig + AI bots.
 
-        In pickup mode, slots don't need driver names pre-filled.  Players
-        claim any open slot with a matching car MODEL when they connect.
+        Layout:
+          CAR_0 .. CAR_{n-1}  →  one per rig (named, with their selected car)
+          CAR_n .. CAR_{n+m-1} →  AI drivers (cars picked from pool)
 
-        The total number of [CAR_N] entries MUST exactly match MAX_CLIENTS
-        in server_cfg.ini, otherwise AC server will reject connections with
-        'not enough slots'.
+        Total entries = len(rig_ids) + ai_count = MAX_CLIENTS in server_cfg.
         """
         entries = []
         idx = 0
+        default_car = cars[0] if cars else "ks_ferrari_488_gt3"
 
-        if not cars:
-            logger.error("No cars provided for entry_list — cannot write")
-            return
+        # ── Human rig slots (one per rig, named) ──
+        for rig_id in rig_ids:
+            rig = self.state.get_rig(rig_id)
+            rig_car = default_car
+            driver_name = rig_id
+            if rig:
+                rc = str(rig.get("selected_car", ""))
+                if rc and rc != "None" and rc in cars:
+                    rig_car = rc
+                dn = rig.get("driver_name")
+                if dn and str(dn).strip():
+                    driver_name = str(dn).strip()
 
-        # Use the already-deduplicated car list passed in (includes rig selections)
-        all_cars = list(cars)
+            logger.info("Rig Entry CAR_%d: rig=%s model=%s driver=%s", idx, rig_id, rig_car, driver_name)
+            entries.append(
+                f"[CAR_{idx}]\n"
+                f"MODEL={rig_car}\n"
+                f"SKIN=\n"
+                f"SPECTATOR_MODE=0\n"
+                f"DRIVERNAME={driver_name}\n"
+                f"TEAM=\n"
+                f"GUID=\n"
+                f"BALLAST=0\n"
+                f"RESTRICTOR=0\n"
+            )
+            idx += 1
 
-        # AI bot slots — distribute across available cars
+        # ── AI bot slots ──
         for ai_idx in range(ai_count):
-            ai_car = all_cars[ai_idx % len(all_cars)]
+            ai_car = cars[ai_idx % len(cars)] if cars else default_car
             logger.info("AI Entry CAR_%d: model=%s difficulty=%d", idx, ai_car, ai_difficulty)
             entries.append(
                 f"[CAR_{idx}]\n"
@@ -555,25 +576,10 @@ class ACServerManager:
             )
             idx += 1
 
-        # Open human slots — create multiple open slots per car so any
-        # client can find a matching empty slot regardless of selection.
-        for car_model in all_cars:
-            for _ in range(slots_per_car):
-                entries.append(
-                    f"[CAR_{idx}]\n"
-                    f"MODEL={car_model}\n"
-                    f"SKIN=\n"
-                    f"SPECTATOR_MODE=0\n"
-                    f"DRIVERNAME=\n"
-                    f"TEAM=\n"
-                    f"GUID=\n"
-                    f"BALLAST=0\n"
-                    f"RESTRICTOR=0\n"
-                )
-                idx += 1
-
         entry_path = os.path.join(config_dir, "cfg", "entry_list.ini")
         with open(entry_path, "w") as f:
             f.write("\n".join(entries))
-        logger.info("Wrote entry_list.ini: %d AI + %d open slots (%d cars × %d per car) = %d total",
-                     ai_count, len(all_cars) * slots_per_car, len(all_cars), slots_per_car, idx)
+        logger.info(
+            "Wrote entry_list.ini: %d rig slots + %d AI = %d total entries",
+            len(rig_ids), ai_count, idx,
+        )
