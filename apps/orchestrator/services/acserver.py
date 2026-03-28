@@ -125,18 +125,46 @@ class ACServerManager:
         group = self.state.get_group(group_id)
         rig_ids = group.rig_ids if group else []
 
-        # Calculate total slots to match entry_list size exactly:
-        # Collect all unique cars (pool + rig selections)
-        all_cars_set = set(cars)
+        # ── Validate cars against AC content directory ──
+        # Only include cars that actually exist on disk to prevent client crashes
+        ac_server_dir = os.path.dirname(self.ac_server_exe)
+        ac_root = os.path.dirname(ac_server_dir)
+        ac_content_cars = os.path.join(ac_root, "content", "cars")
+
+        validated_cars: list[str] = []
+        rejected_cars: list[str] = []
+        for car_id in cars:
+            car_dir = os.path.join(ac_content_cars, car_id)
+            if os.path.isdir(car_dir):
+                validated_cars.append(car_id)
+            else:
+                rejected_cars.append(car_id)
+                logger.warning("CAR VALIDATION: '%s' not found in %s — SKIPPING", car_id, ac_content_cars)
+
+        if rejected_cars:
+            logger.warning("Rejected %d cars not found on disk: %s", len(rejected_cars), rejected_cars)
+
+        if not validated_cars:
+            return {"status": "error", "message": f"No valid cars found! Checked: {ac_content_cars}. Rejected: {rejected_cars}"}
+
+        # Collect all unique validated cars (pool + rig selections)
+        all_cars_set = set(validated_cars)
         for rid in rig_ids:
             r = self.state.get_rig(rid)
             if r:
                 rc = str(r.get("selected_car", ""))
                 if rc and rc != "None":
-                    all_cars_set.add(rc)
+                    # Only include rig car if it exists on disk too
+                    rc_dir = os.path.join(ac_content_cars, rc)
+                    if os.path.isdir(rc_dir):
+                        all_cars_set.add(rc)
+                    else:
+                        logger.warning("Rig '%s' selected car '%s' not found on disk — using default", rid, rc)
+
         # Hardcode generous slot count to avoid "not enough slots"
         total_slots = 50
-        all_cars_list = list(all_cars_set)  # unique list for CARS= and entry_list
+        all_cars_list = list(all_cars_set)
+        logger.info("Validated cars for server: %s", all_cars_list)
 
         self._write_server_cfg(
             config_dir, group_name, track, all_cars_list, udp_port, tcp_port, http_port,
