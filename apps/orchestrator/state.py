@@ -47,6 +47,9 @@ class AppState:
         self._presets_file = os.path.join(self._data_dir, "presets.json")
         self._telem_config_file = os.path.join(self._data_dir, "telem_config.json")
         self._groups_file = os.path.join(self._data_dir, "groups.json")
+        self._car_pool_file = os.path.join(self._data_dir, "car_pool.json")
+        self._settings_file = os.path.join(self._data_dir, "settings.json")
+        self._branding_file = os.path.join(self._data_dir, "branding.json")
 
         # SQLite leaderboard
         self._leaderboard_db = LeaderboardDB(os.path.join(self._data_dir, "leaderboard.db"))
@@ -91,6 +94,32 @@ class AppState:
             except Exception:
                 logger.warning("Could not load groups file, starting fresh")
 
+        if os.path.exists(self._car_pool_file):
+            try:
+                with open(self._car_pool_file) as f:
+                    data = json.load(f)
+                if isinstance(data, list):
+                    self._car_pool = data
+                    logger.info("Loaded car pool: %d cars", len(self._car_pool))
+            except Exception:
+                logger.warning("Could not load car pool, using defaults")
+
+        if os.path.exists(self._settings_file):
+            try:
+                with open(self._settings_file) as f:
+                    self._settings = GlobalSettings(**json.load(f))
+                    logger.info("Loaded global settings from disk")
+            except Exception:
+                logger.warning("Could not load settings, using defaults")
+
+        if os.path.exists(self._branding_file):
+            try:
+                with open(self._branding_file) as f:
+                    self._branding = Branding(**json.load(f))
+                    logger.info("Loaded branding from disk")
+            except Exception:
+                logger.warning("Could not load branding, using defaults")
+
     def _save_presets(self) -> None:
         with open(self._presets_file, "w") as f:
             json.dump([p.model_dump() for p in self._presets], f, indent=2)
@@ -102,6 +131,18 @@ class AppState:
     def _save_groups(self) -> None:
         with open(self._groups_file, "w") as f:
             json.dump([g.model_dump() for g in self._groups.values()], f, indent=2)
+
+    def _save_car_pool(self) -> None:
+        with open(self._car_pool_file, "w") as f:
+            json.dump(self._car_pool, f, indent=2)
+
+    def _save_settings(self) -> None:
+        with open(self._settings_file, "w") as f:
+            json.dump(self._settings.model_dump(), f, indent=2)
+
+    def _save_branding(self) -> None:
+        with open(self._branding_file, "w") as f:
+            json.dump(self._branding.model_dump(), f, indent=2)
 
     # ------------------------------------------------------------------
     # Rig operations
@@ -252,6 +293,7 @@ class AppState:
     def car_pool(self, value: list[str]) -> None:
         with self._lock:
             self._car_pool = list(value)
+            self._save_car_pool()
 
     @property
     def branding(self) -> Branding:
@@ -262,6 +304,7 @@ class AppState:
     def branding(self, value: Branding) -> None:
         with self._lock:
             self._branding = value
+            self._save_branding()
 
     @property
     def settings(self) -> GlobalSettings:
@@ -272,6 +315,7 @@ class AppState:
     def settings(self, value: GlobalSettings) -> None:
         with self._lock:
             self._settings = value
+            self._save_settings()
 
     @property
     def server_status(self) -> str:

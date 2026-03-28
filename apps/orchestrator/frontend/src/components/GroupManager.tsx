@@ -64,6 +64,7 @@ interface CatalogWeather { id: string; name: string }
 
 interface GroupManagerProps {
     rigs: Rig[]
+    activeCarPool: string[]
 }
 
 /* ------------------------------------------------------------------ */
@@ -173,7 +174,7 @@ function SliderRow({ label, icon: Icon, value, min, max, step, unit, onChange }:
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
-export default function GroupManager({ rigs }: GroupManagerProps) {
+export default function GroupManager({ rigs, activeCarPool }: GroupManagerProps) {
     const [groups, setGroups] = useState<RigGroup[]>([])
     const [servers, setServers] = useState<ServerInfo[]>([])
     const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
@@ -299,7 +300,7 @@ export default function GroupManager({ rigs }: GroupManagerProps) {
                 race_laps: group.race_laps,
                 ai_count: group.ai_count,
                 ai_difficulty: group.ai_difficulty,
-                car_pool: group.car_pool,
+                car_pool: activeCarPool.length > 0 ? activeCarPool : group.car_pool,
                 use_server: group.mode === 'multiplayer',
             })
         })
@@ -314,7 +315,7 @@ export default function GroupManager({ rigs }: GroupManagerProps) {
             body: JSON.stringify({
                 group_id: groupId,
                 track: group.track,
-                cars: group.car_pool,
+                cars: activeCarPool.length > 0 ? activeCarPool : group.car_pool,
                 race_laps: group.race_laps,
                 practice_time: group.practice_time,
                 qualy_time: group.qualy_time,
@@ -534,7 +535,11 @@ export default function GroupManager({ rigs }: GroupManagerProps) {
                                                     <option value="">Auto</option>
                                                     {(() => {
                                                         const seen = new Set<string>();
-                                                        return cars
+                                                        // Only show cars enabled in the Cars tab
+                                                        const enabledCars = activeCarPool.length > 0
+                                                            ? cars.filter(c => activeCarPool.includes(c.id))
+                                                            : cars;
+                                                        return enabledCars
                                                             .filter(c => { if (seen.has(c.id)) return false; seen.add(c.id); return true; })
                                                             .sort((a, b) => displayName(a.id).localeCompare(displayName(b.id)))
                                                             .map(car => (

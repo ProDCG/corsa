@@ -583,7 +583,7 @@ function App() {
 
                     {/* GROUPS MANAGER VIEW */}
                     {activeTab === 'groups' && (
-                        <GroupManager rigs={rigs} />
+                        <GroupManager rigs={rigs} activeCarPool={activeCarPool} />
                     )}
 
 
