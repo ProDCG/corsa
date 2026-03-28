@@ -149,6 +149,12 @@ class CarPoolUpdate(BaseModel):
     cars: list[str]
 
 
+class MapPoolUpdate(BaseModel):
+    """Payload to update the available map/track pool."""
+
+    maps: list[str]
+
+
 class TelemetryConfig(BaseModel):
     """Configuration for which telemetry fields are active."""
 

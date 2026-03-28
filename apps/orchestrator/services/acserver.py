@@ -25,7 +25,7 @@ IS_WINDOWS = os.name == "nt"
 # Default base port — each server gets BASE + offset
 BASE_UDP_PORT = 9600
 BASE_TCP_PORT = 9600
-BASE_HTTP_PORT = 8081
+BASE_HTTP_PORT = 8080
 
 
 @dataclass
@@ -110,8 +110,15 @@ class ACServerManager:
         if not os.path.exists(self.ac_server_exe):
             return {"status": "error", "message": f"acServer.exe not found at {self.ac_server_exe}"}
 
-        # Assign unique ports (base + index)
-        port_offset = len(self._servers)
+        # Assign unique ports — find lowest available offset not already in use.
+        # Note: stop_server (line above) already removed the old entry for this
+        # group_id, so every remaining entry in _servers is an active reservation.
+        used_offsets = {srv.port - BASE_UDP_PORT for srv in self._servers.values()}
+
+        port_offset = 0
+        while port_offset in used_offsets:
+            port_offset += 1
+
         udp_port = BASE_UDP_PORT + port_offset
         tcp_port = BASE_TCP_PORT + port_offset
         http_port = BASE_HTTP_PORT + port_offset

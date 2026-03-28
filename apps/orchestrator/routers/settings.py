@@ -7,7 +7,7 @@ from fastapi import APIRouter, BackgroundTasks
 from apps.orchestrator.services.dispatcher import dispatch_command
 from apps.orchestrator.state import AppState
 from shared.constants import COMMAND_PORT
-from shared.models import Branding, CarPoolUpdate, GlobalSettings, Preset, TelemetryConfig
+from shared.models import Branding, CarPoolUpdate, GlobalSettings, MapPoolUpdate, Preset, TelemetryConfig
 
 router = APIRouter(tags=["settings"])
 
@@ -32,6 +32,15 @@ def create_router(state: AppState) -> APIRouter:
     async def update_carpool(update: CarPoolUpdate) -> dict[str, object]:
         state.car_pool = update.cars
         return {"status": "success", "car_pool": update.cars}
+
+    @router.get("/mappool")
+    async def get_mappool() -> list[str]:
+        return state.map_pool
+
+    @router.post("/mappool")
+    async def update_mappool(update: MapPoolUpdate) -> dict[str, object]:
+        state.map_pool = update.maps
+        return {"status": "success", "map_pool": update.maps}
 
     @router.get("/branding")
     async def get_branding() -> Branding:

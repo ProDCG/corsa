@@ -65,6 +65,7 @@ interface CatalogWeather { id: string; name: string }
 interface GroupManagerProps {
     rigs: Rig[]
     activeCarPool: string[]
+    activeMapPool: string[]
 }
 
 /* ------------------------------------------------------------------ */
@@ -174,7 +175,7 @@ function SliderRow({ label, icon: Icon, value, min, max, step, unit, onChange }:
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
-export default function GroupManager({ rigs, activeCarPool }: GroupManagerProps) {
+export default function GroupManager({ rigs, activeCarPool, activeMapPool }: GroupManagerProps) {
     const [groups, setGroups] = useState<RigGroup[]>([])
     const [servers, setServers] = useState<ServerInfo[]>([])
     const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
@@ -597,7 +598,10 @@ export default function GroupManager({ rigs, activeCarPool }: GroupManagerProps)
                                 <div>
                                     <label className="flex items-center gap-1 text-[9px] uppercase font-black text-white/50 tracking-widest mb-1"><Map size={9} /> Circuit</label>
                                     <Select value={selectedGroup.track} onChange={e => updateGroup(selectedGroup.id, { track: e.target.value })}>
-                                        {tracks.map(t => <option key={t.id} value={t.id}>{displayName(t.id)}</option>)}
+                                        {(activeMapPool.length > 0
+                                            ? tracks.filter(t => activeMapPool.includes(t.id))
+                                            : tracks
+                                        ).map(t => <option key={t.id} value={t.id}>{displayName(t.id)}</option>)}
                                     </Select>
                                 </div>
                                 {selectedGroup.mode === 'solo' && (
