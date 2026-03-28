@@ -228,6 +228,31 @@ class ACServerManager:
                 stderr=subprocess.STDOUT,
                 creationflags=subprocess.CREATE_NO_WINDOW if IS_WINDOWS else 0,  # type: ignore[attr-defined]
             )
+
+            # ── Health check: wait up to 3s to see if server stays alive ──
+            import time
+            for _ in range(6):
+                time.sleep(0.5)
+                if proc.poll() is not None:
+                    # Server exited — read the log to find out why
+                    log_file.close()
+                    crash_log = ""
+                    try:
+                        with open(log_path) as f:
+                            crash_log = f.read()[-3000:]  # Last 3KB
+                    except Exception:
+                        crash_log = "(could not read log)"
+                    exit_code = proc.returncode
+                    logger.error(
+                        "AC server CRASHED on startup (exit code %d) for '%s':\n%s",
+                        exit_code, group_name, crash_log,
+                    )
+                    return {
+                        "status": "error",
+                        "message": f"AC server crashed on startup (exit code {exit_code})",
+                        "server_log": crash_log,
+                    }
+
             server = ACServerInstance(
                 group_id=group_id,
                 group_name=group_name,
@@ -242,7 +267,7 @@ class ACServerManager:
                 ai_difficulty=ai_difficulty,
             )
             self._servers[group_id] = server
-            logger.info("AC server started for '%s' on port %d (PID: %d)", group_name, udp_port, proc.pid)
+            logger.info("AC server started for '%s' on port %d (PID: %d) — still alive after 3s ✓", group_name, udp_port, proc.pid)
 
             # Dump the generated configs to the orchestrator log for quick debugging
             cfg_path = os.path.join(config_dir, "cfg", "server_cfg.ini")

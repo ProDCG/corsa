@@ -329,7 +329,8 @@ export default function GroupManager({ rigs }: GroupManagerProps) {
         const data = await res.json()
         fetchServers()
         if (data.status === 'error') {
-            alert(`Server failed: ${data.message}`)
+            const crashLog = data.server_log ? `\n\nServer log:\n${data.server_log.slice(-500)}` : ''
+            alert(`Server failed: ${data.message}${crashLog}`)
             return false
         }
         return true
