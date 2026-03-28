@@ -10,9 +10,9 @@ import sys
 
 # Ports to open in Windows Firewall
 FIREWALL_RULES: list[dict[str, str]] = [
-    {"name": "Ridge AC UDP", "protocol": "UDP", "port": "9600"},
-    {"name": "Ridge AC TCP", "protocol": "TCP", "port": "9600"},
-    {"name": "Ridge AC HTTP", "protocol": "TCP", "port": "8081"},
+    {"name": "Ridge AC UDP", "protocol": "UDP", "port": "9600-9605"},
+    {"name": "Ridge AC TCP", "protocol": "TCP", "port": "9600-9605"},
+    {"name": "Ridge AC HTTP", "protocol": "TCP", "port": "8080-8085"},
     {"name": "Ridge Link Heartbeat", "protocol": "UDP", "port": "5001"},
     {"name": "Ridge Link Command", "protocol": "TCP", "port": "5000"},
     {"name": "Ridge Link UI", "protocol": "TCP", "port": "8000"},
