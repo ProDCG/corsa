@@ -24,7 +24,7 @@ class StartServerRequest(BaseModel):
 
     group_id: str
     track: str = "monza"
-    cars: list[str] = Field(default_factory=lambda: ["ks_ferrari_488_gt3"])
+    cars: list[str] = Field(default_factory=list)
     race_laps: int = 10
     practice_time: int = 0
     qualy_time: int = 10
@@ -107,5 +107,51 @@ def create_router(state: AppState) -> APIRouter:
         _manager.stop_all()
         state.server_status = "offline"
         return {"status": "success", "message": "All servers stopped"}
+
+    @router.get("/logs/{group_id}")
+    async def get_server_logs(group_id: str) -> dict[str, object]:
+        """Diagnostic endpoint: return server stdout log, config, and entry list for a group."""
+        assert _manager is not None
+        import os
+
+        server = _manager._servers.get(group_id)
+        if not server:
+            return {"status": "error", "message": "No server found for this group"}
+
+        config_dir = server.config_dir
+        result: dict[str, object] = {
+            "group_id": group_id,
+            "group_name": server.group_name,
+            "port": server.port,
+            "http_port": server.http_port,
+            "pid": server.process.pid if server.process else None,
+            "alive": server.process is not None and server.process.poll() is None,
+        }
+
+        # Read server stdout log
+        log_path = os.path.join(config_dir, "server_output.log")
+        try:
+            with open(log_path) as f:
+                result["server_log"] = f.read()[-5000:]  # Last 5KB
+        except Exception as e:
+            result["server_log"] = f"Could not read: {e}"
+
+        # Read generated server_cfg.ini
+        cfg_path = os.path.join(config_dir, "cfg", "server_cfg.ini")
+        try:
+            with open(cfg_path) as f:
+                result["server_cfg"] = f.read()
+        except Exception as e:
+            result["server_cfg"] = f"Could not read: {e}"
+
+        # Read generated entry_list.ini
+        entry_path = os.path.join(config_dir, "cfg", "entry_list.ini")
+        try:
+            with open(entry_path) as f:
+                result["entry_list"] = f.read()
+        except Exception as e:
+            result["entry_list"] = f"Could not read: {e}"
+
+        return result
 
     return router

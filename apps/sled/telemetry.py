@@ -58,12 +58,14 @@ class ACTelemetry:
                 logger.info("SimHub API connected (getgamedata)")
                 self.simhub_connected = True
 
-            return {
+            # Core driving data
+            result: dict[str, object] = {
                 "packet_id": int(time.time() * 100),
                 "gas": round(new_data.get("Throttle", 0) / 100.0, 2),
                 "brake": round(new_data.get("Brake", 0) / 100.0, 2),
                 "gear": new_data.get("Gear", "N"),
                 "rpms": int(new_data.get("Rpms", 0)),
+                "max_rpm": int(new_data.get("MaxRpm", 8000)),
                 "velocity": [round(new_data.get("SpeedKmh", 0), 1), 0, 0],
                 "gforce": [
                     round(new_data.get("AccelerationSway", 0), 2),
@@ -72,9 +74,75 @@ class ACTelemetry:
                 ],
                 "status": 2 if raw.get("GameRunning") else 0,
                 "completed_laps": new_data.get("CompletedLaps", 0),
+                "current_lap": new_data.get("CurrentLap", 1),
+                "total_laps": new_data.get("TotalLaps", 0),
+                "remaining_laps": new_data.get("RemainingLaps", 0),
                 "position": new_data.get("Position", 0),
                 "normalized_pos": round(new_data.get("TrackPositionPercent", 0) / 100.0, 4),
+                "track_position_meters": round(new_data.get("TrackPositionMeters", 0), 1),
+                "track_length": round(new_data.get("TrackLength", 0), 1),
+                # Fuel
+                "fuel": round(new_data.get("Fuel", 0), 2),
+                "fuel_percent": round(new_data.get("FuelPercent", 0), 1),
+                "max_fuel": round(new_data.get("MaxFuel", 0), 2),
+                # Tyres — temperatures
+                "tyre_temp_fl": round(new_data.get("TyreTemperatureFrontLeft", 0), 1),
+                "tyre_temp_fr": round(new_data.get("TyreTemperatureFrontRight", 0), 1),
+                "tyre_temp_rl": round(new_data.get("TyreTemperatureRearLeft", 0), 1),
+                "tyre_temp_rr": round(new_data.get("TyreTemperatureRearRight", 0), 1),
+                # Tyres — wear
+                "tyre_wear_fl": round(new_data.get("TyreWearFrontLeft", 0), 1),
+                "tyre_wear_fr": round(new_data.get("TyreWearFrontRight", 0), 1),
+                "tyre_wear_rl": round(new_data.get("TyreWearRearLeft", 0), 1),
+                "tyre_wear_rr": round(new_data.get("TyreWearRearRight", 0), 1),
+                # Tyres — pressure
+                "tyre_psi_fl": round(new_data.get("TyrePressureFrontLeft", 0), 1),
+                "tyre_psi_fr": round(new_data.get("TyrePressureFrontRight", 0), 1),
+                "tyre_psi_rl": round(new_data.get("TyrePressureRearLeft", 0), 1),
+                "tyre_psi_rr": round(new_data.get("TyrePressureRearRight", 0), 1),
+                # Brakes — temperatures
+                "brake_temp_fl": round(new_data.get("BrakeTemperatureFrontLeft", 0), 1),
+                "brake_temp_fr": round(new_data.get("BrakeTemperatureFrontRight", 0), 1),
+                "brake_temp_rl": round(new_data.get("BrakeTemperatureRearLeft", 0), 1),
+                "brake_temp_rr": round(new_data.get("BrakeTemperatureRearRight", 0), 1),
+                "brake_bias": round(new_data.get("BrakeBias", 0), 1),
+                # Damage
+                "damage_front": round(new_data.get("CarDamage1", 0), 2),
+                "damage_rear": round(new_data.get("CarDamage2", 0), 2),
+                "damage_left": round(new_data.get("CarDamage3", 0), 2),
+                "damage_right": round(new_data.get("CarDamage4", 0), 2),
+                "damage_avg": round(new_data.get("CarDamagesAvg", 0), 2),
+                # Electronics
+                "abs_active": int(new_data.get("ABSActive", 0)),
+                "abs_level": int(new_data.get("ABSLevel", 0)),
+                "tc_active": int(new_data.get("TCActive", 0)),
+                "tc_level": int(new_data.get("TCLevel", 0)),
+                "drs_available": int(new_data.get("DRSAvailable", 0)),
+                "drs_enabled": int(new_data.get("DRSEnabled", 0)),
+                "clutch": round(new_data.get("Clutch", 0) / 100.0, 2),
+                # Temperatures
+                "air_temp": round(new_data.get("AirTemperature", 0), 1),
+                "road_temp": round(new_data.get("RoadTemperature", 0), 1),
+                # Lap times
+                "current_lap_time": str(new_data.get("CurrentLapTime", "00:00:00")),
+                "last_lap_time": str(new_data.get("LastLapTime", "00:00:00")),
+                "best_lap_time": str(new_data.get("BestLapTime", "00:00:00")),
+                # Pit
+                "is_in_pit": int(new_data.get("IsInPit", 0)),
+                "is_in_pit_lane": int(new_data.get("IsInPitLane", 0)),
+                # Car/Track info
+                "car_model": str(new_data.get("CarModel", "")),
+                "car_id": str(new_data.get("CarId", "")),
+                "track_name": str(new_data.get("TrackName", "")),
+                "track_id": str(new_data.get("TrackId", "")),
+                "session_type": str(new_data.get("SessionTypeName", "")),
+                # Max speed this session
+                "max_speed": round(new_data.get("MaxSpeedKmh", 0), 1),
+                "engine_torque": round(new_data.get("EngineTorque", 0), 1),
+                # Validity
+                "is_lap_valid": bool(new_data.get("IsLapValid", True)),
             }
+            return result
         except Exception as e:
             if self.simhub_connected:
                 logger.warning("SimHub connection lost: %s", e)

@@ -82,11 +82,12 @@ def create_router(state: AppState) -> APIRouter:
     async def get_catalogs() -> dict[str, object]:
         """Return all available tracks, cars, weather for UI dropdowns.
 
-        Dynamically scans the admin master content folder. Falls back to
-        hardcoded catalogs if the folder isn't available.
+        Dynamically scans the admin master content folder. Returns empty
+        lists if the folder isn't available (never falls back to hardcoded
+        catalogs which may reference content that doesn't exist on disk).
         """
         from apps.orchestrator.services.content_scanner import scan_cars, scan_tracks
-        from shared.constants import CAR_CATALOG, TRACK_CATALOG, WEATHER_OPTIONS
+        from shared.constants import WEATHER_OPTIONS
 
         content_folder = state.settings.content_folder
 
@@ -94,15 +95,22 @@ def create_router(state: AppState) -> APIRouter:
         scanned_cars = scan_cars(content_folder)
         scanned_tracks = scan_tracks(content_folder)
 
-        if scanned_cars:
-            cars_out = [{"id": c.id, "name": c.name, "brand": c.brand, "car_class": c.car_class} for c in scanned_cars]
-        else:
-            cars_out = [{"id": c.id, "name": c.name, "brand": c.brand, "car_class": c.car_class} for c in CAR_CATALOG]
+        # Deduplicate by ID (keep first occurrence) and sort by name
+        seen_car_ids: set[str] = set()
+        cars_out: list[dict[str, str]] = []
+        for c in scanned_cars:
+            if c.id not in seen_car_ids:
+                seen_car_ids.add(c.id)
+                cars_out.append({"id": c.id, "name": c.name, "brand": c.brand, "car_class": c.car_class})
+        cars_out.sort(key=lambda x: x["name"].lower())
 
-        if scanned_tracks:
-            tracks_out = [{"id": t.id, "name": t.name} for t in scanned_tracks]
-        else:
-            tracks_out = [{"id": t.id, "name": t.name} for t in TRACK_CATALOG]
+        seen_track_ids: set[str] = set()
+        tracks_out: list[dict[str, str]] = []
+        for t in scanned_tracks:
+            if t.id not in seen_track_ids:
+                seen_track_ids.add(t.id)
+                tracks_out.append({"id": t.id, "name": t.name})
+        tracks_out.sort(key=lambda x: x["name"].lower())
 
         return {
             "tracks": tracks_out,

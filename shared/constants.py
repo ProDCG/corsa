@@ -59,7 +59,6 @@ CAR_CATALOG: list[CarDef] = [
     CarDef("ks_corvette_c7_r", "Corvette C7.R", "Chevrolet", "GTE"),
     CarDef("ks_ferrari_488_gte", "Ferrari 488 GTE", "Ferrari", "GTE"),
     CarDef("tatuusfa1", "Tatuus FA.01", "Tatuus", "FORMULA"),
-    CarDef("ks_lotus_exos_125", "Lotus Exos 125", "Lotus", "F1"),
 ]
 
 DEFAULT_CAR_POOL: list[str] = [

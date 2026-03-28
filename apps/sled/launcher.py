@@ -109,13 +109,18 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
             if car not in car_pool:
                 car_pool.insert(0, car)
 
-        # AC dedicated server doesn't support AI
+        # When connecting to a dedicated server, the CLIENT only has 1 car
+        # (the player). AI opponents are handled by the server's entry_list.ini.
         use_server = bool(params.get("use_server", False))
-        if ai_count > 0 and use_server:
-            logger.info("AI bots requested — switching to offline mode")
-            use_server = False
+        if use_server:
+            # Client connects as single player — server manages AI
+            client_ai_count = 0
+            total_cars = 1
+            logger.info("Server mode: client will connect with 1 car (AI handled by server)")
+        else:
+            client_ai_count = ai_count
+            total_cars = 1 + ai_count
 
-        total_cars = 1 + ai_count
         server_ip = str(params.get("server_ip", config.orchestrator_ip))
 
         # ── Lighting / time-of-day ──
@@ -135,7 +140,7 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
             f"TRACK={track}\n"
             f"CONFIG_TRACK=\n"
             f"CARS={total_cars}\n"
-            f"AI_LEVEL={ai_difficulty if ai_count > 0 else 100}\n"
+            f"AI_LEVEL={ai_difficulty if client_ai_count > 0 else 100}\n"
             f"FIXED_SETUP=0\n"
             f"PENALTIES=1\n"
             f"JUMP_START_PENALTY=1\n"
@@ -158,13 +163,13 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
             f"MODEL_CONFIG=\n"
             f"BALLAST=0\n"
             f"RESTRICTOR=0\n"
-            f"DRIVER_NAME={config.rig_id}\n"
+            f"DRIVER_NAME={str(params.get('driver_name', '')).strip() or config.rig_id}\n"
             f"NATIONALITY=ITA\n"
             f"NATION_CODE=ITA"
         )
 
-        # AI opponent entries
-        for i in range(ai_count):
+        # AI opponent entries — only for OFFLINE mode (server handles AI in multiplayer)
+        for i in range(client_ai_count):
             ai_car = car_pool[i % len(car_pool)] if car_pool else car
             # Randomize aggression and skill around the base difficulty (±15%)
             aggression = max(0, min(100, ai_difficulty + random.randint(-15, 15)))
@@ -256,15 +261,19 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
         )
 
         # [REMOTE]
+        server_port = int(str(params.get("server_port", 9600) or 9600))
+        server_http_port = int(str(params.get("server_http_port", 8081) or 8081))
         lines.append(
             f"\n[REMOTE]\n"
             f"ACTIVE={'1' if use_server else '0'}\n"
             f"SERVER_IP={server_ip}\n"
-            f"SERVER_PORT=9600\n"
-            f"NAME={config.rig_id}\n"
+            f"SERVER_PORT={server_port}\n"
+            f"SERVER_HTTP_PORT={server_http_port}\n"
+            f"REQUESTED_CAR={car}\n"
+            f"NAME={str(params.get('driver_name', '')).strip() or config.rig_id}\n"
             f"TEAM=Ridge-Link\n"
             f"GUID=\n"
-            f"PASS=ridge"
+            f"PASSWORD="
         )
 
         # [LIGHTING] — sun angle, time multiplier, and CM-specific weather fields
@@ -366,11 +375,27 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
                 matches = [l for l in written_content.splitlines() if check_key in l]
                 for m in matches:
                     logger.info("VERIFY %s: %s", check_key, m.strip())
+
+            # Explicitly log the [REMOTE] section for multiplayer debugging
+            remote_lines = []
+            in_remote = False
+            for line in written_content.splitlines():
+                if line.strip() == "[REMOTE]":
+                    in_remote = True
+                elif line.strip().startswith("[") and in_remote:
+                    break
+                if in_remote:
+                    remote_lines.append(line)
+            if remote_lines:
+                logger.info("=== [REMOTE] SECTION ===")
+                for rl in remote_lines:
+                    logger.info("  %s", rl)
+                logger.info("========================")
         except Exception as ve:
             logger.warning("Verification read failed: %s", ve)
 
-        logger.info("Wrote race.ini: CAR=%s TRACK=%s AI=%d/%d%% SERVER=%s SUN=%.1f TIME_MULT=%.1f",
-                     car, track, ai_count, ai_difficulty, use_server, sun_angle, time_mult)
+        logger.info("Wrote race.ini: CAR=%s TRACK=%s AI=%d/%d%% SERVER=%s SERVER_IP=%s SERVER_PORT=%s SUN=%.1f TIME_MULT=%.1f",
+                     car, track, ai_count, ai_difficulty, use_server, server_ip, server_port, sun_angle, time_mult)
         return cfg_path
 
     except Exception as e:

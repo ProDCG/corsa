@@ -81,6 +81,7 @@ class CommandHandler:
                 "time_mult": payload.get("time_mult", 1),
                 "ambient_temp": payload.get("ambient_temp", 26),
                 "track_grip": payload.get("track_grip", 100),
+                "driver_name": payload.get("driver_name", ""),
             }
             self.agent.launch_race(params)
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import socket
 
 from fastapi import APIRouter, BackgroundTasks
 
@@ -20,6 +21,15 @@ def create_router(state: AppState) -> APIRouter:
 
     from shared.constants import COMMAND_PORT
 
+    def _get_orchestrator_ip() -> str:
+        """Best-effort LAN IP discovery for the orchestrator machine."""
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+                s.connect(("8.8.8.8", 80))
+                return str(s.getsockname()[0])
+        except Exception:
+            return "127.0.0.1"
+
     action_status_map: dict[str, str] = {
         "SETUP_MODE": "setup",
         "KILL_RACE": "idle",
@@ -34,6 +44,10 @@ def create_router(state: AppState) -> APIRouter:
         if rig_car and str(rig_car) not in ("", "None"):
             payload["car"] = str(rig_car)
             logger.info("Injecting car '%s' for rig %s", rig_car, rig.get("rig_id"))
+        # Inject driver name for in-game display
+        driver_name = rig.get("driver_name")
+        if driver_name and str(driver_name).strip():
+            payload["driver_name"] = str(driver_name).strip()
         return payload
 
     @router.post("/command")
@@ -95,6 +109,36 @@ def create_router(state: AppState) -> APIRouter:
         responses: list[str] = []
         new_status = action_status_map.get(command.action, "idle")
 
+        # Resolve server IP + port for multiplayer groups
+        server_ip: str | None = None
+        server_port: int = 9600
+        server_http_port: int = 8081
+        if command.action == "LAUNCH_RACE" and group.mode == "multiplayer":
+            # Import the server manager to look up the running server's port
+            from apps.orchestrator.routers.server import _manager as srv_mgr
+            if srv_mgr:
+                srv_info = srv_mgr.get_server_ip_port(group_id)
+                if srv_info:
+                    server_ip = _get_orchestrator_ip()
+                    server_port = srv_info[1]
+                    server_http_port = srv_info[2]
+                    logger.info(
+                        "Multiplayer group '%s': server at %s:%d",
+                        group.name, server_ip, server_port,
+                    )
+                else:
+                    logger.warning(
+                        "Multiplayer group '%s': no running server found! Rigs will launch offline.",
+                        group.name,
+                    )
+
+        # For KILL_RACE, explicitly mark ALL rigs in this group as idle
+        # (even ones that may have gone stale from _rigs dict)
+        if command.action == "KILL_RACE":
+            for rid in group.rig_ids:
+                state.update_rig_field(rid, "status", "idle")
+            logger.info("KILL_RACE: set %d rigs to idle for group '%s'", len(group.rig_ids), group.name)
+
         for rig in state.get_group_rigs(group_id):
             rig_id = str(rig["rig_id"])
 
@@ -125,6 +169,10 @@ def create_router(state: AppState) -> APIRouter:
                     payload["track_grip"] = group.track_grip
                     # Solo groups always run offline; multiplayer uses AC server
                     payload["use_server"] = group.mode == "multiplayer"
+                    if server_ip and group.mode == "multiplayer":
+                        payload["server_ip"] = server_ip
+                        payload["server_port"] = server_port
+                        payload["server_http_port"] = server_http_port
                 background_tasks.add_task(dispatch_command, str(rig["ip"]), COMMAND_PORT, payload)
                 responses.append(f"Sled {rig_id}")
 

@@ -22,6 +22,12 @@ class ModeUpdate(BaseModel):
     mode: str  # "lockout" or "freeuse"
 
 
+class DriverNameUpdate(BaseModel):
+    """Payload for setting a rig's driver name."""
+
+    driver_name: str
+
+
 def create_router(state: AppState) -> APIRouter:
     """Create the rigs router bound to the given application state."""
 
@@ -85,10 +91,17 @@ def create_router(state: AppState) -> APIRouter:
             if isinstance(completed, (int, float)) and isinstance(last_count, (int, float)):
                 if completed > last_count:
                     state.update_rig_field(rig_id, "last_lap_count", completed)
+                    # Look up track/group context from the rig's group
+                    rig_group = next(
+                        (g for g in state.get_groups() if rig_id in g.rig_ids), None
+                    )
                     state.add_leaderboard_entry(
                         LeaderboardEntry(
                             rig_id=rig_id,
+                            driver_name=str(rig.get("driver_name", "")) or None,
                             car=str(rig.get("selected_car", "")),
+                            track=rig_group.track if rig_group else None,
+                            group_name=rig_group.name if rig_group else None,
                             lap=int(completed),
                         )
                     )
@@ -128,6 +141,17 @@ def create_router(state: AppState) -> APIRouter:
         state.update_rig_field(rig_id, "mode", update.mode)
         logger.info("Rig %s mode -> %s", rig_id, update.mode)
         return {"status": "success", "mode": update.mode}
+
+    @router.post("/rigs/{rig_id}/driver_name")
+    async def set_driver_name(rig_id: str, update: DriverNameUpdate) -> dict[str, str]:
+        """Set the display name for the driver on this rig."""
+        rig = state.get_rig(rig_id)
+        if not rig:
+            state.upsert_rig(rig_id, {"driver_name": update.driver_name})
+        else:
+            state.update_rig_field(rig_id, "driver_name", update.driver_name)
+        logger.info("Rig %s driver_name -> %s", rig_id, update.driver_name)
+        return {"status": "success", "driver_name": update.driver_name}
 
     return router
 

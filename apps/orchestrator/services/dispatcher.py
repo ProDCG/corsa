@@ -8,23 +8,36 @@ import logging
 
 logger = logging.getLogger("ridge.dispatcher")
 
+MAX_RETRIES = 3
+CONNECT_TIMEOUT = 5.0
+
 
 async def dispatch_command_async(ip: str, port: int, payload: dict[str, object]) -> None:
-    """Send a JSON command to a sled via async TCP."""
+    """Send a JSON command to a sled via async TCP, with retries."""
     action = payload.get("action", "UNKNOWN")
     logger.info("Dispatching %s to %s:%d", action, ip, port)
-    try:
-        _reader, writer = await asyncio.wait_for(
-            asyncio.open_connection(ip, port),
-            timeout=2.0,
-        )
-        writer.write(json.dumps(payload).encode("utf-8"))
-        await writer.drain()
-        writer.close()
-        await writer.wait_closed()
-        logger.info("Successfully sent %s to %s", action, ip)
-    except Exception as e:
-        logger.error("Failed to send command to %s: %s", ip, e)
+
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            _reader, writer = await asyncio.wait_for(
+                asyncio.open_connection(ip, port),
+                timeout=CONNECT_TIMEOUT,
+            )
+            writer.write(json.dumps(payload).encode("utf-8"))
+            await writer.drain()
+            writer.close()
+            await writer.wait_closed()
+            logger.info("Successfully sent %s to %s (attempt %d)", action, ip, attempt)
+            return
+        except Exception as e:
+            logger.warning(
+                "Attempt %d/%d failed to send %s to %s: %s",
+                attempt, MAX_RETRIES, action, ip, e,
+            )
+            if attempt < MAX_RETRIES:
+                await asyncio.sleep(1.0)
+
+    logger.error("All %d attempts failed to send %s to %s:%d", MAX_RETRIES, action, ip, port)
 
 
 def dispatch_command(ip: str, port: int, payload: dict[str, object]) -> None:

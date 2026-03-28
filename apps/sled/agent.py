@@ -175,23 +175,38 @@ class RigAgent:
                 self.current_process = subprocess.Popen(["sleep", "600"])
 
     def kill_race(self) -> None:
-        """Terminate AC and any related processes."""
+        """Terminate AC and any related processes — forcefully."""
         if self.current_process:
-            self.current_process.terminate()
+            try:
+                self.current_process.kill()  # force kill, not terminate
+            except Exception:
+                pass
             self.current_process = None
 
-        try:
-            import psutil
-
-            for proc in psutil.process_iter(["name"]):
+        # Force-kill AC processes by name (belt and suspenders)
+        if IS_WINDOWS:
+            import subprocess as _sp
+            for exe in ("AssettoCorsa.exe", "acs.exe", "acs_x86.exe"):
                 try:
-                    name = proc.info.get("name", "")
-                    if name in ("AssettoCorsa.exe", "acs.exe"):
-                        proc.kill()
-                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    _sp.run(
+                        ["taskkill", "/F", "/IM", exe],
+                        capture_output=True, timeout=5,
+                    )
+                except Exception:
                     pass
-        except ImportError:
-            pass
+        else:
+            # Linux/Mac fallback via psutil
+            try:
+                import psutil
+                for proc in psutil.process_iter(["name"]):
+                    try:
+                        name = proc.info.get("name", "")
+                        if name in ("AssettoCorsa.exe", "acs.exe", "acs_x86.exe"):
+                            proc.kill()
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+            except ImportError:
+                pass
 
         self.status = "idle"
         logger.info("Race killed — rig idle")
