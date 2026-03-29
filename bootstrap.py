@@ -7,6 +7,7 @@ import os
 import socket
 import subprocess
 import sys
+from pathlib import Path
 
 # Ports to open in Windows Firewall
 FIREWALL_RULES: list[dict[str, str]] = [
@@ -39,6 +40,83 @@ def setup_firewall() -> None:
             capture_output=True,
         )
     print("  Firewall rules added.")
+
+
+def remove_firewall() -> None:
+    """Remove previously-added Ridge-Link firewall rules."""
+    if os.name != "nt":
+        print("  (Skipping firewall removal — not Windows)")
+        return
+    for rule in FIREWALL_RULES:
+        subprocess.run(
+            [
+                "netsh", "advfirewall", "firewall", "delete", "rule",
+                f'name="{rule["name"]}"',
+            ],
+            check=False,
+            capture_output=True,
+        )
+    print("  Firewall rules removed.")
+
+
+def setup_autostart(role: str) -> None:
+    """Place a shortcut in the Windows Startup folder so Ridge-Link launches on login."""
+    if os.name != "nt":
+        print("  (Skipping auto-start — not Windows)")
+        return
+
+    bat_name = "START_ADMIN.bat" if role == "admin" else "START_RIG.bat"
+    bat_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), bat_name)
+    work_dir = os.path.dirname(os.path.abspath(__file__))
+    shortcut_name = f"Ridge-Link {role.title()}.lnk"
+    startup_dir = os.path.join(
+        os.environ.get("APPDATA", ""),
+        "Microsoft", "Windows", "Start Menu", "Programs", "Startup",
+    )
+    shortcut_path = os.path.join(startup_dir, shortcut_name)
+
+    try:
+        import win32com.client  # type: ignore[import-untyped]
+        shell = win32com.client.Dispatch("WScript.Shell")
+        shortcut = shell.CreateShortCut(shortcut_path)
+        shortcut.TargetPath = bat_file
+        shortcut.WorkingDirectory = work_dir
+        shortcut.WindowStyle = 7  # Minimized
+        shortcut.save()
+        print(f"  Startup shortcut created: {shortcut_path}")
+    except ImportError:
+        # Fallback: drop a .bat in the Startup folder
+        bat_fallback = os.path.join(startup_dir, shortcut_name.replace(".lnk", ".bat"))
+        with open(bat_fallback, "w") as f:
+            f.write(f'@echo off\ncd /d "{work_dir}"\nstart "" "{bat_file}"\n')
+        print(f"  Startup script created (bat fallback): {bat_fallback}")
+
+    print("  → Ridge-Link will auto-launch on next Windows login.")
+
+
+def remove_autostart(role: str) -> None:
+    """Remove any existing auto-start shortcut."""
+    if os.name != "nt":
+        return
+    shortcut_name = f"Ridge-Link {role.title()}"
+    startup_dir = os.path.join(
+        os.environ.get("APPDATA", ""),
+        "Microsoft", "Windows", "Start Menu", "Programs", "Startup",
+    )
+    for ext in (".lnk", ".bat"):
+        path = os.path.join(startup_dir, shortcut_name + ext)
+        if os.path.exists(path):
+            os.remove(path)
+            print(f"  Removed old auto-start: {path}")
+
+
+def _ask_yes_no(prompt: str, default: bool = True) -> bool:
+    """Ask a yes/no question, return True for yes."""
+    hint = "Y/n" if default else "y/N"
+    answer = input(f"  {prompt} ({hint}): ").strip().lower()
+    if not answer:
+        return default
+    return answer in ("y", "yes")
 
 
 def setup_venv_and_install() -> None:
@@ -88,22 +166,34 @@ def main() -> None:
     print("  ║     RIDGE-LINK BOOTSTRAP v2.0             ║")
     print("  ╚═══════════════════════════════════════════╝")
     print()
-    role = input("  Is this the ADMIN PC or a RIG? (admin/rig): ").strip().lower()
+    role = input("  Is this the ADMIN PC or a RIG? (admin/rig/reset): ").strip().lower()
 
     if role == "admin":
-        total = 4
         print("\n  Configuring as: ADMIN PC")
 
-        _print_step(1, total, "Setting up firewall rules...")
-        setup_firewall()
+        # --- Optional features ---
+        want_firewall = _ask_yes_no("Configure Windows Firewall rules?", default=True)
+        want_autostart = _ask_yes_no("Auto-start Ridge-Link on reboot/login?", default=True)
+        print()
 
-        _print_step(2, total, "Creating Python environment...")
+        step = 0
+        total = 3 + int(want_firewall) + int(want_autostart)
+
+        if want_firewall:
+            step += 1
+            _print_step(step, total, "Setting up firewall rules...")
+            setup_firewall()
+
+        step += 1
+        _print_step(step, total, "Creating Python environment...")
         setup_venv_and_install()
 
-        _print_step(3, total, "Setting up frontend...")
+        step += 1
+        _print_step(step, total, "Setting up frontend...")
         setup_frontend()
 
-        _print_step(4, total, "Creating content directory...")
+        step += 1
+        _print_step(step, total, "Creating content directory...")
         if os.name == "nt":
             master = r"C:\RidgeContent"
             os.makedirs(master, exist_ok=True)
@@ -112,17 +202,25 @@ def main() -> None:
         else:
             print("  (Skipping — not Windows)")
 
+        if want_autostart:
+            step += 1
+            _print_step(step, total, "Configuring auto-start...")
+            setup_autostart("admin")
+        else:
+            remove_autostart("admin")
+
         # Write role marker so START_ADMIN.bat knows bootstrap has run
         with open("ridge_role", "w") as f:
             f.write("admin")
 
         print("\n  =======================================")
         print("  ADMIN SETUP COMPLETE!")
+        print(f"  Firewall: {'configured' if want_firewall else 'skipped'}")
+        print(f"  Auto-start: {'enabled' if want_autostart else 'disabled'}")
         print("  To start: double-click START_ADMIN.bat")
         print("  =======================================")
 
     elif role == "rig":
-        total = 4
         hostname = socket.gethostname().upper()
         rig_id = input(f"  Rig ID (press Enter for '{hostname}'): ").strip() or hostname
         admin_ip = input("  Admin PC IP address: ").strip()
@@ -138,20 +236,34 @@ def main() -> None:
         rig_type_input = input("  Select rig type (1/2, default GT): ").strip()
         rig_type = "f1" if rig_type_input == "2" else "gt"
 
+        # --- Optional features ---
+        want_firewall = _ask_yes_no("Configure Windows Firewall rules?", default=True)
+        want_autostart = _ask_yes_no("Auto-start Ridge-Link on reboot/login?", default=True)
+
         print(f"\n  Configuring as: RIG ({rig_id}) [{rig_type.upper()}] -> Admin: {admin_ip}")
 
-        _print_step(1, total, "Setting up firewall rules...")
-        setup_firewall()
+        step = 0
+        total = 2 + int(want_firewall) + int(want_autostart)
 
-        _print_step(2, total, "Creating Python environment...")
+        if want_firewall:
+            step += 1
+            _print_step(step, total, "Setting up firewall rules...")
+            setup_firewall()
+
+        step += 1
+        _print_step(step, total, "Creating Python environment...")
         setup_venv_and_install()
 
-        _print_step(3, total, "Writing rig config...")
+        step += 1
+        _print_step(step, total, "Writing rig config...")
         create_rig_config(admin_ip, rig_id, rig_type)
 
-        _print_step(4, total, "Setup complete!")
-        # Don't auto-create startup shortcuts - let users do it manually once stable
-        print("  To create a desktop shortcut: python create_shortcuts.py")
+        if want_autostart:
+            step += 1
+            _print_step(step, total, "Configuring auto-start...")
+            setup_autostart("rig")
+        else:
+            remove_autostart("rig")
 
         # Write role marker so START_RIG.bat knows bootstrap has run
         with open("ridge_role", "w") as f:
@@ -159,11 +271,42 @@ def main() -> None:
 
         print("\n  =======================================")
         print(f"  RIG '{rig_id}' SETUP COMPLETE!")
+        print(f"  Firewall: {'configured' if want_firewall else 'skipped'}")
+        print(f"  Auto-start: {'enabled' if want_autostart else 'disabled'}")
         print("  To start: double-click START_RIG.bat")
         print("  =======================================")
 
+    elif role == "reset":
+        print("\n  ═══ RESET / UNDO ═══")
+        print("  This lets you undo bootstrap changes without a full re-run.\n")
+
+        if _ask_yes_no("Remove Windows Firewall rules?", default=False):
+            remove_firewall()
+        else:
+            print("  Firewall rules left in place.")
+
+        # Determine current role from marker file
+        current_role = None
+        if os.path.exists("ridge_role"):
+            with open("ridge_role") as f:
+                current_role = f.read().strip()
+
+        if _ask_yes_no("Remove auto-start on login?", default=False):
+            if current_role:
+                remove_autostart(current_role)
+            else:
+                # Clean up both just in case
+                remove_autostart("admin")
+                remove_autostart("rig")
+        else:
+            print("  Auto-start left in place.")
+
+        print("\n  =======================================")
+        print("  RESET COMPLETE!")
+        print("  =======================================")
+
     else:
-        print("  Invalid role. Use 'admin' or 'rig'.")
+        print("  Invalid role. Use 'admin', 'rig', or 'reset'.")
 
 
 if __name__ == "__main__":
