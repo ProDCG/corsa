@@ -478,8 +478,8 @@ class ACServerManager:
             f"ABS_ALLOWED=1\n"
             f"TC_ALLOWED=1\n"
             f"START_RULE=0\n"
-            f"STABILITY_ALLOWED=1\n"
-            f"AUTOCLUTCH_ALLOWED=1\n"
+            f"STABILITY_ALLOWED=0\n"
+            f"AUTOCLUTCH_ALLOWED=0\n"
             f"TYRE_BLANKETS_ALLOWED=0\n"
             f"FORCE_VIRTUAL_MIRROR=1\n"
             f"REGISTER_TO_LOBBY=0\n"
@@ -509,17 +509,17 @@ class ACServerManager:
             f"\n"
         )
 
-        # Practice session
-        if practice_time > 0:
-            cfg += (
-                f"[PRACTICE]\n"
-                f"NAME=Practice\n"
-                f"TIME={practice_time}\n"
-                f"IS_OPEN=1\n"
-                f"\n"
-            )
+        # Practice session — always include (AC expects at least one open session)
+        prac_time = practice_time if practice_time > 0 else 90
+        cfg += (
+            f"[PRACTICE]\n"
+            f"NAME=Practice\n"
+            f"TIME={prac_time}\n"
+            f"IS_OPEN=1\n"
+            f"\n"
+        )
 
-        # Qualifying session
+        # Qualifying — use __CM_QUALIFY_OFF prefix to disable (CM convention)
         if qualy_time > 0:
             cfg += (
                 f"[QUALIFY]\n"
@@ -528,16 +528,40 @@ class ACServerManager:
                 f"IS_OPEN=1\n"
                 f"\n"
             )
+        else:
+            cfg += (
+                f"[__CM_QUALIFY_OFF]\n"
+                f"NAME=Qualify\n"
+                f"TIME=10\n"
+                f"IS_OPEN=1\n"
+                f"\n"
+            )
 
-        # Race session — always required
+        # Race session — use __CM_RACE_OFF prefix when no race laps set
+        if race_laps > 0:
+            cfg += (
+                f"[RACE]\n"
+                f"NAME=Race\n"
+                f"TIME=0\n"
+                f"IS_OPEN=1\n"
+                f"WAIT_TIME=60\n"
+                f"LAPS={race_laps}\n"
+                f"__CM_TIME_OFF=10\n"
+                f"\n"
+            )
+        else:
+            cfg += (
+                f"[__CM_RACE_OFF]\n"
+                f"NAME=Race\n"
+                f"TIME=0\n"
+                f"IS_OPEN=1\n"
+                f"WAIT_TIME=60\n"
+                f"LAPS=5\n"
+                f"__CM_TIME_OFF=10\n"
+                f"\n"
+            )
+
         cfg += (
-            f"[RACE]\n"
-            f"NAME=Race\n"
-            f"TIME=0\n"
-            f"IS_OPEN=1\n"
-            f"WAIT_TIME=60\n"
-            f"LAPS={race_laps}\n"
-            f"\n"
             f"[DYNAMIC_TRACK]\n"
             f"SESSION_START=95\n"
             f"RANDOMNESS=2\n"
@@ -563,9 +587,18 @@ class ACServerManager:
             f"WEBLINK=\n"
             f"WELCOME_PATH=\n"
             f"\n"
+            f"[__CM_BOOK_OFF]\n"
+            f"NAME=Booking\n"
+            f"TIME=10\n"
+            f"IS_OPEN=1\n"
+            f"\n"
             f"[__CM_SERVER]\n"
-            f"DISABLE_CHECKSUMS=1\n"
+            f"DISABLE_CHECKSUMS=0\n"
             f"REGISTER_TO_CM_LOBBY=1\n"
+            f"\n"
+            f"[__CM_PLUGIN]\n"
+            f"ACTIVE=0\n"
+            f"REAL_CONDITIONS=0\n"
         )
 
         cfg_path = os.path.join(config_dir, "cfg", "server_cfg.ini")
