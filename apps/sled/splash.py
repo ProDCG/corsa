@@ -557,12 +557,12 @@ class DesktopBlocker:
             self._restore_for_lockout()
             self.update_status("ADMIN ASSIGNING CARS — STAND BY")
         elif status == "racing":
-            # HIDE splash completely so AC can render fullscreen
-            self.root.attributes("-topmost", False)
-            self.root.overrideredirect(False)
-            self.root.withdraw()
-            self.update_status("RACE IN PROGRESS")
-            logger.info("Racing detected — splash hidden for AC")
+            # DELAY hiding splash so AC's loading screen appears first.
+            # The splash stays on top for 3 seconds, covering the bare desktop
+            # while AC initializes. Then it withdraws underneath AC.
+            self.update_status("LAUNCHING RACE...")
+            logger.info("Racing detected — delaying splash hide for 3s")
+            self.root.after(3000, self._hide_for_racing)
         elif status == "ready":
             # Keep splash visible (lockout) but lower behind AC if it opens
             if self._current_mode == "lockout":
@@ -571,11 +571,25 @@ class DesktopBlocker:
         elif status == "syncing":
             self.update_status("SYNCING MODS...")
         else:
-            # idle / other — restore splash based on mode, stop timer
+            # idle / other — restore splash IMMEDIATELY (before AC closes)
+            # This ensures the splash covers the desktop before AC is killed.
             self.stop_session_timer()
             if self._current_mode == "lockout":
                 self._restore_for_lockout()
             self.update_status("SYSTEMS ONLINE — READY")
+            logger.info("Idle detected — splash restored immediately")
+
+    def _hide_for_racing(self) -> None:
+        """Actually hide the splash for AC (called after delay)."""
+        # Only hide if we're still in racing state (user may have stopped in the meantime)
+        if self._current_status == "racing":
+            self.root.attributes("-topmost", False)
+            self.root.overrideredirect(False)
+            self.root.withdraw()
+            self.update_status("RACE IN PROGRESS")
+            logger.info("Splash hidden for AC (after delay)")
+        else:
+            logger.info("Skipped splash hide — status changed to %s during delay", self._current_status)
 
     def _restore_for_lockout(self) -> None:
         """Restore splash to fullscreen lockout state."""

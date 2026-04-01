@@ -16,6 +16,50 @@ logger = logging.getLogger("ridge.rigs")
 router = APIRouter(tags=["rigs"])
 
 
+def _parse_lap_time_ms(raw: object) -> int | None:
+    """Parse a lap time value into milliseconds.
+
+    Handles:
+      - int/float already in ms (> 1000)
+      - float seconds (< 1000)
+      - String formats: "MM:SS.mmm", "HH:MM:SS.mmm", "SS.mmm"
+    """
+    if raw is None:
+        return None
+
+    # Already numeric
+    if isinstance(raw, (int, float)):
+        v = float(raw)
+        if v <= 0:
+            return None
+        # If value is > 1000, assume it's already in ms
+        if v > 1000:
+            return int(v)
+        # Otherwise it's seconds
+        return int(v * 1000)
+
+    # String parsing
+    s = str(raw).strip()
+    if not s or s in ("--:--", "0", "0:00.000"):
+        return None
+
+    try:
+        parts = s.split(":")
+        if len(parts) == 3:
+            # HH:MM:SS.mmm
+            h, m, sec = int(parts[0]), int(parts[1]), float(parts[2])
+            return int((h * 3600 + m * 60 + sec) * 1000)
+        elif len(parts) == 2:
+            # MM:SS.mmm
+            m, sec = int(parts[0]), float(parts[1])
+            return int((m * 60 + sec) * 1000)
+        else:
+            # SS.mmm
+            return int(float(s) * 1000)
+    except (ValueError, IndexError):
+        return None
+
+
 class ModeUpdate(BaseModel):
     """Payload for changing a rig's mode."""
 
@@ -56,17 +100,17 @@ def create_router(state: AppState) -> APIRouter:
             current_status = str(rig.get("status", "idle"))
             new_status = update.status
 
-            # Prevent heartbeats from accidentally downgrading RACING/READY
-            # to IDLE/SETUP within 10 seconds of the last state change.
+            # The sled agent is now the source of truth for 'racing' state
+            # (it detects AC process). Only guard against rapid heartbeat noise
+            # within 3s of a state change to avoid race conditions during launch.
             if current_status in ("racing", "ready") and new_status in ("idle", "setup"):
                 last_seen = rig.get("last_seen")
-                if isinstance(last_seen, (int, float)) and time.time() - last_seen < 10:
+                if isinstance(last_seen, (int, float)) and time.time() - last_seen < 3:
                     logger.debug("Rig %s: blocking heartbeat downgrade %s -> %s (too soon)",
                                   rig_id, current_status, new_status)
                 else:
-                    # Enough time has passed — allow the transition (e.g. AC truly finished)
                     state.update_rig_field(rig_id, "status", new_status)
-                    logger.info("Rig %s: stale %s -> %s (allowed after timeout)",
+                    logger.info("Rig %s: %s -> %s (allowed)",
                                  rig_id, current_status, new_status)
             else:
                 state.update_rig_field(rig_id, "status", new_status)
@@ -95,6 +139,13 @@ def create_router(state: AppState) -> APIRouter:
                     rig_group = next(
                         (g for g in state.get_groups() if rig_id in g.rig_ids), None
                     )
+
+                    # Parse lap time from telemetry
+                    lap_time_ms: int | None = None
+                    raw_time = update.telemetry.get("last_lap_time")
+                    if raw_time is not None:
+                        lap_time_ms = _parse_lap_time_ms(raw_time)
+
                     state.add_leaderboard_entry(
                         LeaderboardEntry(
                             rig_id=rig_id,
@@ -103,6 +154,7 @@ def create_router(state: AppState) -> APIRouter:
                             track=rig_group.track if rig_group else None,
                             group_name=rig_group.name if rig_group else None,
                             lap=int(completed),
+                            lap_time_ms=lap_time_ms,
                         )
                     )
 

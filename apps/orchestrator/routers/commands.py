@@ -33,7 +33,9 @@ def create_router(state: AppState) -> APIRouter:
     action_status_map: dict[str, str] = {
         "SETUP_MODE": "setup",
         "KILL_RACE": "idle",
-        "LAUNCH_RACE": "racing",
+        # NOTE: LAUNCH_RACE is intentionally absent — the sled agent now
+        # determines 'racing' state via AC process detection. The orchestrator
+        # should not prematurely show 'racing' before AC is actually open.
     }
 
     def _prepare_payload(command: Command, rig: dict[str, object]) -> dict[str, object]:

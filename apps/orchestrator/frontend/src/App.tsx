@@ -479,7 +479,13 @@ function App() {
                 </div>
 
                 <div className="mt-auto">
-                    <button onClick={() => sendGlobalCommand('KILL_RACE')} className="p-4 text-red-500 hover:bg-red-500/10 rounded-full transition-all" title="Emergency Kill All">
+                    <button onClick={async () => {
+                        if (!confirm('Stop ALL rigs and servers?')) return
+                        await Promise.all([
+                            sendGlobalCommand('KILL_RACE'),
+                            fetch('/api/server/stop-all', { method: 'POST' }),
+                        ])
+                    }} className="p-4 text-red-500 hover:bg-red-500/10 rounded-full transition-all" title="Emergency Kill All">
                         <Power size={24} />
                     </button>
                 </div>
@@ -1101,7 +1107,13 @@ function App() {
                                                 </td>
                                                 <td className="px-5 py-3.5 text-right">
                                                     <span className="text-[11px] font-bold text-white/50 tabular-nums">
-                                                        {entry.lap_time_ms ? `${(entry.lap_time_ms / 1000).toFixed(3)}s` : '—'}
+                                                        {entry.lap_time_ms ? (() => {
+                                                            const totalMs = entry.lap_time_ms
+                                                            const mins = Math.floor(totalMs / 60000)
+                                                            const secs = Math.floor((totalMs % 60000) / 1000)
+                                                            const ms = totalMs % 1000
+                                                            return `${mins}:${String(secs).padStart(2, '0')}.${String(ms).padStart(3, '0')}`
+                                                        })() : '—'}
                                                     </span>
                                                 </td>
                                                 <td className="px-5 py-3.5 text-right">
@@ -1228,6 +1240,35 @@ function App() {
                             </div>
                         </div>
                     )}
+
+                            {/* Full System Update */}
+                            <div className="glass rounded-3xl p-8 border border-red-500/20 bg-red-500/[0.02]">
+                                <h2 className="text-lg font-black italic uppercase mb-2 flex items-center gap-2"><RotateCcw className="text-red-400" size={20} /> Full System Update</h2>
+                                <p className="text-xs text-white/40 mb-4 leading-relaxed">
+                                    Stops all active races and servers, pulls the latest code on all rigs and the admin PC,
+                                    then restarts everything. All console windows will be closed and reopened.
+                                </p>
+                                <div className="flex items-center gap-4">
+                                    <button
+                                        onClick={async () => {
+                                            if (!confirm('⚠️ FULL SYSTEM UPDATE\n\nThis will:\n• Stop ALL active races\n• Stop ALL servers\n• Pull latest code on ALL rigs\n• Pull latest code on this admin PC\n• Restart the entire system\n\nAll players will be disconnected.\n\nContinue?')) return
+                                            try {
+                                                const res = await fetch('/api/update', { method: 'POST' })
+                                                const data = await res.json()
+                                                alert(`Update initiated!\n\n${data.message}\n\nThe dashboard will go offline briefly while the system restarts.`)
+                                            } catch (err) {
+                                                alert('Failed to initiate update. Check the console.')
+                                                console.error(err)
+                                            }
+                                        }}
+                                        className="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 hover:border-red-500/50 px-8 py-3 rounded-xl font-black italic uppercase text-xs transition-all"
+                                    >
+                                        Deploy Full Update
+                                    </button>
+                                    <span className="text-[9px] text-white/25 font-bold uppercase tracking-widest">Requires network access to Git</span>
+                                </div>
+                            </div>
+                        </div>
                 </div>
 
 

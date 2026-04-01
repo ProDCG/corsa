@@ -114,5 +114,41 @@ class CommandHandler:
                 logger.error("Sync failed: %s", e)
                 self.agent.status = "idle"
 
+        elif action == "UPDATE":
+            logger.info("Full update requested — stopping all, pulling, restarting...")
+            # 1. Kill any active race
+            self.agent.kill_race()
+            import time
+            time.sleep(1)
+
+            # 2. Run the update script
+            import os
+            import subprocess as _sp
+            repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            if os.name == "nt":
+                update_bat = os.path.join(repo_root, "UPDATE_RIG.bat")
+                if os.path.exists(update_bat):
+                    logger.info("Executing UPDATE_RIG.bat: %s", update_bat)
+                    # Start in a new console window — it will kill us and restart
+                    _sp.Popen(
+                        ["cmd", "/c", update_bat],
+                        cwd=repo_root,
+                        creationflags=_sp.CREATE_NEW_CONSOLE,
+                    )
+                    # The bat kills python.exe, so this process will die.
+                    # Give it a moment, then force-exit just in case.
+                    time.sleep(3)
+                    os._exit(0)
+                else:
+                    logger.error("UPDATE_RIG.bat not found at %s", update_bat)
+            else:
+                # Linux/dev mode: git pull + restart
+                try:
+                    _sp.run(["git", "pull"], cwd=repo_root, timeout=30)
+                    logger.info("Git pull complete — restarting...")
+                    os._exit(0)
+                except Exception as e:
+                    logger.error("Git pull failed: %s", e)
+
         else:
             logger.warning("Unknown command action: %s", action)

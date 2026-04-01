@@ -78,20 +78,66 @@ class RigAgent:
                 logger.error("Telemetry error: %s", e)
                 time.sleep(1)
 
+    @staticmethod
+    def _is_ac_running() -> bool:
+        """Check if any Assetto Corsa process is currently running."""
+        ac_names = {"acs.exe", "acs_x86.exe", "assettocorsa.exe"}
+        if IS_WINDOWS:
+            try:
+                import psutil
+                for proc in psutil.process_iter(["name"]):
+                    try:
+                        name = (proc.info.get("name") or "").lower()
+                        if name in ac_names:
+                            return True
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+            except ImportError:
+                # Fallback: tasklist
+                try:
+                    out = subprocess.check_output(
+                        ["tasklist", "/FI", "IMAGENAME eq acs.exe", "/NH"],
+                        capture_output=False, text=True, timeout=3,
+                    )
+                    if "acs.exe" in out.lower():
+                        return True
+                except Exception:
+                    pass
+        else:
+            try:
+                import psutil
+                for proc in psutil.process_iter(["name"]):
+                    try:
+                        name = (proc.info.get("name") or "").lower()
+                        if name in ac_names:
+                            return True
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+            except ImportError:
+                pass
+        return False
+
     def _process_watchdog(self) -> None:
-        """Monitor AC process health — auto-revert to idle if it exits while racing."""
+        """Monitor AC process — promote to racing when AC is detected, demote when gone.
+
+        This makes 'racing' state reflect whether AC is actually open,
+        regardless of how it was launched (orchestrator command or manual).
+        """
         while True:
             try:
-                if self.status == "racing" and self.current_process is not None:
-                    if self.current_process.poll() is not None:
-                        exit_code = self.current_process.returncode
-                        logger.warning("AC process exited (code=%s) while status=racing — reverting to idle",
-                                        exit_code)
-                        self.current_process = None
-                        self.status = "idle"
+                ac_running = self._is_ac_running()
+
+                if ac_running and self.status != "racing":
+                    logger.info("AC process detected — promoting status to 'racing'")
+                    self.status = "racing"
+                elif not ac_running and self.status == "racing":
+                    # AC has exited — revert to idle
+                    logger.warning("AC process gone while status=racing — reverting to idle")
+                    self.current_process = None
+                    self.status = "idle"
             except Exception as e:
                 logger.error("Watchdog error: %s", e)
-            time.sleep(5)
+            time.sleep(2)
 
     # ------------------------------------------------------------------
     # System info
@@ -154,9 +200,12 @@ class RigAgent:
     # ------------------------------------------------------------------
 
     def launch_race(self, params: dict[str, object]) -> None:
-        """Kill any running process and launch AC with the given params."""
+        """Kill any running process and launch AC with the given params.
+
+        NOTE: Status is NOT set to 'racing' here. The process watchdog
+        will detect the AC process and promote status automatically.
+        """
         self.kill_race()
-        self.status = "racing"
 
         car = params.get("car", self.selected_car)
         track = params.get("track", "monza")
@@ -168,14 +217,21 @@ class RigAgent:
             self.current_process = proc
         else:
             logger.error("Could not launch AC — check config.json paths")
-            # Fallback: keep status for dashboard visibility
-            if IS_WINDOWS:
-                self.current_process = subprocess.Popen(["timeout", "/t", "600"])
-            else:
-                self.current_process = subprocess.Popen(["sleep", "600"])
 
     def kill_race(self) -> None:
-        """Terminate AC and any related processes — forcefully."""
+        """Terminate AC and any related processes — forcefully.
+
+        Order: set idle FIRST (so splash screen restores immediately),
+        then wait briefly, then kill AC behind the splash.
+        """
+        # 1. Set idle immediately — triggers splash restore via heartbeat/poll
+        self.status = "idle"
+        logger.info("Status set to idle — splash should restore now")
+
+        # 2. Brief pause to let splash re-assert topmost
+        time.sleep(0.5)
+
+        # 3. Now kill AC behind the splash
         if self.current_process:
             try:
                 self.current_process.kill()  # force kill, not terminate
@@ -208,7 +264,6 @@ class RigAgent:
             except ImportError:
                 pass
 
-        self.status = "idle"
         logger.info("Race killed — rig idle")
 
     # ------------------------------------------------------------------

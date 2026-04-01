@@ -494,11 +494,14 @@ export default function GroupManager({ rigs, activeCarPool, activeMapPool }: Gro
 
                                 {/* Single STOP button — kills race on all rigs + stops server */}
                                 <button onClick={async () => {
-                                    await sendGroupCommand(selectedGroup.id, 'KILL_RACE')
+                                    // Fire kill and server stop in PARALLEL for speed
+                                    const promises: Promise<any>[] = [
+                                        sendGroupCommand(selectedGroup.id, 'KILL_RACE'),
+                                    ]
                                     if (selectedGroup.mode === 'multiplayer') {
-                                        await stopServerForGroup(selectedGroup.id)
+                                        promises.push(stopServerForGroup(selectedGroup.id))
                                     }
-                                    // Force-refresh to show idle states immediately
+                                    await Promise.all(promises)
                                     fetchGroups()
                                 }}
                                     className="bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase">
