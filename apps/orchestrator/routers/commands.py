@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import socket
+import time
 
 from fastapi import APIRouter, BackgroundTasks
 
@@ -62,6 +63,8 @@ def create_router(state: AppState) -> APIRouter:
         new_status = action_status_map.get(command.action)
         if new_status:
             state.update_rig_field(command.rig_id, "status", new_status)
+        if command.action == "KILL_RACE":
+            state.update_rig_field(command.rig_id, "kill_requested_at", time.time())
 
         if command.action == "SETUP_MODE":
             state.update_rig_field(command.rig_id, "selected_car", None)
@@ -90,9 +93,13 @@ def create_router(state: AppState) -> APIRouter:
 
             if rig.get("ip") == "web-kiosk":
                 state.update_rig_field(rig_id, "status", new_status)
+                if command.action == "KILL_RACE":
+                    state.update_rig_field(rig_id, "kill_requested_at", time.time())
                 responses.append(f"Web {rig_id}")
             else:
                 state.update_rig_field(rig_id, "status", new_status)
+                if command.action == "KILL_RACE":
+                    state.update_rig_field(rig_id, "kill_requested_at", time.time())
                 payload = _prepare_payload(command, rig)
                 background_tasks.add_task(dispatch_command, str(rig["ip"]), COMMAND_PORT, payload)
                 responses.append(f"Sled {rig_id}")
@@ -139,6 +146,7 @@ def create_router(state: AppState) -> APIRouter:
         if command.action == "KILL_RACE":
             for rid in group.rig_ids:
                 state.update_rig_field(rid, "status", "idle")
+                state.update_rig_field(rid, "kill_requested_at", time.time())
             logger.info("KILL_RACE: set %d rigs to idle for group '%s'", len(group.rig_ids), group.name)
 
         for rig in state.get_group_rigs(group_id):

@@ -100,16 +100,34 @@ def create_router(state: AppState) -> APIRouter:
             current_status = str(rig.get("status", "idle"))
             new_status = update.status
 
-            # The sled agent is now the source of truth for 'racing' state
-            # (it detects AC process). Only guard against rapid heartbeat noise
-            # within 3s of a state change to avoid race conditions during launch.
-            if current_status in ("racing", "ready") and new_status in ("idle", "setup"):
+            # KILL-PENDING GUARD: After KILL_RACE is dispatched, the sled's
+            # process watchdog may still see AC running and try to re-promote
+            # the rig to 'racing' via heartbeat before the TCP kill arrives.
+            # Block any heartbeat promoting to 'racing' for 10s after kill.
+            kill_req_at = rig.get("kill_requested_at")
+            if new_status == "racing" and isinstance(kill_req_at, (int, float)):
+                elapsed = time.time() - kill_req_at
+                if elapsed < 10:
+                    logger.debug(
+                        "Rig %s: blocking heartbeat promotion to 'racing' "
+                        "(kill requested %.1fs ago)",
+                        rig_id, elapsed,
+                    )
+                else:
+                    # Guard expired — allow and clear
+                    state.update_rig_field(rig_id, "kill_requested_at", None)
+                    state.update_rig_field(rig_id, "status", new_status)
+                    logger.info("Rig %s -> %s (kill guard expired)", rig_id, new_status)
+            elif current_status in ("racing", "ready") and new_status in ("idle", "setup"):
+                # Normal downgrade — allow unless very rapid
                 last_seen = rig.get("last_seen")
                 if isinstance(last_seen, (int, float)) and time.time() - last_seen < 3:
                     logger.debug("Rig %s: blocking heartbeat downgrade %s -> %s (too soon)",
                                   rig_id, current_status, new_status)
                 else:
                     state.update_rig_field(rig_id, "status", new_status)
+                    # Clear kill guard on natural idle transition
+                    state.update_rig_field(rig_id, "kill_requested_at", None)
                     logger.info("Rig %s: %s -> %s (allowed)",
                                  rig_id, current_status, new_status)
             else:
