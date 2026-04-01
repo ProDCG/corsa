@@ -65,6 +65,7 @@ interface CatalogWeather { id: string; name: string }
 interface GroupManagerProps {
     rigs: Rig[]
     activeCarPool: string[]
+    activeMapPool: string[]
 }
 
 /* ------------------------------------------------------------------ */
@@ -174,7 +175,7 @@ function SliderRow({ label, icon: Icon, value, min, max, step, unit, onChange }:
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
-export default function GroupManager({ rigs, activeCarPool }: GroupManagerProps) {
+export default function GroupManager({ rigs, activeCarPool, activeMapPool }: GroupManagerProps) {
     const [groups, setGroups] = useState<RigGroup[]>([])
     const [servers, setServers] = useState<ServerInfo[]>([])
     const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
@@ -493,11 +494,14 @@ export default function GroupManager({ rigs, activeCarPool }: GroupManagerProps)
 
                                 {/* Single STOP button — kills race on all rigs + stops server */}
                                 <button onClick={async () => {
-                                    await sendGroupCommand(selectedGroup.id, 'KILL_RACE')
+                                    // Fire kill and server stop in PARALLEL for speed
+                                    const promises: Promise<any>[] = [
+                                        sendGroupCommand(selectedGroup.id, 'KILL_RACE'),
+                                    ]
                                     if (selectedGroup.mode === 'multiplayer') {
-                                        await stopServerForGroup(selectedGroup.id)
+                                        promises.push(stopServerForGroup(selectedGroup.id))
                                     }
-                                    // Force-refresh to show idle states immediately
+                                    await Promise.all(promises)
                                     fetchGroups()
                                 }}
                                     className="bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase">
@@ -597,7 +601,10 @@ export default function GroupManager({ rigs, activeCarPool }: GroupManagerProps)
                                 <div>
                                     <label className="flex items-center gap-1 text-[9px] uppercase font-black text-white/50 tracking-widest mb-1"><Map size={9} /> Circuit</label>
                                     <Select value={selectedGroup.track} onChange={e => updateGroup(selectedGroup.id, { track: e.target.value })}>
-                                        {tracks.map(t => <option key={t.id} value={t.id}>{displayName(t.id)}</option>)}
+                                        {(activeMapPool.length > 0
+                                            ? tracks.filter(t => activeMapPool.includes(t.id))
+                                            : tracks
+                                        ).map(t => <option key={t.id} value={t.id}>{displayName(t.id)}</option>)}
                                     </Select>
                                 </div>
                                 {selectedGroup.mode === 'solo' && (

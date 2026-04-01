@@ -33,7 +33,9 @@ def create_router(state: AppState) -> APIRouter:
     action_status_map: dict[str, str] = {
         "SETUP_MODE": "setup",
         "KILL_RACE": "idle",
-        "LAUNCH_RACE": "racing",
+        # NOTE: LAUNCH_RACE is intentionally absent — the sled agent now
+        # determines 'racing' state via AC process detection. The orchestrator
+        # should not prematurely show 'racing' before AC is actually open.
     }
 
     def _prepare_payload(command: Command, rig: dict[str, object]) -> dict[str, object]:
@@ -112,7 +114,7 @@ def create_router(state: AppState) -> APIRouter:
         # Resolve server IP + port for multiplayer groups
         server_ip: str | None = None
         server_port: int = 9600
-        server_http_port: int = 8081
+        server_http_port: int = 8080
         if command.action == "LAUNCH_RACE" and group.mode == "multiplayer":
             # Import the server manager to look up the running server's port
             from apps.orchestrator.routers.server import _manager as srv_mgr

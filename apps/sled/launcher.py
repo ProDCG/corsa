@@ -262,7 +262,7 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
 
         # [REMOTE]
         server_port = int(str(params.get("server_port", 9600) or 9600))
-        server_http_port = int(str(params.get("server_http_port", 8081) or 8081))
+        server_http_port = int(str(params.get("server_http_port", 8080) or 8080))
         lines.append(
             f"\n[REMOTE]\n"
             f"ACTIVE={'1' if use_server else '0'}\n"

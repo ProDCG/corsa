@@ -1,4 +1,4 @@
-import { Activity, Cpu, Monitor, Zap, Power, RotateCcw, Play, Check, Image, Car, Settings2, Flag, Clock, ShieldCheck, LayoutGrid, Users, Lock, Unlock, Wrench, ChevronLeft, ChevronRight, Thermometer, Fuel, Gauge, Square, ChevronDown } from 'lucide-react'
+import { Activity, Cpu, Monitor, Zap, Power, RotateCcw, Play, Check, Image, Car, Settings2, Flag, Clock, ShieldCheck, LayoutGrid, Users, Lock, Unlock, Wrench, ChevronLeft, ChevronRight, Thermometer, Fuel, Gauge, Square, ChevronDown, MapPin } from 'lucide-react'
 import Kiosk from './Kiosk'
 import Lobby from './Lobby'
 import GroupManager from './components/GroupManager'
@@ -50,10 +50,11 @@ function App() {
         return <Lobby />
     }
 
-    const [activeTab, setActiveTab] = useState<'sims' | 'cars' | 'monitor' | 'leaderboard' | 'groups' | 'settings'>('groups')
+    const [activeTab, setActiveTab] = useState<'sims' | 'cars' | 'maps' | 'monitor' | 'leaderboard' | 'groups' | 'settings'>('groups')
 
     // Dynamic car catalog from backend
     const [catalogCars, setCatalogCars] = useState<{id: string; name: string; brand: string; car_class: string}[]>([])
+    const [catalogTracks, setCatalogTracks] = useState<{id: string; name: string}[]>([])
     const [rigs, setRigs] = useState<Rig[]>([])
 
     // Global Session & Race Settings
@@ -71,6 +72,7 @@ function App() {
     const [serverStatus, setServerStatus] = useState<'online' | 'offline'>('offline')
     const [selectedCar, setSelectedCar] = useState('ks_ferrari_488_gt3')
     const [activeCarPool, setActiveCarPool] = useState<string[]>([])
+    const [activeMapPool, setActiveMapPool] = useState<string[]>([])
     const [brandingFields, setBrandingFields] = useState<Branding>({
         logo_url: '/assets/ridge_logo.png',
         video_url: '/assets/idle_race.mp4'
@@ -240,8 +242,21 @@ function App() {
                 const res = await fetch('/api/catalogs')
                 const data = await res.json()
                 if (data.cars) setCatalogCars(data.cars)
+                if (data.tracks) setCatalogTracks(data.tracks)
             } catch (err) {
                 console.error("Failed to fetch catalogs:", err)
+            }
+        }
+
+        const fetchMapPool = async () => {
+            try {
+                const res = await fetch('/api/mappool')
+                const data = await res.json()
+                if (Array.isArray(data)) {
+                    setActiveMapPool(data)
+                }
+            } catch (err) {
+                console.error("Failed to fetch map pool:", err)
             }
         }
 
@@ -251,6 +266,7 @@ function App() {
         fetchPresets()
         fetchTelemConfig()
         fetchCatalogs()
+        fetchMapPool()
         const interval = setInterval(() => {
             fetchRigs()
         }, 2000)
@@ -271,6 +287,23 @@ function App() {
             })
         } catch (err) {
             console.error("Failed to update car pool:", err)
+        }
+    }
+
+    const toggleMapInPool = async (mapId: string) => {
+        const newPool = activeMapPool.includes(mapId)
+            ? activeMapPool.filter((id: string) => id !== mapId)
+            : [...activeMapPool, mapId]
+
+        setActiveMapPool(newPool)
+        try {
+            await fetch('/api/mappool', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ maps: newPool })
+            })
+        } catch (err) {
+            console.error("Failed to update map pool:", err)
         }
     }
 
@@ -441,11 +474,18 @@ function App() {
                     <SidebarItem id="monitor" activeTab={activeTab} setActiveTab={setActiveTab} icon={Activity} label="Monitor" />
                     <SidebarItem id="leaderboard" activeTab={activeTab} setActiveTab={setActiveTab} icon={Flag} label="Standings" />
                     <SidebarItem id="cars" activeTab={activeTab} setActiveTab={setActiveTab} icon={Car} label="Cars" />
+                    <SidebarItem id="maps" activeTab={activeTab} setActiveTab={setActiveTab} icon={MapPin} label="Maps" />
                     <SidebarItem id="settings" activeTab={activeTab} setActiveTab={setActiveTab} icon={Wrench} label="Settings" />
                 </div>
 
                 <div className="mt-auto">
-                    <button onClick={() => sendGlobalCommand('KILL_RACE')} className="p-4 text-red-500 hover:bg-red-500/10 rounded-full transition-all" title="Emergency Kill All">
+                    <button onClick={async () => {
+                        if (!confirm('Stop ALL rigs and servers?')) return
+                        await Promise.all([
+                            sendGlobalCommand('KILL_RACE'),
+                            fetch('/api/server/stop-all', { method: 'POST' }),
+                        ])
+                    }} className="p-4 text-red-500 hover:bg-red-500/10 rounded-full transition-all" title="Emergency Kill All">
                         <Power size={24} />
                     </button>
                 </div>
@@ -461,11 +501,12 @@ function App() {
                             <span>{
                                 activeTab === 'sims' ? 'Sim Manager' :
                                     activeTab === 'cars' ? 'Fleet Authorization' :
-                                        activeTab === 'monitor' ? 'Telemetry Feed' :
-                                            activeTab === 'leaderboard' ? 'Facility Standings' :
-                                                activeTab === 'groups' ? 'Race Groups' :
-                                                    activeTab === 'settings' ? 'Settings' :
-                                                        'Ridge-Link'
+                                        activeTab === 'maps' ? 'Track Authorization' :
+                                            activeTab === 'monitor' ? 'Telemetry Feed' :
+                                                activeTab === 'leaderboard' ? 'Facility Standings' :
+                                                    activeTab === 'groups' ? 'Race Groups' :
+                                                        activeTab === 'settings' ? 'Settings' :
+                                                            'Ridge-Link'
                             }</span>
                         </h1>
                         <p className="text-white/30 font-mono text-[10px] uppercase tracking-widest leading-none mt-1">
@@ -583,7 +624,7 @@ function App() {
 
                     {/* GROUPS MANAGER VIEW */}
                     {activeTab === 'groups' && (
-                        <GroupManager rigs={rigs} activeCarPool={activeCarPool} />
+                        <GroupManager rigs={rigs} activeCarPool={activeCarPool} activeMapPool={activeMapPool} />
                     )}
 
 
@@ -640,6 +681,64 @@ function App() {
                                             <span className={`font-black italic uppercase text-xs tracking-tighter ${activeCarPool.includes(car.id) ? 'text-white' : 'group-hover:text-white/40 transition-colors'}`}>{car.name}</span>
                                         </div>
                                         {activeCarPool.includes(car.id) && <div className="absolute -right-2 -bottom-2 w-12 h-12 bg-ridge-brand/20 blur-xl rounded-full" />}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MAP POOL VIEW — globally available tracks for all groups */}
+                    {activeTab === 'maps' && (
+                        <div className="max-w-5xl">
+                            <div className="flex items-center justify-between mb-8">
+                                <div>
+                                    <h2 className="text-xl font-black italic uppercase">Track Authorization</h2>
+                                    <p className="text-xs text-white/40 uppercase tracking-widest font-bold">Enable or disable tracks available across all groups</p>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <button
+                                        onClick={async () => {
+                                            const allIds = catalogTracks.map(t => t.id)
+                                            const allSelected = allIds.every(id => activeMapPool.includes(id))
+                                            const newPool = allSelected ? [] : allIds
+                                            setActiveMapPool(newPool)
+                                            try {
+                                                await fetch('/api/mappool', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ maps: newPool })
+                                                })
+                                            } catch {}
+                                        }}
+                                        className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border bg-white/5 border-white/10 text-white/50 hover:border-ridge-brand/50 hover:text-ridge-brand"
+                                    >
+                                        {catalogTracks.map(t => t.id).every(id => activeMapPool.includes(id)) ? 'Deselect All' : 'Select All'}
+                                    </button>
+                                    <div className="text-right">
+                                        <p className="text-xs font-black uppercase text-white/40">Authorized</p>
+                                        <p className="text-2xl font-black italic text-ridge-brand">{activeMapPool.length} / {catalogTracks.length}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                {catalogTracks.map((track) => (
+                                    <button
+                                        key={track.id}
+                                        onClick={() => toggleMapInPool(track.id)}
+                                        className={`group text-left p-4 rounded-2xl border transition-all relative overflow-hidden flex flex-col justify-between h-32 ${activeMapPool.includes(track.id)
+                                            ? 'bg-ridge-brand/10 border-ridge-brand/50 text-white'
+                                            : 'bg-white/5 border-white/5 text-white/20'
+                                            }`}
+                                    >
+                                        <div className="flex justify-between items-start">
+                                            <MapPin size={32} className={`transition-all ${activeMapPool.includes(track.id) ? 'text-ridge-brand' : 'opacity-20'}`} />
+                                            {activeMapPool.includes(track.id) ? <Check className="text-ridge-brand" size={16} /> : <Zap size={16} className="opacity-10" />}
+                                        </div>
+                                        <div>
+                                            <span className={`font-black italic uppercase text-xs tracking-tighter ${activeMapPool.includes(track.id) ? 'text-white' : 'group-hover:text-white/40 transition-colors'}`}>{track.name}</span>
+                                            <span className="text-[8px] font-mono text-white/20 block mt-0.5">{track.id}</span>
+                                        </div>
+                                        {activeMapPool.includes(track.id) && <div className="absolute -right-2 -bottom-2 w-12 h-12 bg-ridge-brand/20 blur-xl rounded-full" />}
                                     </button>
                                 ))}
                             </div>
@@ -1008,7 +1107,13 @@ function App() {
                                                 </td>
                                                 <td className="px-5 py-3.5 text-right">
                                                     <span className="text-[11px] font-bold text-white/50 tabular-nums">
-                                                        {entry.lap_time_ms ? `${(entry.lap_time_ms / 1000).toFixed(3)}s` : '—'}
+                                                        {entry.lap_time_ms ? (() => {
+                                                            const totalMs = entry.lap_time_ms
+                                                            const mins = Math.floor(totalMs / 60000)
+                                                            const secs = Math.floor((totalMs % 60000) / 1000)
+                                                            const ms = totalMs % 1000
+                                                            return `${mins}:${String(secs).padStart(2, '0')}.${String(ms).padStart(3, '0')}`
+                                                        })() : '—'}
                                                     </span>
                                                 </td>
                                                 <td className="px-5 py-3.5 text-right">
@@ -1135,6 +1240,35 @@ function App() {
                             </div>
                         </div>
                     )}
+
+                            {/* Full System Update */}
+                            <div className="glass rounded-3xl p-8 border border-red-500/20 bg-red-500/[0.02]">
+                                <h2 className="text-lg font-black italic uppercase mb-2 flex items-center gap-2"><RotateCcw className="text-red-400" size={20} /> Full System Update</h2>
+                                <p className="text-xs text-white/40 mb-4 leading-relaxed">
+                                    Stops all active races and servers, pulls the latest code on all rigs and the admin PC,
+                                    then restarts everything. All console windows will be closed and reopened.
+                                </p>
+                                <div className="flex items-center gap-4">
+                                    <button
+                                        onClick={async () => {
+                                            if (!confirm('⚠️ FULL SYSTEM UPDATE\n\nThis will:\n• Stop ALL active races\n• Stop ALL servers\n• Pull latest code on ALL rigs\n• Pull latest code on this admin PC\n• Restart the entire system\n\nAll players will be disconnected.\n\nContinue?')) return
+                                            try {
+                                                const res = await fetch('/api/update', { method: 'POST' })
+                                                const data = await res.json()
+                                                alert(`Update initiated!\n\n${data.message}\n\nThe dashboard will go offline briefly while the system restarts.`)
+                                            } catch (err) {
+                                                alert('Failed to initiate update. Check the console.')
+                                                console.error(err)
+                                            }
+                                        }}
+                                        className="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 hover:border-red-500/50 px-8 py-3 rounded-xl font-black italic uppercase text-xs transition-all"
+                                    >
+                                        Deploy Full Update
+                                    </button>
+                                    <span className="text-[9px] text-white/25 font-bold uppercase tracking-widest">Requires network access to Git</span>
+                                </div>
+                            </div>
+                        </div>
                 </div>
 
 

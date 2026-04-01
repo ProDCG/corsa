@@ -34,6 +34,7 @@ class AppState:
         self._rigs: dict[str, dict[str, object]] = {}
         self._groups: dict[str, RigGroup] = {}
         self._car_pool: list[str] = list(DEFAULT_CAR_POOL)
+        self._map_pool: list[str] = []  # Default: empty (all deselected)
         self._branding: Branding = Branding()
         self._settings: GlobalSettings = GlobalSettings()
         self._leaderboard: list[LeaderboardEntry] = []
@@ -48,6 +49,7 @@ class AppState:
         self._telem_config_file = os.path.join(self._data_dir, "telem_config.json")
         self._groups_file = os.path.join(self._data_dir, "groups.json")
         self._car_pool_file = os.path.join(self._data_dir, "car_pool.json")
+        self._map_pool_file = os.path.join(self._data_dir, "map_pool.json")
         self._settings_file = os.path.join(self._data_dir, "settings.json")
         self._branding_file = os.path.join(self._data_dir, "branding.json")
 
@@ -104,6 +106,16 @@ class AppState:
             except Exception:
                 logger.warning("Could not load car pool, using defaults")
 
+        if os.path.exists(self._map_pool_file):
+            try:
+                with open(self._map_pool_file) as f:
+                    data = json.load(f)
+                if isinstance(data, list):
+                    self._map_pool = data
+                    logger.info("Loaded map pool: %d maps", len(self._map_pool))
+            except Exception:
+                logger.warning("Could not load map pool, starting empty")
+
         if os.path.exists(self._settings_file):
             try:
                 with open(self._settings_file) as f:
@@ -135,6 +147,10 @@ class AppState:
     def _save_car_pool(self) -> None:
         with open(self._car_pool_file, "w") as f:
             json.dump(self._car_pool, f, indent=2)
+
+    def _save_map_pool(self) -> None:
+        with open(self._map_pool_file, "w") as f:
+            json.dump(self._map_pool, f, indent=2)
 
     def _save_settings(self) -> None:
         with open(self._settings_file, "w") as f:
@@ -294,6 +310,17 @@ class AppState:
         with self._lock:
             self._car_pool = list(value)
             self._save_car_pool()
+
+    @property
+    def map_pool(self) -> list[str]:
+        with self._lock:
+            return list(self._map_pool)
+
+    @map_pool.setter
+    def map_pool(self, value: list[str]) -> None:
+        with self._lock:
+            self._map_pool = list(value)
+            self._save_map_pool()
 
     @property
     def branding(self) -> Branding:
