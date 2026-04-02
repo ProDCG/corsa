@@ -13,6 +13,13 @@ HEARTBEAT_INTERVAL_SEC: float = 2.0
 HEARTBEAT_TIMEOUT_SEC: float = 10.0
 TELEMETRY_HZ: float = 10.0  # Telemetry polling rate
 
+# --- Mumble Voice Chat ---
+
+MUMBLE_PORT: int = 64738
+MUMBLE_BOT_USER: str = "Ridge-Bot"
+MUMBLE_ROOT_CHANNEL: str = "Ridge-Link"
+MUMBLE_CHANNELS: list[str] = ["Room 1", "Room 2", "Room 3", "Room 4", "Room 5", "Room 6"]
+
 
 # --- Default Paths (Windows) ---
 
@@ -31,6 +38,8 @@ FIREWALL_PORTS: list[dict[str, str]] = [
     {"name": "Ridge Link Heartbeat", "protocol": "UDP", "port": str(HEARTBEAT_PORT)},
     {"name": "Ridge Link Command", "protocol": "TCP", "port": str(COMMAND_PORT)},
     {"name": "Ridge Link UI", "protocol": "TCP", "port": str(UI_PORT)},
+    {"name": "Ridge Mumble TCP", "protocol": "TCP", "port": str(MUMBLE_PORT)},
+    {"name": "Ridge Mumble UDP", "protocol": "UDP", "port": str(MUMBLE_PORT)},
 ]
 
 

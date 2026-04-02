@@ -176,6 +176,12 @@ def create_router(state: AppState) -> APIRouter:
                         )
                     )
 
+        # Service connectivity indicators
+        if update.simhub_connected is not None:
+            state.update_rig_field(rig_id, "simhub_connected", update.simhub_connected)
+        if update.mumble_connected is not None:
+            state.update_rig_field(rig_id, "mumble_connected", update.mumble_connected)
+
         return {"status": "success"}
 
     @router.get("/rigs/{rig_id}/mode")

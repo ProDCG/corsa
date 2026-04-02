@@ -34,6 +34,7 @@ class SledConfig(BaseModel):
     simhub_url: str = "http://127.0.0.1:8888/api/getgamedata"
     udp_bridge_port: int = 9996
     standalone_mode: bool = False  # Auto-set when orchestrator is unreachable
+    mumble_enabled: bool = False  # Auto-launch Mumble client on startup
 
 
 def load_config(config_path: str | None = None) -> SledConfig:

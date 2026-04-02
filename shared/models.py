@@ -18,6 +18,8 @@ class RigStatusUpdate(BaseModel):
     cpu_temp: float | None = None
     telemetry: dict[str, object] | None = None
     ip: str | None = None
+    simhub_connected: bool | None = None
+    mumble_connected: bool | None = None
 
 
 class Rig(BaseModel):
@@ -212,3 +214,5 @@ class HeartbeatPayload(BaseModel):
     selected_car: str | None = None
     telemetry: dict[str, object] | None = None
     ip: str | None = None
+    simhub_connected: bool | None = None
+    mumble_connected: bool | None = None

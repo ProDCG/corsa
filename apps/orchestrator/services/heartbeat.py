@@ -41,6 +41,8 @@ class HeartbeatProtocol(asyncio.DatagramProtocol):
                     "status": status,
                     "cpu_temp": payload.get("cpu_temp", 0),
                     "mod_version": payload.get("mod_version", "unknown"),
+                    "simhub_connected": payload.get("simhub_connected"),
+                    "mumble_connected": payload.get("mumble_connected"),
                 },
             )
 

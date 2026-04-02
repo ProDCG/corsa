@@ -17,6 +17,8 @@ FIREWALL_RULES: list[dict[str, str]] = [
     {"name": "Ridge Link Heartbeat", "protocol": "UDP", "port": "5001"},
     {"name": "Ridge Link Command", "protocol": "TCP", "port": "5000"},
     {"name": "Ridge Link UI", "protocol": "TCP", "port": "8000"},
+    {"name": "Ridge Mumble TCP", "protocol": "TCP", "port": "64738"},
+    {"name": "Ridge Mumble UDP", "protocol": "UDP", "port": "64738"},
 ]
 
 
@@ -174,10 +176,11 @@ def main() -> None:
         # --- Optional features ---
         want_firewall = _ask_yes_no("Configure Windows Firewall rules?", default=True)
         want_autostart = _ask_yes_no("Auto-start Ridge-Link on reboot/login?", default=True)
+        want_mumble = _ask_yes_no("Enable Mumble voice chat?", default=True)
         print()
 
         step = 0
-        total = 3 + int(want_firewall) + int(want_autostart)
+        total = 3 + int(want_firewall) + int(want_autostart) + int(want_mumble)
 
         if want_firewall:
             step += 1
@@ -202,6 +205,34 @@ def main() -> None:
         else:
             print("  (Skipping — not Windows)")
 
+        if want_mumble:
+            step += 1
+            _print_step(step, total, "Configuring Mumble voice server...")
+            data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+            os.makedirs(data_dir, exist_ok=True)
+            ini_path = os.path.join(data_dir, "murmur.ini")
+            db_path = os.path.join(data_dir, "murmur.sqlite")
+            if not os.path.exists(ini_path):
+                with open(ini_path, "w") as f:
+                    f.write(
+                        f'database={db_path}\n'
+                        'port=64738\n'
+                        'welcometext="Ridge-Link Voice Chat"\n'
+                        'users=20\n'
+                        'registerName=Ridge-Link\n'
+                        'bonjour=false\n'
+                    )
+                print(f"  Generated murmur.ini: {ini_path}")
+            else:
+                print(f"  murmur.ini already exists: {ini_path}")
+
+            # Write mumble config marker
+            mumble_cfg = os.path.join(data_dir, "mumble_config.json")
+            with open(mumble_cfg, "w") as f:
+                json.dump({"mumble_enabled": True}, f, indent=2)
+            print("  Mumble voice chat enabled.")
+            print("  NOTE: Ensure Mumble Server is installed (https://www.mumble.info/downloads/)")
+
         if want_autostart:
             step += 1
             _print_step(step, total, "Configuring auto-start...")
@@ -217,6 +248,7 @@ def main() -> None:
         print("  ADMIN SETUP COMPLETE!")
         print(f"  Firewall: {'configured' if want_firewall else 'skipped'}")
         print(f"  Auto-start: {'enabled' if want_autostart else 'disabled'}")
+        print(f"  Mumble: {'enabled' if want_mumble else 'disabled'}")
         print("  To start: double-click START_ADMIN.bat")
         print("  =======================================")
 
@@ -239,6 +271,7 @@ def main() -> None:
         # --- Optional features ---
         want_firewall = _ask_yes_no("Configure Windows Firewall rules?", default=True)
         want_autostart = _ask_yes_no("Auto-start Ridge-Link on reboot/login?", default=True)
+        want_mumble = _ask_yes_no("Enable Mumble voice chat?", default=True)
 
         print(f"\n  Configuring as: RIG ({rig_id}) [{rig_type.upper()}] -> Admin: {admin_ip}")
 
@@ -258,6 +291,18 @@ def main() -> None:
         _print_step(step, total, "Writing rig config...")
         create_rig_config(admin_ip, rig_id, rig_type)
 
+        # Enable Mumble in rig config if requested
+        if want_mumble:
+            config_path = os.path.join("apps", "sled", "config.json")
+            if os.path.exists(config_path):
+                with open(config_path) as f:
+                    cfg = json.load(f)
+                cfg["mumble_enabled"] = True
+                with open(config_path, "w") as f:
+                    json.dump(cfg, f, indent=4)
+                print("  Mumble voice chat enabled in rig config.")
+                print("  NOTE: Ensure Mumble client is installed (https://www.mumble.info/downloads/)")
+
         if want_autostart:
             step += 1
             _print_step(step, total, "Configuring auto-start...")
@@ -273,6 +318,7 @@ def main() -> None:
         print(f"  RIG '{rig_id}' SETUP COMPLETE!")
         print(f"  Firewall: {'configured' if want_firewall else 'skipped'}")
         print(f"  Auto-start: {'enabled' if want_autostart else 'disabled'}")
+        print(f"  Mumble: {'enabled' if want_mumble else 'disabled'}")
         print("  To start: double-click START_RIG.bat")
         print("  =======================================")
 

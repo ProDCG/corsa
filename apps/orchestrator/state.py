@@ -41,6 +41,7 @@ class AppState:
         self._presets: list[Preset] = []
         self._telem_config: TelemetryConfig = TelemetryConfig()
         self._server_status: str = "offline"
+        self._mumble_assignments: dict[str, str] = {}  # rig_id -> channel name
 
         # Persistence
         self._data_dir = data_dir or os.path.join(os.getcwd(), "data")
@@ -52,6 +53,7 @@ class AppState:
         self._map_pool_file = os.path.join(self._data_dir, "map_pool.json")
         self._settings_file = os.path.join(self._data_dir, "settings.json")
         self._branding_file = os.path.join(self._data_dir, "branding.json")
+        self._mumble_assignments_file = os.path.join(self._data_dir, "mumble_assignments.json")
 
         # SQLite leaderboard
         self._leaderboard_db = LeaderboardDB(os.path.join(self._data_dir, "leaderboard.db"))
@@ -132,6 +134,16 @@ class AppState:
             except Exception:
                 logger.warning("Could not load branding, using defaults")
 
+        if os.path.exists(self._mumble_assignments_file):
+            try:
+                with open(self._mumble_assignments_file) as f:
+                    data = json.load(f)
+                if isinstance(data, dict):
+                    self._mumble_assignments = data
+                    logger.info("Loaded mumble assignments: %d rigs", len(data))
+            except Exception:
+                logger.warning("Could not load mumble assignments, starting empty")
+
     def _save_presets(self) -> None:
         with open(self._presets_file, "w") as f:
             json.dump([p.model_dump() for p in self._presets], f, indent=2)
@@ -159,6 +171,10 @@ class AppState:
     def _save_branding(self) -> None:
         with open(self._branding_file, "w") as f:
             json.dump(self._branding.model_dump(), f, indent=2)
+
+    def _save_mumble_assignments(self) -> None:
+        with open(self._mumble_assignments_file, "w") as f:
+            json.dump(self._mumble_assignments, f, indent=2)
 
     # ------------------------------------------------------------------
     # Rig operations
@@ -398,3 +414,25 @@ class AppState:
         with self._lock:
             self._telem_config = value
             self._save_telem_config()
+
+    # ------------------------------------------------------------------
+    # Mumble assignments
+    # ------------------------------------------------------------------
+
+    def get_mumble_assignments(self) -> dict[str, str]:
+        with self._lock:
+            return dict(self._mumble_assignments)
+
+    def get_mumble_assignment(self, rig_id: str) -> str | None:
+        with self._lock:
+            return self._mumble_assignments.get(rig_id)
+
+    def set_mumble_assignment(self, rig_id: str, channel: str) -> None:
+        with self._lock:
+            self._mumble_assignments[rig_id] = channel
+            self._save_mumble_assignments()
+
+    def clear_mumble_assignment(self, rig_id: str) -> None:
+        with self._lock:
+            self._mumble_assignments.pop(rig_id, None)
+            self._save_mumble_assignments()

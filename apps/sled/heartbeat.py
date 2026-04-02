@@ -73,6 +73,8 @@ class HeartbeatService:
                     "cpu_temp": self.agent.get_cpu_temp(),
                     "telemetry": self.agent.telemetry_data,
                     "ip": _get_local_ip(),
+                    "simhub_connected": self.agent.ac_telemetry.simhub_connected,
+                    "mumble_connected": self.agent.is_mumble_running(),
                 }
 
                 try:

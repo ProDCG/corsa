@@ -1,0 +1,436 @@
+"""Mumble voice chat integration — bot service for channel management.
+
+Runs a pymumble bot on the orchestrator that auto-creates voice channels
+and moves rig users between them based on admin assignments.
+"""
+
+from __future__ import annotations
+
+import logging
+import os
+import subprocess
+import threading
+import time
+from typing import Any
+
+from apps.orchestrator.state import AppState
+from shared.constants import (
+    MUMBLE_BOT_USER,
+    MUMBLE_CHANNELS,
+    MUMBLE_PORT,
+    MUMBLE_ROOT_CHANNEL,
+)
+
+logger = logging.getLogger("ridge.mumble")
+
+IS_WINDOWS = os.name == "nt"
+
+
+class MumbleService:
+    """Background service managing a Mumble bot for voice channel control.
+
+    Features:
+    - Optionally starts the Mumble server (murmur) as a subprocess
+    - Connects as a bot user via pymumble
+    - Auto-creates Ridge-Link channel tree (root + 6 rooms)
+    - Moves rig users between channels on admin command
+    - Gracefully degrades if Mumble is unavailable
+    """
+
+    def __init__(self, state: AppState) -> None:
+        self.state = state
+        self._mumble: Any = None  # pymumble instance
+        self._server_proc: subprocess.Popen[bytes] | None = None
+        self._connected: bool = False
+        self._available: bool = False  # True if pymumble is installed
+        self._server_running: bool = False
+        self._thread: threading.Thread | None = None
+        self._stop_event = threading.Event()
+        self._channels_ready: bool = False
+        self._lock = threading.Lock()
+
+        # Check if pymumble is available
+        try:
+            import pymumble_py3  # noqa: F401
+            self._available = True
+        except ImportError:
+            logger.warning(
+                "pymumble not installed — Mumble integration disabled. "
+                "Install with: pip install pymumble"
+            )
+
+    # ------------------------------------------------------------------
+    # Server management
+    # ------------------------------------------------------------------
+
+    def _find_murmur(self) -> str | None:
+        """Find the Mumble server executable."""
+        if IS_WINDOWS:
+            candidates = [
+                r"C:\Program Files\Mumble Server\mumble-server.exe",
+                r"C:\Program Files\Mumble Server\murmur.exe",
+                r"C:\Program Files (x86)\Mumble Server\mumble-server.exe",
+                r"C:\Program Files (x86)\Mumble Server\murmur.exe",
+                r"C:\Program Files\Mumble\mumble-server.exe",
+                r"C:\Program Files\Mumble\murmur.exe",
+            ]
+        else:
+            candidates = ["/usr/bin/mumble-server", "/usr/bin/murmurd", "/usr/sbin/murmurd"]
+
+        for path in candidates:
+            if os.path.exists(path):
+                return path
+        return None
+
+    def _is_server_running(self) -> bool:
+        """Check if a Mumble server process is already running."""
+        try:
+            import psutil
+            for proc in psutil.process_iter(["name"]):
+                try:
+                    name = (proc.info.get("name") or "").lower()
+                    if name in ("mumble-server.exe", "murmur.exe", "mumble-server", "murmurd"):
+                        return True
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+        except ImportError:
+            if IS_WINDOWS:
+                try:
+                    out = subprocess.check_output(
+                        ["tasklist", "/FI", "IMAGENAME eq mumble-server.exe", "/NH"],
+                        text=True, timeout=3,
+                    )
+                    if "mumble-server.exe" in out.lower():
+                        return True
+                except Exception:
+                    pass
+        return False
+
+    def _ensure_murmur_ini(self) -> str:
+        """Generate a minimal murmur.ini if one doesn't exist. Returns path."""
+        ini_path = os.path.join(self.state._data_dir, "murmur.ini")
+        db_path = os.path.join(self.state._data_dir, "murmur.sqlite")
+        if not os.path.exists(ini_path):
+            content = (
+                f"database={db_path}\n"
+                f"port={MUMBLE_PORT}\n"
+                "welcometext=\"Ridge-Link Voice Chat\"\n"
+                "users=20\n"
+                "registerName=Ridge-Link\n"
+                "bonjour=false\n"
+            )
+            with open(ini_path, "w") as f:
+                f.write(content)
+            logger.info("Generated murmur.ini at %s", ini_path)
+        return ini_path
+
+    def _start_server(self) -> None:
+        """Start the Mumble server if not already running."""
+        if self._is_server_running():
+            self._server_running = True
+            logger.info("Mumble server already running")
+            return
+
+        murmur_exe = self._find_murmur()
+        if not murmur_exe:
+            logger.info(
+                "Mumble server not installed — will try connecting to existing server"
+            )
+            return
+
+        ini_path = self._ensure_murmur_ini()
+        try:
+            logger.info("Starting Mumble server: %s -ini %s", murmur_exe, ini_path)
+            if IS_WINDOWS:
+                self._server_proc = subprocess.Popen(
+                    [murmur_exe, "-ini", ini_path],
+                    creationflags=subprocess.CREATE_NO_WINDOW,
+                )
+            else:
+                self._server_proc = subprocess.Popen([murmur_exe, "-ini", ini_path])
+            self._server_running = True
+            time.sleep(2)  # Give the server time to start
+            logger.info("Mumble server started (PID %d)", self._server_proc.pid)
+        except Exception as e:
+            logger.error("Failed to start Mumble server: %s", e)
+
+    # ------------------------------------------------------------------
+    # Bot connection
+    # ------------------------------------------------------------------
+
+    def _connect_bot(self) -> bool:
+        """Connect the pymumble bot to the Mumble server."""
+        if not self._available:
+            return False
+
+        try:
+            import pymumble_py3 as pymumble
+
+            logger.info(
+                "Connecting Mumble bot '%s' to 127.0.0.1:%d",
+                MUMBLE_BOT_USER, MUMBLE_PORT,
+            )
+            self._mumble = pymumble.Mumble(
+                "127.0.0.1", MUMBLE_BOT_USER, port=MUMBLE_PORT,
+                reconnect=True,
+            )
+            self._mumble.set_application_string("Ridge-Link Orchestrator")
+            self._mumble.start()
+            self._mumble.is_ready()
+            self._connected = True
+            logger.info("Mumble bot connected successfully")
+            return True
+        except Exception as e:
+            logger.error("Mumble bot connection failed: %s", e)
+            self._connected = False
+            return False
+
+    def _ensure_channels(self) -> None:
+        """Create the Ridge-Link channel tree if it doesn't exist."""
+        if not self._connected or not self._mumble:
+            return
+
+        try:
+            channels = self._mumble.channels
+
+            # Find or create root channel
+            root_channel = None
+            for cid, ch in channels.items():
+                if ch["name"] == MUMBLE_ROOT_CHANNEL:
+                    root_channel = ch
+                    break
+
+            if not root_channel:
+                # Create under the server root (channel 0)
+                channels[0].add_sub_channel(MUMBLE_ROOT_CHANNEL)
+                time.sleep(0.5)
+                # Re-fetch
+                for cid, ch in self._mumble.channels.items():
+                    if ch["name"] == MUMBLE_ROOT_CHANNEL:
+                        root_channel = ch
+                        break
+
+            if not root_channel:
+                logger.error("Failed to create root channel '%s'", MUMBLE_ROOT_CHANNEL)
+                return
+
+            root_id = root_channel["channel_id"]
+
+            # Create sub-channels
+            existing_names = set()
+            for cid, ch in self._mumble.channels.items():
+                if ch.get("parent") == root_id:
+                    existing_names.add(ch["name"])
+
+            for room_name in MUMBLE_CHANNELS:
+                if room_name not in existing_names:
+                    root_channel.add_sub_channel(room_name)
+                    time.sleep(0.3)
+                    logger.info("Created Mumble channel: %s/%s", MUMBLE_ROOT_CHANNEL, room_name)
+
+            self._channels_ready = True
+            logger.info("Mumble channel tree ready (%d rooms)", len(MUMBLE_CHANNELS))
+        except Exception as e:
+            logger.error("Error creating Mumble channels: %s", e)
+
+    def _apply_pending_assignments(self) -> None:
+        """Re-apply saved assignments for any connected users."""
+        if not self._connected or not self._mumble:
+            return
+
+        assignments = self.state.get_mumble_assignments()
+        for rig_id, channel_name in assignments.items():
+            try:
+                self._move_user(rig_id, channel_name)
+            except Exception as e:
+                logger.debug("Could not apply assignment %s -> %s: %s", rig_id, channel_name, e)
+
+    # ------------------------------------------------------------------
+    # User management
+    # ------------------------------------------------------------------
+
+    def _find_user_session(self, username: str) -> int | None:
+        """Find a Mumble user's session ID by username."""
+        if not self._mumble:
+            return None
+        try:
+            for session_id, user in self._mumble.users.items():
+                if user["name"].lower() == username.lower():
+                    return session_id
+        except Exception:
+            pass
+        return None
+
+    def _find_channel_id(self, channel_name: str) -> int | None:
+        """Find a channel ID by name (searches sub-channels of Ridge-Link root)."""
+        if not self._mumble:
+            return None
+        try:
+            for cid, ch in self._mumble.channels.items():
+                if ch["name"] == channel_name:
+                    return cid
+        except Exception:
+            pass
+        return None
+
+    def _move_user(self, username: str, channel_name: str) -> bool:
+        """Move a user to a channel by name."""
+        if not self._connected or not self._mumble:
+            return False
+
+        session_id = self._find_user_session(username)
+        if session_id is None:
+            logger.debug("User '%s' not found on Mumble server", username)
+            return False
+
+        channel_id = self._find_channel_id(channel_name)
+        if channel_id is None:
+            logger.warning("Channel '%s' not found", channel_name)
+            return False
+
+        try:
+            self._mumble.channels[channel_id].move_in(session_id)
+            logger.info("Moved user '%s' to channel '%s'", username, channel_name)
+            return True
+        except Exception as e:
+            logger.error("Failed to move user '%s' to '%s': %s", username, channel_name, e)
+            return False
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def assign_rig(self, rig_id: str, channel: str) -> dict[str, object]:
+        """Assign a rig to a voice channel and move them immediately."""
+        if channel not in MUMBLE_CHANNELS:
+            return {"status": "error", "message": f"Invalid channel: {channel}"}
+
+        self.state.set_mumble_assignment(rig_id, channel)
+
+        if self._connected:
+            moved = self._move_user(rig_id, channel)
+            if moved:
+                return {"status": "success", "message": f"{rig_id} moved to {channel}"}
+            else:
+                return {
+                    "status": "queued",
+                    "message": f"Assignment saved — {rig_id} not connected to Mumble yet",
+                }
+        return {
+            "status": "queued",
+            "message": "Mumble bot not connected — assignment saved for when it reconnects",
+        }
+
+    def unassign_rig(self, rig_id: str) -> dict[str, str]:
+        """Remove a rig's channel assignment and move to root."""
+        self.state.clear_mumble_assignment(rig_id)
+
+        if self._connected:
+            # Move to the Ridge-Link root channel
+            root_id = self._find_channel_id(MUMBLE_ROOT_CHANNEL)
+            if root_id is not None:
+                session_id = self._find_user_session(rig_id)
+                if session_id is not None:
+                    try:
+                        self._mumble.channels[root_id].move_in(session_id)
+                    except Exception:
+                        pass
+
+        return {"status": "success", "message": f"{rig_id} unassigned"}
+
+    def get_status(self) -> dict[str, object]:
+        """Return the current Mumble service status."""
+        result: dict[str, object] = {
+            "available": self._available,
+            "server_running": self._server_running or self._is_server_running(),
+            "bot_connected": self._connected,
+            "channels_ready": self._channels_ready,
+            "channels": list(MUMBLE_CHANNELS),
+            "users": {},
+        }
+
+        if self._connected and self._mumble:
+            try:
+                users_by_channel: dict[str, list[str]] = {}
+                for session_id, user in self._mumble.users.items():
+                    user_name = user["name"]
+                    if user_name == MUMBLE_BOT_USER:
+                        continue
+                    ch_id = user.get("channel_id", 0)
+                    ch_name = "Unknown"
+                    if ch_id in self._mumble.channels:
+                        ch_name = self._mumble.channels[ch_id]["name"]
+                    users_by_channel.setdefault(ch_name, []).append(user_name)
+                result["users"] = users_by_channel
+            except Exception as e:
+                logger.debug("Error fetching Mumble users: %s", e)
+
+        return result
+
+    # ------------------------------------------------------------------
+    # Lifecycle
+    # ------------------------------------------------------------------
+
+    def start(self) -> None:
+        """Start the Mumble service in a background thread."""
+        if not self._available:
+            logger.info("Mumble service disabled (pymumble not installed)")
+            return
+
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+        logger.info("Mumble service starting...")
+
+    def _run(self) -> None:
+        """Main service loop — connect, create channels, watch for disconnects."""
+        # Try to start the server
+        self._start_server()
+
+        # Connection loop with backoff
+        backoff = 2.0
+        while not self._stop_event.is_set():
+            if not self._connected:
+                if self._connect_bot():
+                    backoff = 2.0
+                    self._ensure_channels()
+                    self._apply_pending_assignments()
+                else:
+                    time.sleep(min(backoff, 30.0))
+                    backoff *= 1.5
+                    continue
+
+            # Watchdog — check if still connected
+            try:
+                if self._mumble and not self._mumble.is_alive():
+                    logger.warning("Mumble bot disconnected — will reconnect")
+                    self._connected = False
+                    self._channels_ready = False
+                    continue
+            except Exception:
+                self._connected = False
+                self._channels_ready = False
+                continue
+
+            # Periodically re-apply assignments for newly connected users
+            self._apply_pending_assignments()
+
+            time.sleep(5.0)
+
+    def stop(self) -> None:
+        """Gracefully stop the service."""
+        self._stop_event.set()
+
+        if self._mumble:
+            try:
+                self._mumble.stop()
+            except Exception:
+                pass
+
+        if self._server_proc:
+            try:
+                self._server_proc.terminate()
+                self._server_proc.wait(timeout=5)
+            except Exception:
+                pass
+
+        logger.info("Mumble service stopped")

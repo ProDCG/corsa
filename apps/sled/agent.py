@@ -37,6 +37,7 @@ class RigAgent:
         # Process handles
         self.current_process: subprocess.Popen[bytes] | None = None
         self.kiosk_process: subprocess.Popen[bytes] | None = None
+        self.mumble_process: subprocess.Popen[bytes] | None = None
 
         # Telemetry
         self.ac_telemetry = ACTelemetry(
@@ -52,6 +53,10 @@ class RigAgent:
         # Start process watchdog — catches stuck 'racing' state
         self._watchdog_thread = threading.Thread(target=self._process_watchdog, daemon=True)
         self._watchdog_thread.start()
+
+        # Auto-launch Mumble client if enabled
+        if config.mumble_enabled:
+            self.start_mumble()
 
         logger.info("Rig agent '%s' initialised", config.rig_id)
 
@@ -116,6 +121,85 @@ class RigAgent:
             except ImportError:
                 pass
         return False
+
+    @staticmethod
+    def is_mumble_running() -> bool:
+        """Check if a Mumble client process is currently running."""
+        mumble_names = {"mumble.exe", "mumble"}
+        if IS_WINDOWS:
+            try:
+                import psutil
+                for proc in psutil.process_iter(["name"]):
+                    try:
+                        name = (proc.info.get("name") or "").lower()
+                        if name in mumble_names:
+                            return True
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+            except ImportError:
+                try:
+                    out = subprocess.check_output(
+                        ["tasklist", "/FI", "IMAGENAME eq mumble.exe", "/NH"],
+                        capture_output=False, text=True, timeout=3,
+                    )
+                    if "mumble.exe" in out.lower():
+                        return True
+                except Exception:
+                    pass
+        else:
+            try:
+                import psutil
+                for proc in psutil.process_iter(["name"]):
+                    try:
+                        name = (proc.info.get("name") or "").lower()
+                        if name in mumble_names:
+                            return True
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+            except ImportError:
+                pass
+        return False
+
+    def start_mumble(self) -> None:
+        """Launch the Mumble client, auto-connecting to the orchestrator.
+
+        Uses the mumble:// URL protocol to auto-connect with the rig's
+        ID as the Mumble username so the orchestrator bot can identify it.
+        """
+        if self.is_mumble_running():
+            logger.info("Mumble already running — skipping launch")
+            return
+
+        from shared.constants import MUMBLE_PORT
+        mumble_url = f"mumble://{self.config.rig_id}@{self.config.orchestrator_ip}:{MUMBLE_PORT}"
+        logger.info("Launching Mumble client: %s", mumble_url)
+
+        if IS_WINDOWS:
+            # Try common install locations
+            mumble_paths = [
+                r"C:\Program Files\Mumble\mumble.exe",
+                r"C:\Program Files (x86)\Mumble\mumble.exe",
+            ]
+            for path in mumble_paths:
+                if os.path.exists(path):
+                    try:
+                        self.mumble_process = subprocess.Popen([path, mumble_url])
+                        logger.info("Mumble launched from %s", path)
+                        return
+                    except Exception as e:
+                        logger.error("Failed to launch Mumble from %s: %s", path, e)
+            # Fallback: try PATH
+            try:
+                self.mumble_process = subprocess.Popen(["mumble.exe", mumble_url])
+                logger.info("Mumble launched from PATH")
+            except FileNotFoundError:
+                logger.warning("Mumble client not found — voice chat unavailable")
+        else:
+            try:
+                self.mumble_process = subprocess.Popen(["mumble", mumble_url])
+                logger.info("Mumble launched")
+            except FileNotFoundError:
+                logger.warning("Mumble client not found — voice chat unavailable")
 
     def _process_watchdog(self) -> None:
         """Monitor AC process — promote to racing when AC is detected, demote when gone.

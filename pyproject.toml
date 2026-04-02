@@ -13,6 +13,7 @@ dependencies = [
     "Pillow>=10.0",
     "opencv-python-headless>=4.8",
     "numpy>=1.24",
+    "pymumble>=1.7",
 ]
 
 [tool.setuptools.packages.find]
@@ -54,7 +55,7 @@ explicit_package_bases = true
 warn_unused_ignores = false
 
 [[tool.mypy.overrides]]
-module = ["psutil", "cv2", "PIL.*"]
+module = ["psutil", "cv2", "PIL.*", "pymumble_py3", "pymumble_py3.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

@@ -12,8 +12,9 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from apps.orchestrator.routers import commands, groups, leaderboard, rigs, server, settings
+from apps.orchestrator.routers import commands, groups, leaderboard, mumble, rigs, server, settings
 from apps.orchestrator.services.heartbeat import stale_rig_reaper, start_heartbeat_listener
+from apps.orchestrator.services.mumble_service import MumbleService
 from apps.orchestrator.state import AppState
 from shared.constants import HEARTBEAT_PORT, UI_PORT
 
@@ -31,6 +32,7 @@ logger = logging.getLogger("ridge.main")
 # Application state (single instance)
 # ---------------------------------------------------------------------------
 state = AppState()
+mumble_svc = MumbleService(state)
 
 
 # ---------------------------------------------------------------------------
@@ -46,11 +48,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     reaper_task = asyncio.create_task(stale_rig_reaper(state))
 
     logger.info("Background services started (heartbeat on :%d)", HEARTBEAT_PORT)
+
+    # Start Mumble voice chat service
+    mumble_svc.start()
+
     yield
 
     # Cleanup
     reaper_task.cancel()
     transport.close()
+    mumble_svc.stop()
     logger.info("Background services stopped")
 
 
@@ -79,6 +86,7 @@ app.include_router(groups.create_router(state))
 app.include_router(settings.create_router(state))
 app.include_router(server.create_router(state))
 app.include_router(leaderboard.create_router(state))
+app.include_router(mumble.create_router(state, mumble_svc))
 
 
 # ---------------------------------------------------------------------------

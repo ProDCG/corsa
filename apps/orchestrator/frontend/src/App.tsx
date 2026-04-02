@@ -1,4 +1,4 @@
-import { Activity, Cpu, Monitor, Zap, Power, RotateCcw, Play, Check, Image, Car, Settings2, Flag, Clock, ShieldCheck, LayoutGrid, Users, Lock, Unlock, Wrench, ChevronLeft, ChevronRight, Thermometer, Fuel, Gauge, Square, ChevronDown, MapPin } from 'lucide-react'
+import { Activity, Cpu, Monitor, Zap, Power, RotateCcw, Play, Check, Image, Car, Settings2, Flag, Clock, ShieldCheck, LayoutGrid, Users, Lock, Unlock, Wrench, ChevronLeft, ChevronRight, Thermometer, Fuel, Gauge, Square, ChevronDown, MapPin, Headphones, Mic } from 'lucide-react'
 import Kiosk from './Kiosk'
 import Lobby from './Lobby'
 import GroupManager from './components/GroupManager'
@@ -17,6 +17,9 @@ interface Rig {
     telemetry?: {
         [key: string]: any
     }
+    simhub_connected?: boolean
+    mumble_connected?: boolean
+    mumble_channel?: string | null
 }
 
 interface Branding {
@@ -83,6 +86,8 @@ function App() {
     const [presets, setPresets] = useState<any[]>([])
     const [activeTelemFields, setActiveTelemFields] = useState<string[]>(['velocity', 'rpms', 'gforce', 'normalized_pos', 'gear', 'completed_laps', 'gas', 'brake', 'position'])
     const [showRigPanel, setShowRigPanel] = useState(true)
+    const [mumbleAssignments, setMumbleAssignments] = useState<Record<string, string>>({})
+    const [mumbleStatus, setMumbleStatus] = useState<{ bot_connected: boolean; channels: string[] }>({ bot_connected: false, channels: [] })
 
     // Categorized telemetry channels
     const TELEM_CATEGORIES = [
@@ -267,8 +272,40 @@ function App() {
         fetchTelemConfig()
         fetchCatalogs()
         fetchMapPool()
+
+        // Mumble data fetching
+        const fetchMumbleData = async () => {
+            try {
+                const [assignRes, statusRes] = await Promise.all([
+                    fetch('/api/mumble/assignments'),
+                    fetch('/api/mumble/status'),
+                ])
+                if (assignRes.ok) {
+                    const data = await assignRes.json()
+                    setMumbleAssignments((prev: Record<string, string>) => {
+                        const newJson = JSON.stringify(data)
+                        const oldJson = JSON.stringify(prev)
+                        return newJson !== oldJson ? data : prev
+                    })
+                }
+                if (statusRes.ok) {
+                    const data = await statusRes.json()
+                    setMumbleStatus((prev: { bot_connected: boolean; channels: string[] }) => {
+                        const newVal = { bot_connected: data.bot_connected ?? false, channels: data.channels ?? [] }
+                        const newJson = JSON.stringify(newVal)
+                        const oldJson = JSON.stringify(prev)
+                        return newJson !== oldJson ? newVal : prev
+                    })
+                }
+            } catch (err) {
+                console.error('Failed to fetch mumble data:', err)
+            }
+        }
+        fetchMumbleData()
+
         const interval = setInterval(() => {
             fetchRigs()
+            fetchMumbleData()
         }, 2000)
         return () => clearInterval(interval)
     }, [])
@@ -524,13 +561,15 @@ function App() {
                     {/* SIM MANAGEMENT VIEW */}
                     {activeTab === 'sims' && (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {rigs.map((rig: Rig) => (
+                            {rigs.map((rig: Rig) => {
+                                const rigMumbleChannel = mumbleAssignments[rig.rig_id] || null
+                                return (
                                 <div key={rig.rig_id} className={`glass rounded-2xl p-6 transition-all duration-500 overflow-hidden relative border ${rig.status === 'racing' ? 'status-glow-racing border-ridge-brand/50 bg-ridge-brand/5' :
                                     rig.status === 'ready' ? 'status-glow-online border-green-500/50 bg-green-500/5' :
                                         rig.status === 'setup' ? 'status-glow-online border-blue-500/50 bg-blue-500/5' :
                                             'border-white/10'
                                     }`}>
-                                    <div className="flex justify-between items-start mb-6">
+                                    <div className="flex justify-between items-start mb-3">
                                         <div>
                                             <h3 className="text-2xl font-black italic tracking-tighter line-height-none">{rig.rig_id}</h3>
                                             <code className="text-[10px] text-white/30 font-mono">{rig.ip}</code>
@@ -542,6 +581,24 @@ function App() {
                                             }`}>
                                             {rig.status}
                                         </div>
+                                    </div>
+
+                                    {/* Service Status Indicators */}
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="flex items-center gap-1.5" title={rig.simhub_connected ? 'SimHub Connected' : 'SimHub Disconnected'}>
+                                            <div className={`w-2 h-2 rounded-full ${rig.simhub_connected ? 'bg-green-400 shadow-sm shadow-green-400/50' : 'bg-red-400/60'}`} />
+                                            <span className="text-[9px] font-bold uppercase tracking-wider text-white/40">SimHub</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5" title={rig.mumble_connected ? 'Mumble Connected' : 'Mumble Disconnected'}>
+                                            <div className={`w-2 h-2 rounded-full ${rig.mumble_connected ? 'bg-green-400 shadow-sm shadow-green-400/50' : 'bg-red-400/60'}`} />
+                                            <span className="text-[9px] font-bold uppercase tracking-wider text-white/40">Mumble</span>
+                                        </div>
+                                        {rigMumbleChannel && (
+                                            <div className="flex items-center gap-1 ml-auto">
+                                                <Headphones size={10} className="text-purple-400" />
+                                                <span className="text-[9px] font-black uppercase tracking-wider text-purple-400">{rigMumbleChannel}</span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Driver Name */}
@@ -566,6 +623,45 @@ function App() {
                                         />
                                     </div>
 
+                                    {/* Voice Channel Assignment */}
+                                    <div className="mb-4">
+                                        <label className="flex items-center gap-1.5 text-[8px] uppercase font-black text-white/30 tracking-widest mb-1">
+                                            <Mic size={8} /> Voice Channel
+                                        </label>
+                                        <select
+                                            value={rigMumbleChannel || ''}
+                                            onChange={async (e) => {
+                                                const channel = e.target.value
+                                                if (channel) {
+                                                    await fetch('/api/mumble/assign', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({ rig_id: rig.rig_id, channel })
+                                                    })
+                                                    setMumbleAssignments(prev => ({ ...prev, [rig.rig_id]: channel }))
+                                                } else {
+                                                    await fetch('/api/mumble/unassign', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({ rig_id: rig.rig_id })
+                                                    })
+                                                    setMumbleAssignments(prev => {
+                                                        const next = { ...prev }
+                                                        delete next[rig.rig_id]
+                                                        return next
+                                                    })
+                                                }
+                                            }}
+                                            disabled={!mumbleStatus.bot_connected}
+                                            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs font-bold outline-none focus:border-purple-500 transition-all appearance-none cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                                        >
+                                            <option value="" className="bg-zinc-900">— None —</option>
+                                            {mumbleStatus.channels.map(ch => (
+                                                <option key={ch} value={ch} className="bg-zinc-900">{ch}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
                                     <div className="space-y-4 mb-8">
                                         <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-widest">
                                             <div className="flex items-center gap-2 text-white/40">
@@ -585,10 +681,7 @@ function App() {
                                         )}
                                     </div>
 
-                                    <div className="grid grid-cols-3 gap-2">
-                                        <button onClick={() => sendCommand(rig.rig_id, 'LAUNCH_RACE', rig.selected_car)} className="bg-white/5 hover:bg-ridge-brand/20 hover:text-ridge-brand p-3 rounded-xl flex items-center justify-center transition-all border border-transparent hover:border-ridge-brand/30" title="Launch Race">
-                                            <Zap size={20} />
-                                        </button>
+                                    <div className="grid grid-cols-2 gap-2">
                                         <button onClick={() => sendCommand(rig.rig_id, 'KILL_RACE')} className="bg-white/5 hover:bg-red-500/20 hover:text-red-500 p-3 rounded-xl flex items-center justify-center transition-all border border-transparent hover:border-red-500/30" title="Kill Race">
                                             <Power size={20} />
                                         </button>
@@ -612,7 +705,8 @@ function App() {
                                         </button>
                                     </div>
                                 </div>
-                            ))}
+                            )})
+                            }
                             {rigs.length === 0 && (
                                 <div className="col-span-full py-24 flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-3xl">
                                     <Activity size={48} className="mb-4 text-white/10 animate-pulse" />
