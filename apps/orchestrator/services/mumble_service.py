@@ -50,90 +50,71 @@ class MumbleService:
         self._lock = threading.Lock()
 
         # Check if pymumble is available
-        # On Windows, pymumble needs opus.dll which ships with Mumble installs
-        if IS_WINDOWS:
-            self._add_opus_dll_path()
+        # We mock opuslib first since we don't use audio — only channel mgmt
+        self._install_opus_mock()
 
         try:
             import pymumble_py3  # noqa: F401
             self._available = True
+            logger.info("pymumble loaded successfully")
         except Exception as exc:
             logger.warning(
-                "pymumble not available — Mumble integration disabled (%s). "
+                "pymumble not available — Mumble bot disabled (%s). "
                 "Install with: pip install pymumble",
                 exc,
             )
 
     @staticmethod
-    def _add_opus_dll_path() -> None:
-        """Find and pre-load opus.dll so pymumble/opuslib can use it."""
-        import ctypes
-        import glob
+    def _install_opus_mock() -> None:
+        """Install a mock opuslib module so pymumble loads without opus.dll.
 
-        # Names the DLL might have
-        dll_names = ["opus.dll", "libopus.dll", "libopus-0.dll", "libopus0.dll"]
+        We never encode or decode audio — the bot only manages channels and
+        moves users. This avoids requiring the native opus shared library.
+        """
+        import sys
+        import types
 
-        # Directories to search (including subdirs)
-        search_roots = [
-            r"C:\Program Files\Mumble",
-            r"C:\Program Files\Mumble Server",
-            r"C:\Program Files (x86)\Mumble",
-            r"C:\Program Files (x86)\Mumble Server",
-            os.path.join(os.environ.get("LOCALAPPDATA", ""), "Mumble"),
-            os.path.join(os.environ.get("PROGRAMFILES", ""), "Mumble"),
-        ]
+        if "opuslib" in sys.modules:
+            return  # Already loaded (real or mock)
 
-        # Also check the project directory itself
-        project_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-        search_roots.append(project_dir)
+        # Create a minimal mock that satisfies pymumble's imports
+        mock_opuslib = types.ModuleType("opuslib")
+        mock_opuslib.__path__ = []  # type: ignore[attr-defined]
 
-        found_dll = None
+        mock_api = types.ModuleType("opuslib.api")
+        mock_api.__path__ = []  # type: ignore[attr-defined]
 
-        for root in search_roots:
-            if not root or not os.path.isdir(root):
-                continue
-            # Check root dir directly
-            for name in dll_names:
-                candidate = os.path.join(root, name)
-                if os.path.isfile(candidate):
-                    found_dll = candidate
-                    break
-            if found_dll:
-                break
-            # Search one level of subdirs
-            for name in dll_names:
-                matches = glob.glob(os.path.join(root, "**", name), recursive=True)
-                if matches:
-                    found_dll = matches[0]
-                    break
-            if found_dll:
-                break
+        mock_decoder = types.ModuleType("opuslib.api.decoder")
+        mock_encoder = types.ModuleType("opuslib.api.encoder")
+        mock_ctl = types.ModuleType("opuslib.api.ctl")
 
-        if found_dll:
-            logger.info("Found opus DLL: %s", found_dll)
-            dll_dir = os.path.dirname(found_dll)
-            # Add to PATH
-            current_path = os.environ.get("PATH", "")
-            if dll_dir.lower() not in current_path.lower():
-                os.environ["PATH"] = dll_dir + ";" + current_path
-            # Try adding as DLL directory
-            try:
-                os.add_dll_directory(dll_dir)
-            except (OSError, AttributeError):
+        # Provide dummy constants/functions pymumble might reference
+        mock_opuslib.APPLICATION_VOIP = 2048  # type: ignore[attr-defined]
+        mock_opuslib.APPLICATION_AUDIO = 2049  # type: ignore[attr-defined]
+
+        class _DummyDecoder:
+            def __init__(self, *a: object, **kw: object) -> None:
                 pass
-            # Pre-load it directly so opuslib finds it
-            try:
-                ctypes.CDLL(found_dll)
-                logger.info("Pre-loaded opus DLL successfully")
-            except Exception as e:
-                logger.warning("Found opus DLL but failed to load: %s", e)
-        else:
-            logger.warning(
-                "Could not find opus.dll — searched: %s. "
-                "Mumble integration may not work. "
-                "Install Mumble client/server or place opus.dll in the project folder.",
-                ", ".join(r for r in search_roots if r and os.path.isdir(r)) or "(no dirs found)"
-            )
+            def decode(self, *a: object, **kw: object) -> bytes:
+                return b""
+
+        class _DummyEncoder:
+            def __init__(self, *a: object, **kw: object) -> None:
+                pass
+            def encode(self, *a: object, **kw: object) -> bytes:
+                return b""
+
+        mock_opuslib.Decoder = _DummyDecoder  # type: ignore[attr-defined]
+        mock_opuslib.Encoder = _DummyEncoder  # type: ignore[attr-defined]
+
+        # Wire up submodules
+        sys.modules["opuslib"] = mock_opuslib
+        sys.modules["opuslib.api"] = mock_api
+        sys.modules["opuslib.api.decoder"] = mock_decoder
+        sys.modules["opuslib.api.encoder"] = mock_encoder
+        sys.modules["opuslib.api.ctl"] = mock_ctl
+
+        logger.debug("Installed opuslib mock (audio not needed for channel management)")
 
     # ------------------------------------------------------------------
     # Server management
