@@ -122,6 +122,8 @@ class MumbleService:
 
     def _find_murmur(self) -> str | None:
         """Find the Mumble server executable."""
+        import shutil
+
         if IS_WINDOWS:
             candidates = [
                 r"C:\Program Files\Mumble Server\mumble-server.exe",
@@ -130,13 +132,40 @@ class MumbleService:
                 r"C:\Program Files (x86)\Mumble Server\murmur.exe",
                 r"C:\Program Files\Mumble\mumble-server.exe",
                 r"C:\Program Files\Mumble\murmur.exe",
+                r"C:\Program Files\Mumble\server\mumble-server.exe",
+                r"C:\Program Files\Mumble\server\murmur.exe",
             ]
         else:
             candidates = ["/usr/bin/mumble-server", "/usr/bin/murmurd", "/usr/sbin/murmurd"]
 
         for path in candidates:
             if os.path.exists(path):
+                logger.info("Found Mumble server at: %s", path)
                 return path
+
+        # Fallback: search PATH
+        for name in ("mumble-server", "murmur", "mumble-server.exe", "murmur.exe"):
+            found = shutil.which(name)
+            if found:
+                logger.info("Found Mumble server in PATH: %s", found)
+                return found
+
+        # Last resort: glob search common install roots
+        if IS_WINDOWS:
+            import glob
+            for pattern in [
+                r"C:\Program Files*\Mumble*\**\mumble-server.exe",
+                r"C:\Program Files*\Mumble*\**\murmur.exe",
+            ]:
+                matches = glob.glob(pattern, recursive=True)
+                if matches:
+                    logger.info("Found Mumble server via search: %s", matches[0])
+                    return matches[0]
+
+        logger.warning(
+            "Could not find mumble-server.exe — searched PATH and Program Files. "
+            "Install Mumble Server or add it to PATH."
+        )
         return None
 
     def _is_server_running(self) -> bool:
@@ -221,6 +250,8 @@ class MumbleService:
             return False
 
         try:
+            import ssl
+
             import pymumble_py3 as pymumble
 
             logger.info(
@@ -232,6 +263,17 @@ class MumbleService:
                 reconnect=True,
             )
             self._mumble.set_application_string("Ridge-Link Orchestrator")
+
+            # Disable SSL cert verification — Mumble uses self-signed certs
+            try:
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+                self._mumble.set_ssl_context(ctx)
+            except AttributeError:
+                # Older pymumble may not have set_ssl_context
+                logger.debug("pymumble has no set_ssl_context — trying without")
+
             self._mumble.start()
             self._mumble.is_ready()
             self._connected = True
