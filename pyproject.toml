@@ -13,8 +13,10 @@ dependencies = [
     "Pillow>=10.0",
     "opencv-python-headless>=4.8",
     "numpy>=1.24",
-    "pymumble>=1.7",
 ]
+
+[project.optional-dependencies]
+mumble = ["pymumble>=1.6.1"]
 
 [tool.setuptools.packages.find]
 include = ["apps*", "shared*"]
