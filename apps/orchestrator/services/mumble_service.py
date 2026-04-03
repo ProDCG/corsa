@@ -52,6 +52,7 @@ class MumbleService:
         # Check if pymumble is available
         # We mock opuslib first since we don't use audio — only channel mgmt
         self._install_opus_mock()
+        self._patch_ssl_wrap_socket()
 
         try:
             import pymumble_py3  # noqa: F401
@@ -115,6 +116,49 @@ class MumbleService:
         sys.modules["opuslib.api.ctl"] = mock_ctl
 
         logger.debug("Installed opuslib mock (audio not needed for channel management)")
+
+    @staticmethod
+    def _patch_ssl_wrap_socket() -> None:
+        """Polyfill ssl.wrap_socket for Python 3.12+ where it was removed.
+
+        pymumble still calls ssl.wrap_socket() which no longer exists.
+        We shim it using SSLContext.wrap_socket() instead.
+        """
+        import ssl
+
+        if hasattr(ssl, "wrap_socket"):
+            return  # Already available (Python < 3.12)
+
+        def _wrap_socket_shim(
+            sock: Any,
+            keyfile: Any = None,
+            certfile: Any = None,
+            server_side: bool = False,
+            cert_reqs: int = ssl.CERT_NONE,
+            ssl_version: Any = None,
+            ca_certs: Any = None,
+            do_handshake_on_connect: bool = True,
+            suppress_ragged_eofs: bool = True,
+            ciphers: Any = None,
+        ) -> Any:
+            ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT if not server_side else ssl.PROTOCOL_TLS_SERVER)
+            ctx.check_hostname = False
+            ctx.verify_mode = cert_reqs
+            if certfile:
+                ctx.load_cert_chain(certfile, keyfile)
+            if ca_certs:
+                ctx.load_verify_locations(ca_certs)
+            if ciphers:
+                ctx.set_ciphers(ciphers)
+            return ctx.wrap_socket(
+                sock,
+                server_side=server_side,
+                do_handshake_on_connect=do_handshake_on_connect,
+                suppress_ragged_eofs=suppress_ragged_eofs,
+            )
+
+        ssl.wrap_socket = _wrap_socket_shim  # type: ignore[attr-defined]
+        logger.debug("Patched ssl.wrap_socket for Python 3.12+ compatibility")
 
     # ------------------------------------------------------------------
     # Server management
