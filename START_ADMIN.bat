@@ -49,8 +49,8 @@ if not exist "apps\orchestrator\frontend\node_modules" (
     exit /b 1
 )
 
-REM --- Launch backend (hidden — no console window) ---
-start "" /B "venv\Scripts\pythonw.exe" apps\orchestrator\main.py 2>"ridge_crash.log"
+REM --- Launch backend (minimized — use python.exe so errors are visible in ridge_crash.log) ---
+start "Ridge-Link Backend" /MIN cmd /c "venv\Scripts\python.exe apps\orchestrator\main.py 1>ridge_crash.log 2>&1"
 
 timeout /t 3 /nobreak >nul
 
