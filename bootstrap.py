@@ -97,7 +97,7 @@ def setup_autostart(role: str) -> None:
 
 
 def create_recovery_shortcut() -> None:
-    """Create a 'Ridge-Link Recovery' shortcut on Desktop and pin to taskbar."""
+    """Create a 'Ridge Link' shortcut on Desktop with the Ridge icon."""
     if os.name != "nt":
         print("  (Skipping recovery shortcut — not Windows)")
         return
@@ -111,29 +111,46 @@ def create_recovery_shortcut() -> None:
         print(f"  WARNING: RESTART.bat not found at {restart_bat}")
         return
 
-    shortcut_path = os.path.join(desktop, "Ridge-Link Recovery.lnk")
+    shortcut_path = os.path.join(desktop, "Ridge Link.lnk")
 
+    # Remove old fallback .bat if it exists
+    old_bat = os.path.join(desktop, "Ridge-Link Recovery.bat")
+    old_lnk = os.path.join(desktop, "Ridge-Link Recovery.lnk")
+    for old in (old_bat, old_lnk):
+        if os.path.exists(old):
+            os.remove(old)
+            print(f"  Removed old shortcut: {old}")
+
+    # Use PowerShell to create .lnk with icon (always available on Windows)
+    ico_arg = f'$s.IconLocation = "{ico_path}"' if os.path.exists(ico_path) else ""
+    ps_script = f'''
+$ws = New-Object -ComObject WScript.Shell
+$s = $ws.CreateShortcut("{shortcut_path}")
+$s.TargetPath = "{restart_bat}"
+$s.WorkingDirectory = "{repo_root}"
+$s.WindowStyle = 1
+$s.Description = "Ridge Link - Kill all processes and restart cleanly"
+{ico_arg}
+$s.Save()
+'''
     try:
-        import win32com.client  # type: ignore[import-untyped]
+        result = subprocess.run(
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps_script],
+            capture_output=True, text=True, timeout=15,
+        )
+        if result.returncode == 0 and os.path.exists(shortcut_path):
+            print(f"  Desktop shortcut created: {shortcut_path}")
+        else:
+            print(f"  PowerShell shortcut creation failed: {result.stderr.strip()}")
+            # Ultimate fallback
+            bat_path = os.path.join(desktop, "Ridge Link.bat")
+            with open(bat_path, "w") as f:
+                f.write(f'@echo off\ncd /d "{repo_root}"\ncall RESTART.bat\n')
+            print(f"  Created fallback: {bat_path}")
+    except Exception as e:
+        print(f"  Could not create shortcut: {e}")
 
-        shell = win32com.client.Dispatch("WScript.Shell")
-        shortcut = shell.CreateShortCut(shortcut_path)
-        shortcut.TargetPath = restart_bat
-        shortcut.WorkingDirectory = repo_root
-        shortcut.WindowStyle = 1  # Normal window (user should see recovery output)
-        shortcut.Description = "Kill all Ridge-Link processes and restart cleanly"
-        if os.path.exists(ico_path):
-            shortcut.IconLocation = ico_path
-        shortcut.save()
-        print(f"  Desktop shortcut created: {shortcut_path}")
-    except ImportError:
-        # Fallback: create a .bat wrapper
-        bat_path = shortcut_path.replace(".lnk", ".bat")
-        with open(bat_path, "w") as f:
-            f.write(f'@echo off\ncd /d "{repo_root}"\ncall RESTART.bat\n')
-        print(f"  Desktop shortcut created (bat fallback): {bat_path}")
-
-    # Try to pin to taskbar via PowerShell
+    # Try to pin to taskbar
     _pin_to_taskbar(shortcut_path)
 
 
@@ -142,7 +159,6 @@ def _pin_to_taskbar(shortcut_path: str) -> None:
     if not os.path.exists(shortcut_path):
         return
     try:
-        # Use Shell.Application verb approach (works on many Windows 10/11 builds)
         ps_script = f'''
 $shell = New-Object -ComObject Shell.Application
 $folder = $shell.Namespace((Split-Path "{shortcut_path}"))
@@ -151,18 +167,15 @@ $verb = $item.Verbs() | Where-Object {{ $_.Name -match "taskbar" }}
 if ($verb) {{ $verb.DoIt() }}
 '''
         result = subprocess.run(
-            ["powershell", "-NoProfile", "-Command", ps_script],
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps_script],
             capture_output=True, text=True, timeout=10,
         )
         if result.returncode == 0:
             print("  Pinned to taskbar!")
         else:
-            # Taskbar pinning is restricted on newer Windows — just note it
-            print("  NOTE: Auto-pin to taskbar not supported on this Windows version.")
-            print("        Right-click the desktop shortcut → 'Pin to taskbar' manually.")
-    except Exception as e:
-        print(f"  Could not auto-pin to taskbar: {e}")
-        print("  Right-click the desktop shortcut → 'Pin to taskbar' manually.")
+            print("  TIP: Right-click 'Ridge Link' on Desktop → 'Pin to taskbar'")
+    except Exception:
+        print("  TIP: Right-click 'Ridge Link' on Desktop → 'Pin to taskbar'")
 
 
 def remove_autostart(role: str) -> None:
