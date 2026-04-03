@@ -81,7 +81,12 @@ def scan_cars(content_folder: str) -> list[ScannedCar]:
                 except (json.JSONDecodeError, KeyError, IndexError) as e:
                     logger.debug("Could not parse ui_car.json for %s: %s", entry, e)
 
-            cars.append(ScannedCar(id=entry, name=name, brand=brand, car_class=car_class))
+            cars.append(ScannedCar(
+                id=entry,
+                name=name,
+                brand=brand.strip().title() if brand else "",
+                car_class=car_class.strip().title() if car_class else "",
+            ))
     except OSError as e:
         logger.error("Failed to scan cars directory %s: %s", cars_dir, e)
 
