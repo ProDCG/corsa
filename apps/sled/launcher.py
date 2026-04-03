@@ -353,6 +353,39 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
             )
         logger.info("Wrote weather_fx.ini: %s", weather_fx_path)
 
+        # --- Pre-pin in-game apps (track map, speedometer, etc.) ---
+        # apps_visible.ini controls which apps are enabled in the sidebar
+        apps_visible_path = os.path.join(documents, "Assetto Corsa", "cfg", "apps_visible.ini")
+        try:
+            # Read existing if present, merge our defaults
+            existing_apps: dict[str, str] = {}
+            if os.path.isfile(apps_visible_path):
+                with open(apps_visible_path, encoding="utf-8", errors="replace") as f:
+                    for line in f:
+                        line = line.strip()
+                        if "=" in line and not line.startswith("["):
+                            key, val = line.split("=", 1)
+                            existing_apps[key.strip()] = val.strip()
+
+            # Ensure these core apps are enabled
+            default_apps = {
+                "Track Map Display": "1",
+                "Speedometer": "1",
+                "Tyres": "1",
+                "Leaderboard": "1",
+            }
+            for app_name, enabled in default_apps.items():
+                if app_name not in existing_apps:
+                    existing_apps[app_name] = enabled
+
+            with open(apps_visible_path, "w") as f:
+                f.write("[APPS]\n")
+                for app_name, enabled in sorted(existing_apps.items()):
+                    f.write(f"{app_name}={enabled}\n")
+            logger.info("Wrote apps_visible.ini with %d apps", len(existing_apps))
+        except Exception as e:
+            logger.warning("Could not write apps_visible.ini: %s", e)
+
         # --- Delete last_race.ini to prevent CSP caching ---
         last_race = os.path.join(os.path.dirname(cfg_path), "last_race.ini")
         if os.path.exists(last_race):
