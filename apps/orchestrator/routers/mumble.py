@@ -57,7 +57,7 @@ def create_router(state: AppState, mumble_service: MumbleService) -> APIRouter:
     async def start_mumble_client(rig_id: str) -> dict[str, str]:
         """Send a command to a rig to launch its Mumble client."""
         from shared.constants import COMMAND_PORT
-        from apps.orchestrator.services.dispatcher import dispatch_command
+        from apps.orchestrator.services.dispatcher import dispatch_command_async
 
         rig = state.get_rig(rig_id)
         if not rig:
@@ -68,7 +68,7 @@ def create_router(state: AppState, mumble_service: MumbleService) -> APIRouter:
             return {"status": "error", "message": "Rig has no valid IP"}
 
         logger.info("Sending START_MUMBLE to %s (%s)", rig_id, ip)
-        dispatch_command(ip, COMMAND_PORT, {"action": "START_MUMBLE"})
+        await dispatch_command_async(ip, COMMAND_PORT, {"action": "START_MUMBLE"})
         return {"status": "success", "message": f"Mumble launch sent to {rig_id}"}
 
     return router
