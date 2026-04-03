@@ -96,6 +96,75 @@ def setup_autostart(role: str) -> None:
     print("  → Ridge-Link will auto-launch on next Windows login.")
 
 
+def create_recovery_shortcut() -> None:
+    """Create a 'Ridge-Link Recovery' shortcut on Desktop and pin to taskbar."""
+    if os.name != "nt":
+        print("  (Skipping recovery shortcut — not Windows)")
+        return
+
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    restart_bat = os.path.join(repo_root, "RESTART.bat")
+    ico_path = os.path.join(repo_root, "deploy", "ridge-link.ico")
+    desktop = os.path.join(os.environ.get("USERPROFILE", ""), "Desktop")
+
+    if not os.path.exists(restart_bat):
+        print(f"  WARNING: RESTART.bat not found at {restart_bat}")
+        return
+
+    shortcut_path = os.path.join(desktop, "Ridge-Link Recovery.lnk")
+
+    try:
+        import win32com.client  # type: ignore[import-untyped]
+
+        shell = win32com.client.Dispatch("WScript.Shell")
+        shortcut = shell.CreateShortCut(shortcut_path)
+        shortcut.TargetPath = restart_bat
+        shortcut.WorkingDirectory = repo_root
+        shortcut.WindowStyle = 1  # Normal window (user should see recovery output)
+        shortcut.Description = "Kill all Ridge-Link processes and restart cleanly"
+        if os.path.exists(ico_path):
+            shortcut.IconLocation = ico_path
+        shortcut.save()
+        print(f"  Desktop shortcut created: {shortcut_path}")
+    except ImportError:
+        # Fallback: create a .bat wrapper
+        bat_path = shortcut_path.replace(".lnk", ".bat")
+        with open(bat_path, "w") as f:
+            f.write(f'@echo off\ncd /d "{repo_root}"\ncall RESTART.bat\n')
+        print(f"  Desktop shortcut created (bat fallback): {bat_path}")
+
+    # Try to pin to taskbar via PowerShell
+    _pin_to_taskbar(shortcut_path)
+
+
+def _pin_to_taskbar(shortcut_path: str) -> None:
+    """Attempt to pin a shortcut to the Windows taskbar."""
+    if not os.path.exists(shortcut_path):
+        return
+    try:
+        # Use Shell.Application verb approach (works on many Windows 10/11 builds)
+        ps_script = f'''
+$shell = New-Object -ComObject Shell.Application
+$folder = $shell.Namespace((Split-Path "{shortcut_path}"))
+$item = $folder.ParseName((Split-Path "{shortcut_path}" -Leaf))
+$verb = $item.Verbs() | Where-Object {{ $_.Name -match "taskbar" }}
+if ($verb) {{ $verb.DoIt() }}
+'''
+        result = subprocess.run(
+            ["powershell", "-NoProfile", "-Command", ps_script],
+            capture_output=True, text=True, timeout=10,
+        )
+        if result.returncode == 0:
+            print("  Pinned to taskbar!")
+        else:
+            # Taskbar pinning is restricted on newer Windows — just note it
+            print("  NOTE: Auto-pin to taskbar not supported on this Windows version.")
+            print("        Right-click the desktop shortcut → 'Pin to taskbar' manually.")
+    except Exception as e:
+        print(f"  Could not auto-pin to taskbar: {e}")
+        print("  Right-click the desktop shortcut → 'Pin to taskbar' manually.")
+
+
 def remove_autostart(role: str) -> None:
     """Remove any existing auto-start shortcut."""
     if os.name != "nt":
@@ -244,11 +313,17 @@ def main() -> None:
         with open("ridge_role", "w") as f:
             f.write("admin")
 
+        # Create recovery shortcut
+        step += 1
+        _print_step(step, total, "Creating recovery shortcut...")
+        create_recovery_shortcut()
+
         print("\n  =======================================")
         print("  ADMIN SETUP COMPLETE!")
         print(f"  Firewall: {'configured' if want_firewall else 'skipped'}")
         print(f"  Auto-start: {'enabled' if want_autostart else 'disabled'}")
         print(f"  Mumble: {'enabled' if want_mumble else 'disabled'}")
+        print("  Recovery: Desktop shortcut created")
         print("  To start: double-click START_ADMIN.bat")
         print("  =======================================")
 
@@ -314,11 +389,17 @@ def main() -> None:
         with open("ridge_role", "w") as f:
             f.write("rig")
 
+        # Create recovery shortcut
+        step += 1
+        _print_step(step, total, "Creating recovery shortcut...")
+        create_recovery_shortcut()
+
         print("\n  =======================================")
         print(f"  RIG '{rig_id}' SETUP COMPLETE!")
         print(f"  Firewall: {'configured' if want_firewall else 'skipped'}")
         print(f"  Auto-start: {'enabled' if want_autostart else 'disabled'}")
         print(f"  Mumble: {'enabled' if want_mumble else 'disabled'}")
+        print("  Recovery: Desktop shortcut created")
         print("  To start: double-click START_RIG.bat")
         print("  =======================================")
 
