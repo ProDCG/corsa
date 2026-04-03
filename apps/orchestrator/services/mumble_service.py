@@ -337,38 +337,40 @@ class MumbleService:
             channels = self._mumble.channels
 
             # Find or create root channel
-            root_channel = None
+            root_id: int | None = None
             for cid, ch in channels.items():
                 if ch["name"] == MUMBLE_ROOT_CHANNEL:
-                    root_channel = ch
+                    root_id = cid
                     break
 
-            if not root_channel:
+            if root_id is None:
                 # Create under the server root (channel 0)
-                channels[0].add_sub_channel(MUMBLE_ROOT_CHANNEL)
-                time.sleep(0.5)
+                self._mumble.channels.new_channel(0, MUMBLE_ROOT_CHANNEL)
+                time.sleep(1.0)
                 # Re-fetch
                 for cid, ch in self._mumble.channels.items():
                     if ch["name"] == MUMBLE_ROOT_CHANNEL:
-                        root_channel = ch
+                        root_id = cid
                         break
 
-            if not root_channel:
+            if root_id is None:
                 logger.error("Failed to create root channel '%s'", MUMBLE_ROOT_CHANNEL)
                 return
-
-            root_id = root_channel["channel_id"]
 
             # Create sub-channels
             existing_names = set()
             for cid, ch in self._mumble.channels.items():
-                if ch.get("parent") == root_id:
-                    existing_names.add(ch["name"])
+                parent = ch.get("parent", None)
+                if parent is not None:
+                    # parent could be an int (parent_id) or differ by pymumble version
+                    parent_val = parent if isinstance(parent, int) else getattr(parent, "channel_id", None)
+                    if parent_val == root_id:
+                        existing_names.add(ch["name"])
 
             for room_name in MUMBLE_CHANNELS:
                 if room_name not in existing_names:
-                    root_channel.add_sub_channel(room_name)
-                    time.sleep(0.3)
+                    self._mumble.channels.new_channel(root_id, room_name)
+                    time.sleep(0.5)
                     logger.info("Created Mumble channel: %s/%s", MUMBLE_ROOT_CHANNEL, room_name)
 
             self._channels_ready = True
