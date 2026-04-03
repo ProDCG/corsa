@@ -166,32 +166,67 @@ class RigAgent:
         mumble_url = f"mumble://{self.config.rig_id}@{self.config.orchestrator_ip}:{MUMBLE_PORT}"
         logger.info("Launching Mumble client: %s", mumble_url)
 
+        mumble_exe = self._find_mumble_client()
+        if mumble_exe:
+            try:
+                self.mumble_process = subprocess.Popen([mumble_exe, mumble_url])
+                logger.info("Mumble launched from %s", mumble_exe)
+                return
+            except Exception as e:
+                logger.error("Failed to launch Mumble from %s: %s", mumble_exe, e)
+
+        # Last resort on Windows: use the mumble:// URL protocol via os.startfile
         if IS_WINDOWS:
-            # Try common install locations
-            mumble_paths = [
+            try:
+                os.startfile(mumble_url)  # type: ignore[attr-defined]
+                logger.info("Mumble launched via URL protocol handler")
+                return
+            except Exception as e:
+                logger.error("Failed to launch Mumble via URL protocol: %s", e)
+
+        logger.warning("Mumble client not found — voice chat unavailable")
+
+    @staticmethod
+    def _find_mumble_client() -> str | None:
+        """Find the Mumble client executable."""
+        import shutil
+
+        if IS_WINDOWS:
+            candidates = [
+                r"C:\Program Files\Mumble\client\mumble.exe",
                 r"C:\Program Files\Mumble\mumble.exe",
+                r"C:\Program Files (x86)\Mumble\client\mumble.exe",
                 r"C:\Program Files (x86)\Mumble\mumble.exe",
             ]
-            for path in mumble_paths:
+            for path in candidates:
                 if os.path.exists(path):
-                    try:
-                        self.mumble_process = subprocess.Popen([path, mumble_url])
-                        logger.info("Mumble launched from %s", path)
-                        return
-                    except Exception as e:
-                        logger.error("Failed to launch Mumble from %s: %s", path, e)
-            # Fallback: try PATH
-            try:
-                self.mumble_process = subprocess.Popen(["mumble.exe", mumble_url])
-                logger.info("Mumble launched from PATH")
-            except FileNotFoundError:
-                logger.warning("Mumble client not found — voice chat unavailable")
+                    logger.info("Found Mumble client at: %s", path)
+                    return path
+
+            # Search PATH
+            found = shutil.which("mumble") or shutil.which("mumble.exe")
+            if found:
+                logger.info("Found Mumble client in PATH: %s", found)
+                return found
+
+            # Glob search
+            import glob
+            for pattern in [
+                r"C:\Program Files*\Mumble*\**\mumble.exe",
+            ]:
+                matches = glob.glob(pattern, recursive=True)
+                # Filter out the server executable
+                matches = [m for m in matches if "server" not in m.lower()]
+                if matches:
+                    logger.info("Found Mumble client via search: %s", matches[0])
+                    return matches[0]
+
+            logger.warning("Mumble client not found in any standard location")
         else:
-            try:
-                self.mumble_process = subprocess.Popen(["mumble", mumble_url])
-                logger.info("Mumble launched")
-            except FileNotFoundError:
-                logger.warning("Mumble client not found — voice chat unavailable")
+            found = shutil.which("mumble")
+            if found:
+                return found
+        return None
 
     def _process_watchdog(self) -> None:
         """Monitor AC process — promote to racing when AC is detected, demote when gone.
