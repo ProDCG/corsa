@@ -278,6 +278,8 @@ class ACTelemetry:
         if not self.simhub_connected and now - self._last_sh_check > 5:
             logger.debug("Probing SimHub at %s...", self.simhub_url)
             self._last_sh_check = now
+            # Also check if SimHub process is running (works even without a race)
+            self._check_simhub_process()
 
         result = self._get_simhub_data()
         if result:
@@ -292,6 +294,38 @@ class ACTelemetry:
             return result
 
         return {}
+
+    def _check_simhub_process(self) -> None:
+        """Check if SimHub process is running and set simhub_connected accordingly."""
+        try:
+            import psutil
+            for proc in psutil.process_iter(["name"]):
+                try:
+                    pinfo = proc.info
+                    name = (pinfo["name"] if isinstance(pinfo, dict) else getattr(pinfo, "name", "")).lower()
+                    if "simhub" in name:
+                        if not self.simhub_connected:
+                            logger.info("SimHub process detected (running)")
+                            self.simhub_connected = True
+                        return
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+        except ImportError:
+            # If psutil not available, try tasklist on Windows
+            if os.name == "nt":
+                try:
+                    import subprocess
+                    out = subprocess.check_output(
+                        ["tasklist", "/FI", "IMAGENAME eq SimHubWPF.exe", "/NH"],
+                        text=True, timeout=3,
+                    )
+                    if "simhub" in out.lower():
+                        if not self.simhub_connected:
+                            logger.info("SimHub process detected via tasklist")
+                            self.simhub_connected = True
+                        return
+                except Exception:
+                    pass
 
     # ------------------------------------------------------------------
     # Cleanup
