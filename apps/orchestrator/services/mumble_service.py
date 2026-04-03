@@ -66,32 +66,74 @@ class MumbleService:
 
     @staticmethod
     def _add_opus_dll_path() -> None:
-        """Add Mumble install directories to DLL search path so opus.dll is found."""
+        """Find and pre-load opus.dll so pymumble/opuslib can use it."""
         import ctypes
+        import glob
 
-        search_dirs = [
-            r"C:\Program Files\Mumble Server",
+        # Names the DLL might have
+        dll_names = ["opus.dll", "libopus.dll", "libopus-0.dll", "libopus0.dll"]
+
+        # Directories to search (including subdirs)
+        search_roots = [
             r"C:\Program Files\Mumble",
-            r"C:\Program Files (x86)\Mumble Server",
+            r"C:\Program Files\Mumble Server",
             r"C:\Program Files (x86)\Mumble",
+            r"C:\Program Files (x86)\Mumble Server",
+            os.path.join(os.environ.get("LOCALAPPDATA", ""), "Mumble"),
+            os.path.join(os.environ.get("PROGRAMFILES", ""), "Mumble"),
         ]
-        for d in search_dirs:
-            if os.path.isdir(d):
-                try:
-                    # AddDllDirectory is the modern way (Win 8+)
-                    ctypes.windll.kernel32.AddDllDirectory(d)  # type: ignore[union-attr]
-                except Exception:
-                    pass
-                # Also try the older SetDllDirectoryW as fallback
-                try:
-                    os.add_dll_directory(d)
-                except (OSError, AttributeError):
-                    pass
-                # Last resort: prepend to PATH
-                current_path = os.environ.get("PATH", "")
-                if d.lower() not in current_path.lower():
-                    os.environ["PATH"] = d + ";" + current_path
-                    logger.debug("Added %s to PATH for opus.dll", d)
+
+        # Also check the project directory itself
+        project_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        search_roots.append(project_dir)
+
+        found_dll = None
+
+        for root in search_roots:
+            if not root or not os.path.isdir(root):
+                continue
+            # Check root dir directly
+            for name in dll_names:
+                candidate = os.path.join(root, name)
+                if os.path.isfile(candidate):
+                    found_dll = candidate
+                    break
+            if found_dll:
+                break
+            # Search one level of subdirs
+            for name in dll_names:
+                matches = glob.glob(os.path.join(root, "**", name), recursive=True)
+                if matches:
+                    found_dll = matches[0]
+                    break
+            if found_dll:
+                break
+
+        if found_dll:
+            logger.info("Found opus DLL: %s", found_dll)
+            dll_dir = os.path.dirname(found_dll)
+            # Add to PATH
+            current_path = os.environ.get("PATH", "")
+            if dll_dir.lower() not in current_path.lower():
+                os.environ["PATH"] = dll_dir + ";" + current_path
+            # Try adding as DLL directory
+            try:
+                os.add_dll_directory(dll_dir)
+            except (OSError, AttributeError):
+                pass
+            # Pre-load it directly so opuslib finds it
+            try:
+                ctypes.CDLL(found_dll)
+                logger.info("Pre-loaded opus DLL successfully")
+            except Exception as e:
+                logger.warning("Found opus DLL but failed to load: %s", e)
+        else:
+            logger.warning(
+                "Could not find opus.dll — searched: %s. "
+                "Mumble integration may not work. "
+                "Install Mumble client/server or place opus.dll in the project folder.",
+                ", ".join(r for r in search_roots if r and os.path.isdir(r)) or "(no dirs found)"
+            )
 
     # ------------------------------------------------------------------
     # Server management
@@ -407,18 +449,21 @@ class MumbleService:
 
     def start(self) -> None:
         """Start the Mumble service in a background thread."""
-        if not self._available:
-            logger.info("Mumble service disabled (pymumble not installed)")
-            return
-
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._thread.start()
         logger.info("Mumble service starting...")
 
     def _run(self) -> None:
-        """Main service loop — connect, create channels, watch for disconnects."""
-        # Try to start the server
+        """Main service loop — start server, connect bot, watch for disconnects."""
+        # Always try to start the server, even without pymumble
         self._start_server()
+
+        if not self._available:
+            logger.info(
+                "Mumble bot disabled (pymumble not available). "
+                "Server may still be running for direct client connections."
+            )
+            return
 
         # Connection loop with backoff
         backoff = 2.0
