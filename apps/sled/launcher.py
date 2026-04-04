@@ -62,8 +62,8 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
             car = str(raw_car)
             logger.info("Player car from command: %s", car)
         elif car_pool:
-            car = car_pool[0]
-            logger.info("Player car fallback to car_pool[0]: %s", car)
+            car = random.choice(car_pool)
+            logger.info("Player car randomly assigned from pool: %s", car)
         else:
             car = config.default_car
             logger.info("Player car fallback to config default: %s", car)

@@ -573,7 +573,7 @@ export default function GroupManager({ rigs, activeCarPool, activeMapPool }: Gro
                                                     onChange={e => setRigCar(rigId, e.target.value)}
                                                     className="bg-white/5 border border-white/10 rounded-lg px-2 py-0.5 text-[10px] font-bold outline-none focus:border-ridge-brand appearance-none max-w-40 cursor-pointer pr-5"
                                                 >
-                                                    <option value="">Auto</option>
+                                                    <option value="">🎲 Random</option>
                                                     {(() => {
                                                         const seen = new Set<string>();
                                                         // Only show cars enabled in the Cars tab
