@@ -44,7 +44,9 @@ class AppState:
         self._mumble_assignments: dict[str, str] = {}  # rig_id -> channel name
 
         # Persistence
-        self._data_dir = data_dir or os.path.join(os.getcwd(), "data")
+        repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        raw_data_dir = data_dir or os.path.join(repo_root, "data")
+        self._data_dir = os.path.abspath(os.path.normpath(raw_data_dir))
         os.makedirs(self._data_dir, exist_ok=True)
         self._presets_file = os.path.join(self._data_dir, "presets.json")
         self._telem_config_file = os.path.join(self._data_dir, "telem_config.json")

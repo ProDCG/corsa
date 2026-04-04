@@ -239,9 +239,9 @@ class MumbleService:
 
     def _ensure_mumble_ini(self) -> str:
         """Generate a minimal mumble.ini if one doesn't exist. Returns path."""
-        ini_path = os.path.join(self.state._data_dir, "mumble.ini")
-        db_path = os.path.join(self.state._data_dir, "mumble.sqlite")
-        if not os.path.exists(ini_path):
+        ini_path = os.path.abspath(os.path.normpath(os.path.join(self.state._data_dir, "mumble.ini")))
+        db_path = os.path.abspath(os.path.normpath(os.path.join(self.state._data_dir, "mumble.sqlite")))
+        if not os.path.exists(ini_path) or os.path.getsize(ini_path) == 0:
             content = (
                 f"database={db_path}\n"
                 f"port={MUMBLE_PORT}\n"
