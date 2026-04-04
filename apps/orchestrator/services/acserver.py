@@ -156,20 +156,29 @@ class ACServerManager:
                 return {"status": "error", "message": f"No cars specified and could not scan {ac_content_cars}: {e}"}
 
         validated_cars: list[str] = []
-        rejected_cars: list[str] = []
+        rejected_cars: list[dict[str, str]] = []
         for car_id in cars:
             car_dir = os.path.join(ac_content_cars, car_id)
-            if os.path.isdir(car_dir):
-                validated_cars.append(car_id)
+            if not os.path.isdir(car_dir):
+                rejected_cars.append({"id": car_id, "reason": "directory not found"})
+                logger.warning("CAR REJECTED: '%s' — directory not found in %s", car_id, ac_content_cars)
+            elif not os.path.isdir(os.path.join(car_dir, "data")) and not os.path.isfile(os.path.join(car_dir, "data.acd")):
+                rejected_cars.append({"id": car_id, "reason": "missing data/ folder and data.acd (car is incomplete)"})
+                logger.warning("CAR REJECTED: '%s' — missing data/ and data.acd in %s (incomplete car)", car_id, car_dir)
             else:
-                rejected_cars.append(car_id)
-                logger.warning("CAR VALIDATION: '%s' not found in %s — SKIPPING", car_id, ac_content_cars)
+                validated_cars.append(car_id)
+                logger.debug("CAR OK: '%s'", car_id)
 
         if rejected_cars:
-            logger.warning("Rejected %d cars not found on disk: %s", len(rejected_cars), rejected_cars)
+            names = [f"{c['id']} ({c['reason']})" for c in rejected_cars]
+            logger.warning("Rejected %d cars: %s", len(rejected_cars), names)
 
         if not validated_cars:
-            return {"status": "error", "message": f"No valid cars found! Checked: {ac_content_cars}. Rejected: {rejected_cars}"}
+            return {
+                "status": "error",
+                "message": f"No valid cars found! All {len(rejected_cars)} cars were rejected.",
+                "rejected_cars": rejected_cars,
+            }
 
         # Collect all unique validated cars (pool + rig selections)
         all_cars_set = set(validated_cars)
@@ -277,6 +286,26 @@ class ACServerManager:
                     except Exception:
                         crash_log = "(could not read log)"
                     exit_code = proc.returncode
+
+                    # Parse crash log for car-specific errors
+                    problem_cars: list[str] = []
+                    for line in crash_log.splitlines():
+                        ll = line.lower()
+                        # AC server typically logs lines like:
+                        #   "ERROR: Cannot find car ks_xxx"
+                        #   "Error, cannot open car ks_xxx"
+                        #   "Could not find data for car ks_xxx"
+                        if ("error" in ll or "cannot" in ll or "could not" in ll or "not found" in ll) and "car" in ll:
+                            # Extract car IDs from the error line
+                            for car_id in all_cars_list:
+                                if car_id in line:
+                                    problem_cars.append(car_id)
+
+                    if problem_cars:
+                        logger.error(
+                            "AC server CRASHED — these cars likely caused it: %s",
+                            problem_cars,
+                        )
                     logger.error(
                         "AC server CRASHED on startup (exit code %d) for '%s':\n%s",
                         exit_code, group_name, crash_log,
@@ -285,6 +314,9 @@ class ACServerManager:
                         "status": "error",
                         "message": f"AC server crashed on startup (exit code {exit_code})",
                         "server_log": crash_log,
+                        "problem_cars": problem_cars,
+                        "rejected_cars": [c for c in rejected_cars] if rejected_cars else [],
+                        "validated_cars": all_cars_list,
                     }
 
             server = ACServerInstance(

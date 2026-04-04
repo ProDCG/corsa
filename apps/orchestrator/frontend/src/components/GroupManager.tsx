@@ -335,8 +335,31 @@ export default function GroupManager({ rigs, activeCarPool, activeMapPool }: Gro
         const data = await res.json()
         fetchServers()
         if (data.status === 'error') {
-            const crashLog = data.server_log ? `\n\nServer log:\n${data.server_log.slice(-500)}` : ''
-            alert(`Server failed: ${data.message}${crashLog}`)
+            let msg = `Server failed: ${data.message}\n`
+
+            // Show cars that likely caused the crash
+            if (data.problem_cars?.length) {
+                msg += `\n⚠️ PROBLEM CARS (found in crash log):\n`
+                msg += data.problem_cars.map((c: string) => `  • ${c}`).join('\n')
+            }
+
+            // Show cars rejected during validation
+            if (data.rejected_cars?.length) {
+                msg += `\n\n❌ REJECTED CARS (not on disk):\n`
+                msg += data.rejected_cars.map((c: {id: string, reason: string}) => `  • ${c.id} — ${c.reason}`).join('\n')
+            }
+
+            // Show validated cars for reference
+            if (data.validated_cars?.length) {
+                msg += `\n\n✅ Valid cars (${data.validated_cars.length}): ${data.validated_cars.slice(0, 10).join(', ')}${data.validated_cars.length > 10 ? '...' : ''}`
+            }
+
+            // Raw log snippet at the end
+            if (data.server_log) {
+                msg += `\n\n── Server Log (last 300 chars) ──\n${data.server_log.slice(-300)}`
+            }
+
+            alert(msg)
             return false
         }
         return true
