@@ -1,57 +1,36 @@
 @echo off
 title Ridge-Link Rig
-REM ═══════════════════════════════════════════════════
-REM  RIDGE-LINK RIG LAUNCHER
-REM  Double-click to start. No terminal needed.
-REM ═══════════════════════════════════════════════════
-
 cd /d "%~dp0"
 
-REM --- Guard: Check bootstrap has been run ---
+REM --- Guard: bootstrap ---
 if not exist "ridge_role" (
-    echo.
-    echo  ERROR: Bootstrap has not been run yet!
-    echo  Run "python bootstrap.py" first and select "rig".
-    echo.
-    pause
-    exit /b 1
+    echo  ERROR: Run "python bootstrap.py" first.
+    pause & exit /b 1
 )
-
-REM --- Guard: Check role is "rig" ---
-for /f %%i in (ridge_role) do set ROLE=%%i
-if not "%ROLE%"=="rig" (
-    echo.
-    echo  ERROR: This machine is configured as "%ROLE%", not "rig".
-    echo  START_RIG.bat can only run on machines bootstrapped as a rig.
-    echo  If this is wrong, re-run "python bootstrap.py" and select "rig".
-    echo.
-    pause
-    exit /b 1
-)
-
-REM --- Guard: Check venv exists ---
 if not exist "venv\Scripts\python.exe" (
-    echo.
-    echo  ERROR: Python virtual environment not found.
-    echo  Run "python bootstrap.py" first.
-    echo.
-    pause
-    exit /b 1
+    echo  ERROR: Run "python bootstrap.py" first.
+    pause & exit /b 1
 )
-
-REM --- Guard: Check rig config exists ---
 if not exist "apps\sled\config.json" (
-    echo.
-    echo  ERROR: Rig config not found.
-    echo  Run "python bootstrap.py" and select "rig" to generate it.
-    echo.
-    pause
-    exit /b 1
+    echo  ERROR: Run "python bootstrap.py" first.
+    pause & exit /b 1
 )
 
-REM --- Launch (hidden) ---
-REM Use pythonw.exe for no console window, with stderr redirected to crash log
-start "" /B "venv\Scripts\pythonw.exe" -m apps.sled.splash 2>"ridge_crash.log"
+REM --- Kill previous session ---
+taskkill /F /IM python.exe 2>nul
+taskkill /F /IM pythonw.exe 2>nul
+taskkill /F /IM mumble-server.exe 2>nul
+taskkill /F /IM murmur.exe 2>nul
+timeout /t 2 /nobreak >nul
 
-REM Close this launcher window immediately
+REM --- Pull latest code ---
+git pull --ff-only 2>nul
+if errorlevel 1 (
+    git stash --include-untracked 2>nul
+    git fetch origin 2>nul
+    git reset --hard origin/main 2>nul
+)
+
+REM --- Launch rig agent ---
+start "" /B "venv\Scripts\pythonw.exe" -m apps.sled.splash 2>"ridge_crash.log"
 exit
