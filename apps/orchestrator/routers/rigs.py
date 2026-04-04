@@ -142,6 +142,10 @@ def create_router(state: AppState) -> APIRouter:
             if str(update.selected_car) not in ("", "None"):
                 state.update_rig_field(rig_id, "selected_car", update.selected_car)
                 logger.info("Rig %s car -> %s (explicit selection)", rig_id, update.selected_car)
+            else:
+                # Empty string = "Random" — clear the selection
+                state.update_rig_field(rig_id, "selected_car", None)
+                logger.info("Rig %s car -> Random (cleared)", rig_id)
         if update.cpu_temp:
             state.update_rig_field(rig_id, "cpu_temp", update.cpu_temp)
         if update.telemetry:
