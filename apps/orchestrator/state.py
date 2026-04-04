@@ -48,6 +48,7 @@ class AppState:
         raw_data_dir = data_dir or os.path.join(repo_root, "data")
         self._data_dir = os.path.abspath(os.path.normpath(raw_data_dir))
         os.makedirs(self._data_dir, exist_ok=True)
+        logger.info("Data directory resolved to: %s (exists=%s)", self._data_dir, os.path.isdir(self._data_dir))
         self._presets_file = os.path.join(self._data_dir, "presets.json")
         self._telem_config_file = os.path.join(self._data_dir, "telem_config.json")
         self._groups_file = os.path.join(self._data_dir, "groups.json")

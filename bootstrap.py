@@ -294,6 +294,11 @@ def main() -> None:
             os.makedirs(data_dir, exist_ok=True)
             ini_path = os.path.join(data_dir, "mumble.ini")
             db_path = os.path.join(data_dir, "mumble.sqlite")
+            # Migrate old murmur.ini -> mumble.ini
+            old_ini = os.path.join(data_dir, "murmur.ini")
+            if os.path.exists(old_ini) and not os.path.exists(ini_path):
+                os.rename(old_ini, ini_path)
+                print(f"  Migrated murmur.ini -> mumble.ini")
             if not os.path.exists(ini_path):
                 with open(ini_path, "w") as f:
                     f.write(

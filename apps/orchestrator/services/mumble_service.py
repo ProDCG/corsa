@@ -238,15 +238,35 @@ class MumbleService:
         return False
 
     def _ensure_mumble_ini(self) -> str:
-        """Generate a minimal mumble.ini if one doesn't exist. Returns path."""
-        ini_path = os.path.abspath(os.path.normpath(os.path.join(self.state._data_dir, "mumble.ini")))
-        db_path = os.path.abspath(os.path.normpath(os.path.join(self.state._data_dir, "mumble.sqlite")))
+        """Generate a minimal mumble.ini if one doesn't exist. Returns path.
+
+        Also migrates old murmur.ini files to the new name.
+        """
+        data_dir = self.state._data_dir
+        ini_path = os.path.join(data_dir, "mumble.ini")
+        db_path = os.path.join(data_dir, "mumble.sqlite")
+        pid_path = os.path.join(data_dir, "mumble.pid")
+        log_path = os.path.join(data_dir, "mumble.log")
+
+        # Migrate old murmur.ini -> mumble.ini if it exists
+        old_ini = os.path.join(data_dir, "murmur.ini")
+        if os.path.exists(old_ini) and not os.path.exists(ini_path):
+            try:
+                os.rename(old_ini, ini_path)
+                logger.info("Migrated murmur.ini -> mumble.ini")
+            except OSError as e:
+                logger.warning("Could not migrate murmur.ini: %s", e)
+
+        # Create or regenerate if missing/empty
         if not os.path.exists(ini_path) or os.path.getsize(ini_path) == 0:
+            # Ensure data directory exists
+            os.makedirs(data_dir, exist_ok=True)
+
             content = (
                 f"database={db_path}\n"
                 f"port={MUMBLE_PORT}\n"
-                f"pidfile={os.path.join(self.state._data_dir, 'mumble.pid')}\n"
-                f"logfile={os.path.join(self.state._data_dir, 'mumble.log')}\n"
+                f"pidfile={pid_path}\n"
+                f"logfile={log_path}\n"
                 "welcometext=\"Ridge-Link Voice Chat\"\n"
                 "users=20\n"
                 "registerName=Ridge-Link\n"
@@ -255,6 +275,13 @@ class MumbleService:
             with open(ini_path, "w") as f:
                 f.write(content)
             logger.info("Generated mumble.ini at %s", ini_path)
+
+        # Verify the file is readable
+        if os.path.exists(ini_path):
+            logger.info("mumble.ini verified: %s (%d bytes)", ini_path, os.path.getsize(ini_path))
+        else:
+            logger.error("CRITICAL: mumble.ini does NOT exist after creation at %s", ini_path)
+
         return ini_path
 
     def _start_server(self) -> None:
@@ -274,6 +301,16 @@ class MumbleService:
             return
 
         ini_path = self._ensure_mumble_ini()
+
+        # Final sanity check right before launching
+        if not os.path.isfile(ini_path):
+            logger.error("Cannot start Mumble: ini file missing at %s", ini_path)
+            return
+
+        logger.info("Data dir: %s", self.state._data_dir)
+        logger.info("INI path: %s (exists=%s, size=%d)",
+                     ini_path, os.path.exists(ini_path), os.path.getsize(ini_path))
+
         try:
             logger.info("Starting Mumble server: %s -ini %s", murmur_exe, ini_path)
             if IS_WINDOWS:
@@ -283,8 +320,20 @@ class MumbleService:
                 )
             else:
                 self._server_proc = subprocess.Popen([murmur_exe, "-ini", ini_path])
+
+            # Wait and check if the server stayed alive
+            time.sleep(2)
+            if self._server_proc.poll() is not None:
+                rc = self._server_proc.returncode
+                logger.error(
+                    "Mumble server exited immediately (code=%d). "
+                    "Verify mumble.ini is valid and the port %d is free.",
+                    rc, MUMBLE_PORT,
+                )
+                self._server_running = False
+                return
+
             self._server_running = True
-            time.sleep(2)  # Give the server time to start
             logger.info("Mumble server started (PID %d)", self._server_proc.pid)
 
             # Set SuperUser password
