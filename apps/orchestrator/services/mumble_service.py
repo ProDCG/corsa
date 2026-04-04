@@ -237,14 +237,16 @@ class MumbleService:
                     pass
         return False
 
-    def _ensure_murmur_ini(self) -> str:
-        """Generate a minimal murmur.ini if one doesn't exist. Returns path."""
-        ini_path = os.path.join(self.state._data_dir, "murmur.ini")
-        db_path = os.path.join(self.state._data_dir, "murmur.sqlite")
+    def _ensure_mumble_ini(self) -> str:
+        """Generate a minimal mumble.ini if one doesn't exist. Returns path."""
+        ini_path = os.path.join(self.state._data_dir, "mumble.ini")
+        db_path = os.path.join(self.state._data_dir, "mumble.sqlite")
         if not os.path.exists(ini_path):
             content = (
                 f"database={db_path}\n"
                 f"port={MUMBLE_PORT}\n"
+                f"pidfile={os.path.join(self.state._data_dir, 'mumble.pid')}\n"
+                f"logfile={os.path.join(self.state._data_dir, 'mumble.log')}\n"
                 "welcometext=\"Ridge-Link Voice Chat\"\n"
                 "users=20\n"
                 "registerName=Ridge-Link\n"
@@ -252,7 +254,7 @@ class MumbleService:
             )
             with open(ini_path, "w") as f:
                 f.write(content)
-            logger.info("Generated murmur.ini at %s", ini_path)
+            logger.info("Generated mumble.ini at %s", ini_path)
         return ini_path
 
     def _start_server(self) -> None:
@@ -271,7 +273,7 @@ class MumbleService:
             )
             return
 
-        ini_path = self._ensure_murmur_ini()
+        ini_path = self._ensure_mumble_ini()
         try:
             logger.info("Starting Mumble server: %s -ini %s", murmur_exe, ini_path)
             if IS_WINDOWS:
@@ -295,7 +297,7 @@ class MumbleService:
         murmur_exe = self._find_murmur()
         if not murmur_exe:
             return
-        ini_path = os.path.join(self.state._data_dir, "murmur.ini")
+        ini_path = os.path.join(self.state._data_dir, "mumble.ini")
         try:
             result = subprocess.run(
                 [murmur_exe, "-ini", ini_path, "-supw", self._superuser_pw],

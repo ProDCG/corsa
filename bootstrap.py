@@ -292,21 +292,23 @@ def main() -> None:
             _print_step(step, total, "Configuring Mumble voice server...")
             data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
             os.makedirs(data_dir, exist_ok=True)
-            ini_path = os.path.join(data_dir, "murmur.ini")
-            db_path = os.path.join(data_dir, "murmur.sqlite")
+            ini_path = os.path.join(data_dir, "mumble.ini")
+            db_path = os.path.join(data_dir, "mumble.sqlite")
             if not os.path.exists(ini_path):
                 with open(ini_path, "w") as f:
                     f.write(
                         f'database={db_path}\n'
                         'port=64738\n'
+                        f'pidfile={os.path.join(data_dir, "mumble.pid")}\n'
+                        f'logfile={os.path.join(data_dir, "mumble.log")}\n'
                         'welcometext="Ridge-Link Voice Chat"\n'
                         'users=20\n'
                         'registerName=Ridge-Link\n'
                         'bonjour=false\n'
                     )
-                print(f"  Generated murmur.ini: {ini_path}")
+                print(f"  Generated mumble.ini: {ini_path}")
             else:
-                print(f"  murmur.ini already exists: {ini_path}")
+                print(f"  mumble.ini already exists: {ini_path}")
 
             # Write mumble config marker
             mumble_cfg = os.path.join(data_dir, "mumble_config.json")
