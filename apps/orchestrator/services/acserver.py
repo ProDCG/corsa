@@ -687,9 +687,10 @@ class ACServerManager:
             )
             idx += 1
 
-        # ── AI bot slots ──
+        # ── AI bot slots — each gets a random car from the pool ──
+        import random as _rng
         for ai_idx in range(ai_count):
-            ai_car = cars[ai_idx % len(cars)] if cars else default_car
+            ai_car = _rng.choice(cars) if cars else default_car
             logger.info("AI Entry CAR_%d: model=%s difficulty=%d", idx, ai_car, ai_difficulty)
             entries.append(
                 f"[CAR_{idx}]\n"

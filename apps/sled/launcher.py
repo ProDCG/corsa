@@ -170,7 +170,7 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
 
         # AI opponent entries — only for OFFLINE mode (server handles AI in multiplayer)
         for i in range(client_ai_count):
-            ai_car = car_pool[i % len(car_pool)] if car_pool else car
+            ai_car = random.choice(car_pool) if car_pool else car
             # Randomize aggression and skill around the base difficulty (±15%)
             aggression = max(0, min(100, ai_difficulty + random.randint(-15, 15)))
             level = max(0, min(100, ai_difficulty + random.randint(-10, 10)))
