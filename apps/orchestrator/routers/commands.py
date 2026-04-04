@@ -183,7 +183,14 @@ def create_router(state: AppState) -> APIRouter:
                     payload["qualy_time"] = payload.get("qualy_time") or group.qualy_time
                     payload["ai_count"] = group.ai_count
                     payload["ai_difficulty"] = group.ai_difficulty
-                    payload["car_pool"] = group.car_pool
+                    # Use group's own car_pool if set, otherwise global pool from Cars tab
+                    effective_pool = group.car_pool if group.car_pool else state.car_pool
+                    payload["car_pool"] = effective_pool
+                    logger.info(
+                        "Car pool for group '%s': %d cars (source: %s)",
+                        group.name, len(effective_pool),
+                        "group" if group.car_pool else "global",
+                    )
                     payload["session_duration_min"] = group.session_duration_min
                     payload["sun_angle"] = group.sun_angle
                     payload["time_mult"] = group.time_mult
