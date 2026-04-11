@@ -643,14 +643,16 @@ class ACServerManager:
         self, config_dir: str, rig_ids: list[str], cars: list[str],
         ai_count: int = 0, ai_difficulty: int = 80,
     ) -> None:
-        """Write entry_list.ini — one slot per rig + AI bots.
+        """Write entry_list.ini — one slot per rig + AI bots + placeholder hot-join slots.
 
         Layout:
           CAR_0 .. CAR_{n-1}  →  one per rig (named, with their selected car)
           CAR_n .. CAR_{n+m-1} →  AI drivers (cars picked from pool)
+          CAR_{n+m} .. CAR_9   →  placeholder slots for hot-join (10 total minimum)
 
-        Total entries = len(rig_ids) + ai_count = MAX_CLIENTS in server_cfg.
+        Total entries = max(len(rig_ids) + ai_count, 10) to support hot-join.
         """
+        PLACEHOLDER_SLOTS = 10  # Total slots including rigs + AI + padding
         entries = []
         idx = 0
         default_car = cars[0] if cars else "ks_ferrari_488_gt3"
@@ -705,10 +707,26 @@ class ACServerManager:
             )
             idx += 1
 
+        # ── Placeholder hot-join slots (fill up to PLACEHOLDER_SLOTS total) ──
+        while idx < PLACEHOLDER_SLOTS:
+            placeholder_car = cars[idx % len(cars)] if cars else default_car
+            entries.append(
+                f"[CAR_{idx}]\n"
+                f"MODEL={placeholder_car}\n"
+                f"SKIN=\n"
+                f"SPECTATOR_MODE=0\n"
+                f"DRIVERNAME=\n"
+                f"TEAM=\n"
+                f"GUID=\n"
+                f"BALLAST=0\n"
+                f"RESTRICTOR=0\n"
+            )
+            idx += 1
+
         entry_path = os.path.join(config_dir, "cfg", "entry_list.ini")
         with open(entry_path, "w") as f:
             f.write("\n".join(entries))
         logger.info(
-            "Wrote entry_list.ini: %d rig slots + %d AI = %d total entries",
-            len(rig_ids), ai_count, idx,
+            "Wrote entry_list.ini: %d rig slots + %d AI + %d placeholder = %d total entries",
+            len(rig_ids), ai_count, max(0, idx - len(rig_ids) - ai_count), idx,
         )

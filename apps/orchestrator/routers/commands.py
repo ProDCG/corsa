@@ -189,6 +189,8 @@ def create_router(state: AppState) -> APIRouter:
                     payload["time_mult"] = group.time_mult
                     payload["ambient_temp"] = group.ambient_temp
                     payload["track_grip"] = group.track_grip
+                    payload["ai_traffic_count"] = group.ai_traffic_count
+                    payload["ai_traffic_density"] = group.ai_traffic_density
                     # Solo groups always run offline; multiplayer uses AC server
                     payload["use_server"] = group.mode == "multiplayer"
                     if server_ip and group.mode == "multiplayer":
@@ -199,5 +201,53 @@ def create_router(state: AppState) -> APIRouter:
                 responses.append(f"Sled {rig_id}")
 
         return {"status": "success", "group": group.name, "rigs_notified": responses}
+
+    # ------------------------------------------------------------------
+    # StreamDeck / Companion — simple GET endpoints for one-click control
+    # ------------------------------------------------------------------
+
+    @router.get("/rigs/all/start")
+    async def streamdeck_start_all(background_tasks: BackgroundTasks) -> dict[str, object]:
+        """StreamDeck-friendly: start race on all rigs (GET request)."""
+        responses: list[str] = []
+        for rig in state.get_rigs():
+            rig_id = str(rig["rig_id"])
+            state.update_rig_field(rig_id, "kill_requested_at", None)
+            if str(rig.get("ip", "")) != "web-kiosk":
+                payload = {"rig_id": rig_id, "action": "LAUNCH_RACE"}
+                payload = _prepare_payload(
+                    Command(rig_id=rig_id, action="LAUNCH_RACE"), rig
+                )
+                background_tasks.add_task(dispatch_command, str(rig["ip"]), COMMAND_PORT, payload)
+                responses.append(rig_id)
+        return {"status": "success", "action": "LAUNCH_RACE", "rigs": responses}
+
+    @router.get("/rigs/all/stop")
+    async def streamdeck_stop_all(background_tasks: BackgroundTasks) -> dict[str, object]:
+        """StreamDeck-friendly: kill race on all rigs (GET request)."""
+        responses: list[str] = []
+        for rig in state.get_rigs():
+            rig_id = str(rig["rig_id"])
+            state.update_rig_field(rig_id, "status", "idle")
+            state.update_rig_field(rig_id, "kill_requested_at", time.time())
+            if str(rig.get("ip", "")) != "web-kiosk":
+                payload = {"rig_id": rig_id, "action": "KILL_RACE"}
+                background_tasks.add_task(dispatch_command, str(rig["ip"]), COMMAND_PORT, payload)
+                responses.append(rig_id)
+        return {"status": "success", "action": "KILL_RACE", "rigs": responses}
+
+    @router.get("/rigs/all/setup")
+    async def streamdeck_setup_all(background_tasks: BackgroundTasks) -> dict[str, object]:
+        """StreamDeck-friendly: put all rigs in setup mode (GET request)."""
+        responses: list[str] = []
+        for rig in state.get_rigs():
+            rig_id = str(rig["rig_id"])
+            state.update_rig_field(rig_id, "selected_car", None)
+            state.update_rig_field(rig_id, "status", "setup")
+            if str(rig.get("ip", "")) != "web-kiosk":
+                payload = {"rig_id": rig_id, "action": "SETUP_MODE"}
+                background_tasks.add_task(dispatch_command, str(rig["ip"]), COMMAND_PORT, payload)
+                responses.append(rig_id)
+        return {"status": "success", "action": "SETUP_MODE", "rigs": responses}
 
     return router

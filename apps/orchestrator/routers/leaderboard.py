@@ -18,12 +18,19 @@ def create_router(state: AppState) -> APIRouter:
         track: str | None = Query(None),
         session_id: str | None = Query(None),
         group: str | None = Query(None),
-        view: str | None = Query(None),  # "recent" for most recent session
+        view: str | None = Query(None),  # "recent", "session_best", "all_best"
     ) -> list[LeaderboardEntry]:
         """Full leaderboard data for the admin dashboard.
 
-        Supports filtering by track, session_id, group, or 'recent' view.
+        Supports filtering by track, session_id, group, or view modes:
+          - "recent"       → most recent session's raw laps
+          - "session_best" → peak performance per driver (current session)
+          - "all_best"     → peak performance per driver (all sessions)
         """
+        if view == "session_best":
+            return state.leaderboard_db.get_session_best(session_id=session_id)
+        if view == "all_best":
+            return state.leaderboard_db.get_session_best_all()
         if view == "recent":
             return state.leaderboard_db.get_recent_session()
         if session_id:
@@ -34,8 +41,14 @@ def create_router(state: AppState) -> APIRouter:
 
     @router.get("/lobby")
     async def get_lobby() -> dict[str, object]:
-        """Public feed for TV displays — top 10, current active rigs, and race status."""
-        entries = sorted(state.leaderboard, key=lambda e: e.lap, reverse=True)[:10]
+        """Public feed for TV displays — session-best per driver, sorted by fastest lap time."""
+        # Use session_best for clean competitive display
+        best_entries = state.leaderboard_db.get_session_best(limit=10)
+
+        # Fallback to raw laps if no session_best data
+        if not best_entries:
+            best_entries = sorted(state.leaderboard, key=lambda e: e.lap, reverse=True)[:10]
+
         active_rigs = [
             {
                 "rig_id": r["rig_id"],
@@ -59,7 +72,7 @@ def create_router(state: AppState) -> APIRouter:
                     "lap_time_ms": e.lap_time_ms,
                     "timestamp": e.timestamp,
                 }
-                for e in entries
+                for e in best_entries
             ],
             "active_rigs": active_rigs,
             "total_rigs": len(state.get_rigs()),

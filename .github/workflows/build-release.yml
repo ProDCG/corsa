@@ -1,0 +1,67 @@
+name: Build & Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apps/orchestrator/frontend/package-lock.json
+
+      - name: Install Python deps
+        run: |
+          pip install -e .
+          pip install nuitka ordered-set zstandard
+
+      - name: Build React frontend
+        working-directory: apps/orchestrator/frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build Sled binary (Nuitka)
+        run: python deploy/build_sled.py
+
+      - name: Build Orchestrator binary (Nuitka)
+        run: python deploy/build_orchestrator.py
+
+      - name: Build Sled installer (Inno Setup)
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.4
+        with:
+          path: deploy/setup_sled.iss
+
+      - name: Build Orchestrator installer (Inno Setup)
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.4
+        with:
+          path: deploy/setup_orchestrator.iss
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/installer/CorsaConnect-Sled-Setup.exe
+            build/installer/CorsaConnect-Admin-Setup.exe
+            build/sled/CorsaConnect-Sled.exe
+            build/orchestrator/CorsaConnect-Admin.exe
+          generate_release_notes: true
+          draft: false
+          prerelease: false

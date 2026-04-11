@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import socket
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -11,6 +12,7 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from apps.orchestrator.routers import commands, groups, leaderboard, mumble, rigs, server, settings
 from apps.orchestrator.services.heartbeat import stale_rig_reaper, start_heartbeat_listener
@@ -88,6 +90,14 @@ app.include_router(server.create_router(state))
 app.include_router(leaderboard.create_router(state))
 app.include_router(mumble.create_router(state, mumble_svc))
 
+# Serve built React frontend if available (production / Nuitka builds)
+_frontend_dist = os.path.join(os.path.dirname(__file__), "frontend", "dist")
+if os.path.isdir(_frontend_dist):
+    app.mount("/", StaticFiles(directory=_frontend_dist, html=True), name="frontend")
+    logger.info("Serving frontend from %s", _frontend_dist)
+else:
+    logger.info("No frontend/dist found — API-only mode (use Vite dev server)")
+
 
 # ---------------------------------------------------------------------------
 # Health check
@@ -112,12 +122,16 @@ def _get_local_ip() -> str:
 
 if __name__ == "__main__":
     local_ip = _get_local_ip()
+    has_frontend = os.path.isdir(_frontend_dist)
     print()
     print("=" * 50)
-    print(" RIDGE-LINK ORCHESTRATOR v2.0")
-    print(f" Admin Dashboard:  http://{local_ip}:5173")
-    print(f" Rig Kiosk URL:    http://{local_ip}:5173/kiosk")
-    print(f" Lobby Display:    http://{local_ip}:5173/lobby")
+    print(" RIDGE-LINK ORCHESTRATOR v2.1")
+    if has_frontend:
+        print(f" Admin Dashboard:  http://{local_ip}:{UI_PORT}")
+        print(f" Rig Kiosk URL:    http://{local_ip}:{UI_PORT}/kiosk")
+        print(f" Lobby Display:    http://{local_ip}:{UI_PORT}/lobby")
+    else:
+        print(f" Admin Dashboard:  http://{local_ip}:5173  (Vite dev)")
     print(f" API Server:       http://{local_ip}:{UI_PORT}")
     print(f" Setup Rigs to:    {local_ip}")
     print("=" * 50)

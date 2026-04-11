@@ -65,6 +65,8 @@ class RigGroup(BaseModel):
     ambient_temp: int = 26  # Ambient temperature °C
     track_grip: int = 100  # Track grip 0-100%
     freeplay: bool = False  # When true, session timer is disabled
+    ai_traffic_count: int = 0  # CSP AI traffic cars (No Hesi / SRP)
+    ai_traffic_density: float = 1.0  # Traffic density multiplier (0.1-3.0)
 
 
 class RigGroupCreate(BaseModel):
@@ -93,6 +95,8 @@ class RigGroupUpdate(BaseModel):
     ambient_temp: int | None = None
     track_grip: int | None = None
     freeplay: bool | None = None
+    ai_traffic_count: int | None = None
+    ai_traffic_density: float | None = None
 
 
 class RigGroupAddRig(BaseModel):

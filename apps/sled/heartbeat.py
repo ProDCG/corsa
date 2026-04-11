@@ -60,7 +60,10 @@ class HeartbeatService:
         while True:
             try:
                 is_racing = self.agent.status == "racing"
-                interval = 0.1 if is_racing else 1.0
+                # 500ms during racing (2 req/s) — was 100ms which caused
+                # noticeable AC frame drops due to HTTP overhead.
+                # 1.5s when idle — no need to hammer the orchestrator.
+                interval = 0.5 if is_racing else 1.5
                 base_url = f"http://{self.config.orchestrator_ip}:8000"
 
                 # --- Post status + telemetry ---

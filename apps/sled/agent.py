@@ -412,6 +412,11 @@ class RigAgent:
         proc = launch_ac(self.config, params)
         if proc:
             self.current_process = proc
+            # Auto-press Drive button so users don't need a mouse
+            import threading as _th
+
+            from apps.sled.launcher import auto_start_drive
+            _th.Thread(target=auto_start_drive, daemon=True).start()
         else:
             logger.error("Could not launch AC — check config.json paths")
 

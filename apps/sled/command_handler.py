@@ -84,6 +84,8 @@ class CommandHandler:
                 "ambient_temp": payload.get("ambient_temp", 26),
                 "track_grip": payload.get("track_grip", 100),
                 "driver_name": payload.get("driver_name", ""),
+                "ai_traffic_count": payload.get("ai_traffic_count", 0),
+                "ai_traffic_density": payload.get("ai_traffic_density", 1.0),
             }
             self.agent.launch_race(params)
 
@@ -121,45 +123,19 @@ class CommandHandler:
             import time
             time.sleep(1)
 
-            # 2. Run the recovery/restart script
+            # 2. Restart the process
             import os
             import subprocess as _sp
+            import sys
             repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
             if os.name == "nt":
-                # Prefer RESTART.bat (comprehensive: kills all, pulls, restarts)
-                # Fall back to UPDATE_RIG.bat if RESTART.bat is missing
-                restart_bat = os.path.join(repo_root, "RESTART.bat")
-                # Also check the Desktop shortcut target in case repo copy is stale
-                desktop = os.path.join(os.environ.get("USERPROFILE", ""), "Desktop")
-                desktop_bat = os.path.join(desktop, "Ridge Link.bat") if desktop else ""
-
-                script = None
-                if os.path.exists(restart_bat):
-                    script = restart_bat
-                elif desktop_bat and os.path.exists(desktop_bat):
-                    script = desktop_bat
-                    logger.info("Using Desktop fallback: %s", desktop_bat)
-                else:
-                    # Last resort: legacy UPDATE_RIG.bat
-                    legacy = os.path.join(repo_root, "UPDATE_RIG.bat")
-                    if os.path.exists(legacy):
-                        script = legacy
-                        logger.info("Using legacy UPDATE_RIG.bat")
-
-                if script:
-                    logger.info("Executing recovery script: %s", script)
-                    # Start in a new console window — it will kill us and restart
-                    _sp.Popen(
-                        ["cmd", "/c", script],
-                        cwd=repo_root,
-                        creationflags=_sp.CREATE_NEW_CONSOLE,
-                    )
-                    # The script kills python.exe, so this process will die.
-                    # Give it a moment, then force-exit just in case.
-                    time.sleep(3)
-                    os._exit(0)
-                else:
-                    logger.error("No restart/update script found in %s", repo_root)
+                # Re-launch the current process (works with Nuitka .exe or python)
+                exe = sys.executable
+                argv = sys.argv[:]
+                logger.info("Restarting sled process: %s %s", exe, argv)
+                _sp.Popen([exe] + argv, cwd=repo_root)
+                time.sleep(1)
+                os._exit(0)
             else:
                 # Linux/dev mode: git pull + restart
                 try:
@@ -172,6 +148,14 @@ class CommandHandler:
         elif action == "START_MUMBLE":
             logger.info("Mumble launch requested from orchestrator")
             self.agent.start_mumble()
+
+        elif action == "SYNC_SETUPS":
+            logger.info("Setup sync requested from orchestrator")
+            try:
+                from apps.sled.launcher import sync_setups
+                sync_setups(self.config)
+            except Exception as e:
+                logger.error("Setup sync failed: %s", e)
 
         else:
             logger.warning("Unknown command action: %s", action)

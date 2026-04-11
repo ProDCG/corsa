@@ -84,7 +84,7 @@ function App() {
         video_url: '/assets/idle_race.mp4'
     })
     const [leaderboard, setLeaderboard] = useState<any[]>([])
-    const [leaderboardFilter, setLeaderboardFilter] = useState<'all' | 'recent'>('all')
+    const [leaderboardFilter, setLeaderboardFilter] = useState<'all' | 'recent' | 'session_best' | 'all_best'>('all')
     const [leaderboardTrack, setLeaderboardTrack] = useState<string>('')
     const [presets, setPresets] = useState<any[]>([])
     const [activeTelemFields, setActiveTelemFields] = useState<string[]>(['velocity', 'rpms', 'gforce', 'normalized_pos', 'gear', 'completed_laps', 'gas', 'brake', 'position'])
@@ -1147,6 +1147,38 @@ function App() {
                                             : 'bg-white/5 border-white/10 text-white/30 hover:border-white/20'
                                     }`}
                                 >All Time</button>
+                                <button
+                                    onClick={async () => {
+                                        setLeaderboardFilter('session_best')
+                                        setLeaderboardTrack('')
+                                        try {
+                                            const res = await fetch('/api/leaderboard?view=session_best')
+                                            const data = await res.json()
+                                            if (Array.isArray(data)) setLeaderboard(data)
+                                        } catch {}
+                                    }}
+                                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
+                                        leaderboardFilter === 'session_best'
+                                            ? 'bg-green-500/20 border-green-500/50 text-green-400'
+                                            : 'bg-white/5 border-white/10 text-white/40 hover:border-white/20'
+                                    }`}
+                                >Session Best</button>
+                                <button
+                                    onClick={async () => {
+                                        setLeaderboardFilter('all_best')
+                                        setLeaderboardTrack('')
+                                        try {
+                                            const res = await fetch('/api/leaderboard?view=all_best')
+                                            const data = await res.json()
+                                            if (Array.isArray(data)) setLeaderboard(data)
+                                        } catch {}
+                                    }}
+                                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
+                                        leaderboardFilter === 'all_best'
+                                            ? 'bg-purple-500/20 border-purple-500/50 text-purple-400'
+                                            : 'bg-white/5 border-white/10 text-white/40 hover:border-white/20'
+                                    }`}
+                                >All-Time Best</button>
                                 <button
                                     onClick={async () => {
                                         setLeaderboardFilter('recent')

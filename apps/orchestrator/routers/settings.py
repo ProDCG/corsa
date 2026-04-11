@@ -137,8 +137,8 @@ def create_router(state: AppState) -> APIRouter:
         Sequence:
         1. KILL_RACE on all rigs (immediate status to idle)
         2. Stop all running servers
-        3. Send UPDATE command to all rigs (triggers UPDATE_RIG.bat → git pull + restart)
-        4. Run UPDATE_ADMIN.bat on the admin PC (git pull + restart orchestrator)
+        3. Send UPDATE command to all rigs (self-restart)
+        4. Restart admin process (self-restart via sys.executable)
         """
         import os
         import subprocess as _sp
@@ -183,27 +183,18 @@ def create_router(state: AppState) -> APIRouter:
 
         background_tasks.add_task(_send_updates_sync)
 
-        # 4. Run RESTART.bat on admin (delayed to allow rig updates to dispatch)
+        # 4. Restart admin process (delayed to allow rig updates to dispatch)
         def _run_admin_update():
             time.sleep(5)
             if os.name == "nt":
-                # Prefer RESTART.bat (comprehensive: kills all, pulls, restarts)
-                restart_bat = str(repo_root / "RESTART.bat")
-                legacy_bat = str(repo_root / "UPDATE_ADMIN.bat")
-
-                script = restart_bat if os.path.exists(restart_bat) else legacy_bat
-                if os.path.exists(script):
-                    logger.info("Launching admin recovery script: %s", script)
-                    _sp.Popen(
-                        ["cmd", "/c", script],
-                        cwd=str(repo_root),
-                        creationflags=_sp.CREATE_NEW_CONSOLE,
-                    )
-                    # The script kills python.exe — this process will die
-                    time.sleep(3)
-                    os._exit(0)
-                else:
-                    logger.error("No restart/update script found: %s", restart_bat)
+                # Re-launch the current process (works with Nuitka .exe or python)
+                import sys
+                exe = sys.executable
+                argv = sys.argv[:]
+                logger.info("Restarting admin process: %s %s", exe, argv)
+                _sp.Popen([exe] + argv, cwd=str(repo_root))
+                time.sleep(1)
+                os._exit(0)
             else:
                 # Linux/dev: git pull + exit
                 try:

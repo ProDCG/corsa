@@ -24,6 +24,8 @@ interface RigGroup {
     ambient_temp: number
     track_grip: number
     freeplay: boolean
+    ai_traffic_count: number
+    ai_traffic_density: number
 }
 
 const AI_STEPS = [
@@ -307,6 +309,8 @@ export default function GroupManager({ rigs, activeCarPool, activeMapPool }: Gro
                 ai_difficulty: group.ai_difficulty,
                 car_pool: activeCarPool.length > 0 ? activeCarPool : group.car_pool,
                 use_server: group.mode === 'multiplayer',
+                ai_traffic_count: group.ai_traffic_count ?? 0,
+                ai_traffic_density: group.ai_traffic_density ?? 1.0,
             })
         })
     }
@@ -765,6 +769,22 @@ export default function GroupManager({ rigs, activeCarPool, activeMapPool }: Gro
                                 <span className="text-xs font-black w-24 text-right text-white/70">
                                     {selectedGroup.ai_count === 0 ? 'No AI' : `${AI_STEPS.find(s => s.value === selectedGroup.ai_difficulty)?.label ?? 'Medium'} (${selectedGroup.ai_difficulty})`}
                                 </span>
+                            </div>
+
+                            {/* CSP AI Traffic — No Hesi / SRP */}
+                            <div className="pt-3 border-t border-white/5">
+                                <h5 className="text-[9px] uppercase font-black text-white/50 tracking-[0.3em] mb-2 flex items-center gap-1.5">
+                                    <Zap size={9} className="text-amber-400" /> CSP AI Traffic (No Hesi / SRP)
+                                </h5>
+                                <SliderRow label="Traffic" icon={Car} value={selectedGroup.ai_traffic_count ?? 0} min={0} max={50} unit=" cars"
+                                    onChange={v => updateGroup(selectedGroup.id, { ai_traffic_count: v })} />
+                                <div className={`mt-1 ${(selectedGroup.ai_traffic_count ?? 0) === 0 ? 'opacity-30 pointer-events-none' : ''}`}>
+                                    <SliderRow label="Density" icon={Gauge} value={selectedGroup.ai_traffic_density ?? 1.0} min={0.1} max={3.0} step={0.1} unit="x"
+                                        onChange={v => updateGroup(selectedGroup.id, { ai_traffic_density: parseFloat(v.toFixed(1)) })} />
+                                </div>
+                                {(selectedGroup.ai_traffic_count ?? 0) > 0 && (
+                                    <p className="text-[9px] text-amber-400/50 font-bold mt-1">Requires CSP + compatible track splines</p>
+                                )}
                             </div>
 
                             {/* Session Timer + Freeplay */}

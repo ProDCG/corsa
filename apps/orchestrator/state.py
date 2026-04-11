@@ -2,6 +2,9 @@
 
 Replaces all global mutable variables from the original main.py with a
 single, centralised state object that routers and services reference.
+
+Persistence: on Windows, all user data is stored in %%APPDATA%%\\CorsaConnect
+so that reinstallation does not wipe configs or leaderboard history.
 """
 
 from __future__ import annotations
@@ -9,6 +12,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import shutil
 import threading
 import time
 
@@ -24,6 +28,48 @@ from shared.models import (
 )
 
 logger = logging.getLogger("ridge.state")
+
+
+def _get_appdata_dir() -> str:
+    """Return the platform-appropriate persistent data directory.
+
+    Windows: %%APPDATA%%\\CorsaConnect
+    Linux:   ~/.config/corsaconnect
+    """
+    if os.name == "nt":
+        base = os.environ.get("APPDATA", "")
+        if base:
+            return os.path.join(base, "CorsaConnect")
+    else:
+        base = os.environ.get("XDG_CONFIG_HOME", "")
+        if not base:
+            base = os.path.join(os.path.expanduser("~"), ".config")
+        return os.path.join(base, "corsaconnect")
+    # Fallback
+    return os.path.join(os.path.expanduser("~"), ".corsaconnect")
+
+
+def _migrate_data_dir(old_dir: str, new_dir: str) -> None:
+    """One-time migration from repo-local data/ to AppData."""
+    if not os.path.isdir(old_dir):
+        return
+    # Only migrate if the new dir is empty or doesn't exist
+    if os.path.isdir(new_dir) and os.listdir(new_dir):
+        logger.info("AppData dir already has data — skipping migration")
+        return
+    os.makedirs(new_dir, exist_ok=True)
+    migrated = 0
+    for item in os.listdir(old_dir):
+        src = os.path.join(old_dir, item)
+        dst = os.path.join(new_dir, item)
+        if os.path.isfile(src) and not os.path.exists(dst):
+            try:
+                shutil.copy2(src, dst)
+                migrated += 1
+            except Exception as e:
+                logger.warning("Could not migrate %s: %s", item, e)
+    if migrated:
+        logger.info("Migrated %d files from %s to %s", migrated, old_dir, new_dir)
 
 
 class AppState:
@@ -43,9 +89,14 @@ class AppState:
         self._server_status: str = "offline"
         self._mumble_assignments: dict[str, str] = {}  # rig_id -> channel name
 
-        # Persistence
+        # Persistence — prefer AppData, migrate from repo-local data/ if needed
         repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        raw_data_dir = data_dir or os.path.join(repo_root, "data")
+        legacy_data_dir = os.path.join(repo_root, "data")
+        if data_dir:
+            raw_data_dir = data_dir
+        else:
+            raw_data_dir = _get_appdata_dir()
+            _migrate_data_dir(legacy_data_dir, raw_data_dir)
         self._data_dir = os.path.abspath(os.path.normpath(raw_data_dir))
         os.makedirs(self._data_dir, exist_ok=True)
         logger.info("Data directory resolved to: %s (exists=%s)", self._data_dir, os.path.isdir(self._data_dir))
@@ -262,7 +313,8 @@ class AppState:
                           "ai_count", "ai_difficulty", "practice_time",
                           "qualy_time", "race_laps", "sun_angle",
                           "time_mult", "session_duration_min",
-                          "ambient_temp", "track_grip", "freeplay"):
+                          "ambient_temp", "track_grip", "freeplay",
+                          "ai_traffic_count", "ai_traffic_density"):
                 value = kwargs.get(field)
                 if value is not None:
                     setattr(group, field, value)
@@ -383,6 +435,10 @@ class AppState:
 
     def add_leaderboard_entry(self, entry: LeaderboardEntry) -> None:
         self._leaderboard_db.insert(entry)
+
+    def upsert_session_best(self, entry: LeaderboardEntry) -> None:
+        """Insert or update the session-best table (keeps only fastest lap per driver per session)."""
+        self._leaderboard_db.upsert_session_best(entry)
 
     @property
     def leaderboard_db(self) -> LeaderboardDB:

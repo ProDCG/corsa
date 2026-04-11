@@ -329,10 +329,25 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
             f"\n[__PREVIEW_GENERATION]\n"
             f"ACTIVE=0"
         )
+        # [OPTIONS]
         lines.append(
             f"\n[OPTIONS]\n"
             f"USE_MPH=0"
         )
+
+        # [CSP_AI_TRAFFIC] — for No Hesi / SRP free-roam servers
+        ai_traffic_count = int(str(params.get("ai_traffic_count", 0) or 0))
+        ai_traffic_density = float(str(params.get("ai_traffic_density", 1.0) or 1.0))
+        if ai_traffic_count > 0:
+            lines.append(
+                f"\n[__EXT_CSP_AI_TRAFFIC]\n"
+                f"ENABLED=1\n"
+                f"CARS_COUNT={ai_traffic_count}\n"
+                f"DENSITY={ai_traffic_density:.1f}\n"
+                f"HIDE_DRIVERS=0\n"
+                f"LIMIT_FPS=0"
+            )
+            logger.info("CSP AI Traffic enabled: count=%d density=%.1f", ai_traffic_count, ai_traffic_density)
 
         content = "\n".join(lines)
 
@@ -462,6 +477,9 @@ def launch_ac(config: SledConfig, params: dict[str, object]) -> subprocess.Popen
     if not ini_path:
         return None
 
+    # Sync car setups from admin share before launching
+    sync_setups(config)
+
     try:
         # Pre-launch verification: re-read race.ini to ensure nothing overwrote it
         logger.info("--- PRE-LAUNCH CHECK (500ms after write) ---")
@@ -522,3 +540,82 @@ def sync_mods(config: SledConfig, source_override: str | None = None) -> bool:
     except Exception as e:
         logger.error("Sync failed: %s", e)
         return False
+
+
+def sync_setups(config: SledConfig) -> bool:
+    r"""Sync car setup .ini files from admin share to the user's Documents folder.
+
+    Setups are stored at: Documents/Assetto Corsa/setups/<car>/<track>/
+    Admin source:         \\ADMIN-PC\RidgeContent\setups\
+    """
+    if not IS_WINDOWS:
+        logger.info("Skipping setup sync on non-Windows system")
+        return True
+
+    source = os.path.join(config.admin_shared_folder, "setups")
+    if not os.path.isdir(source):
+        logger.debug("No setups directory on admin share: %s", source)
+        return True  # Not an error — setups are optional
+
+    user_profile = os.environ.get("USERPROFILE") or os.path.expanduser("~")
+    documents = os.path.join(user_profile, "Documents")
+    # Handle OneDrive redirect
+    onedrive_docs = os.path.join(user_profile, "OneDrive", "Documents")
+    if not os.path.exists(os.path.join(documents, "Assetto Corsa")) and os.path.exists(onedrive_docs):
+        documents = onedrive_docs
+
+    target = os.path.join(documents, "Assetto Corsa", "setups")
+
+    try:
+        logger.info("Syncing SETUPS from %s to %s", source, target)
+        subprocess.run(
+            ["robocopy", source, target, "/E", "/MT:4", "/Z", "/R:1", "/W:1"],
+            check=False,
+        )
+        logger.info("Setup sync complete")
+        return True
+    except Exception as e:
+        logger.error("Setup sync failed: %s", e)
+        return False
+
+
+def auto_start_drive(timeout: float = 30.0) -> None:
+    """Wait for the AC window to become active, then send Enter to bypass the Drive button.
+
+    Uses Win32 keybd_event on Windows (no pyautogui dependency).
+    Runs in a background thread so it doesn't block the launcher.
+    """
+    import time as _time
+
+    if not IS_WINDOWS:
+        return
+
+    try:
+        import ctypes
+        user32 = ctypes.windll.user32  # type: ignore[attr-defined]
+
+        VK_RETURN = 0x0D
+        KEYEVENTF_KEYUP = 0x0002
+
+        start = _time.time()
+        logger.info("Auto-drive: waiting for AC window (timeout=%.0fs)", timeout)
+
+        while _time.time() - start < timeout:
+            _time.sleep(1.0)
+            # Find AC window by process name
+            hwnd = user32.FindWindowW(None, "Assetto Corsa")
+            if hwnd:
+                # Give the game a moment to finish loading
+                _time.sleep(5.0)
+                # Bring window to front and send Enter
+                user32.SetForegroundWindow(hwnd)
+                _time.sleep(0.5)
+                user32.keybd_event(VK_RETURN, 0, 0, 0)
+                _time.sleep(0.1)
+                user32.keybd_event(VK_RETURN, 0, KEYEVENTF_KEYUP, 0)
+                logger.info("Auto-drive: sent Enter to AC window")
+                return
+
+        logger.warning("Auto-drive: timed out waiting for AC window")
+    except Exception as e:
+        logger.warning("Auto-drive failed: %s", e)
