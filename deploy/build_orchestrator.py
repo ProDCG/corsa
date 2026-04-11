@@ -60,10 +60,10 @@ def main() -> None:
     print(f"Command: {' '.join(cmd)}")
     result = subprocess.run(cmd)
     if result.returncode == 0:
-        print("\n✅ Orchestrator binary built successfully!")
+        print("\n[OK] Orchestrator binary built successfully!")
         print(f"   Output: build/orchestrator/CorsaConnect-Admin.exe")
     else:
-        print(f"\n❌ Build failed with exit code {result.returncode}")
+        print(f"\n[FAIL] Build failed with exit code {result.returncode}")
         sys.exit(1)
 
 
