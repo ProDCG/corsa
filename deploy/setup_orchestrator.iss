@@ -21,21 +21,21 @@ AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 DefaultDirName={autopf}\CorsaConnect\Admin
 DefaultGroupName=CorsaConnect
-OutputDir=build\installer
+OutputDir=..\build\installer
 OutputBaseFilename=CorsaConnect-Admin-Setup
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=admin
 UninstallRestartComputer=no
-SetupIconFile=deploy\ridge-link.ico
+SetupIconFile=ridge-link.ico
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
 ; Main executable
-Source: "build\orchestrator\CorsaConnect-Admin.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\build\orchestrator\CorsaConnect-Admin.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{autodesktop}\CorsaConnect Admin"; Filename: "{app}\{#MyAppExeName}"; Comment: "CorsaConnect Admin Dashboard"

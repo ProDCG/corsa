@@ -22,7 +22,7 @@ AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 DefaultDirName={autopf}\CorsaConnect\Sled
 DefaultGroupName=CorsaConnect
-OutputDir=build\installer
+OutputDir=..\build\installer
 OutputBaseFilename=CorsaConnect-Sled-Setup
 Compression=lzma2/ultra64
 SolidCompression=yes
@@ -30,14 +30,14 @@ WizardStyle=modern
 PrivilegesRequired=admin
 ; Keep config across reinstalls
 UninstallRestartComputer=no
-SetupIconFile=deploy\ridge-link.ico
+SetupIconFile=ridge-link.ico
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
 ; Main executable
-Source: "build\sled\CorsaConnect-Sled.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\build\sled\CorsaConnect-Sled.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 ; Desktop shortcut
