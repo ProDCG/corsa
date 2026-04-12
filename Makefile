@@ -1,4 +1,4 @@
-.PHONY: lint typecheck test check frontend-lint format install
+.PHONY: lint typecheck test check frontend-lint format install build-sled build-orchestrator build-all frontend-build
 
 # Run all checks
 check: lint typecheck test
@@ -29,3 +29,18 @@ install:
 	pip install -e apps/orchestrator/
 	pip install -e apps/sled/
 	cd apps/orchestrator/frontend && npm install
+
+# Build React frontend
+frontend-build:
+	cd apps/orchestrator/frontend && npm run build
+
+# Build Sled binary (Nuitka — Windows only)
+build-sled:
+	python deploy/build_sled.py
+
+# Build Orchestrator binary (Nuitka — Windows only)
+build-orchestrator:
+	python deploy/build_orchestrator.py
+
+# Build everything
+build-all: frontend-build build-sled build-orchestrator

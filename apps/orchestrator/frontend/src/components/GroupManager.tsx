@@ -24,6 +24,8 @@ interface RigGroup {
     ambient_temp: number
     track_grip: number
     freeplay: boolean
+    ai_traffic_count: number
+    ai_traffic_density: number
 }
 
 const AI_STEPS = [
@@ -307,6 +309,32 @@ export default function GroupManager({ rigs, activeCarPool, activeMapPool }: Gro
                 ai_difficulty: group.ai_difficulty,
                 car_pool: activeCarPool.length > 0 ? activeCarPool : group.car_pool,
                 use_server: group.mode === 'multiplayer',
+                ai_traffic_count: group.ai_traffic_count ?? 0,
+                ai_traffic_density: group.ai_traffic_density ?? 1.0,
+            })
+        })
+    }
+
+    const sendRigCommand = async (groupId: string, rigId: string, action: string) => {
+        const group = groups.find(g => g.id === groupId)
+        if (!group) return
+        await fetch(`/api/command`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                rig_id: rigId,
+                action,
+                track: group.track,
+                weather: group.weather,
+                practice_time: group.practice_time,
+                qualy_time: group.qualy_time,
+                race_laps: group.race_laps,
+                ai_count: group.ai_count,
+                ai_difficulty: group.ai_difficulty,
+                car_pool: activeCarPool.length > 0 ? activeCarPool : group.car_pool,
+                use_server: group.mode === 'multiplayer',
+                ai_traffic_count: group.ai_traffic_count ?? 0,
+                ai_traffic_density: group.ai_traffic_density ?? 1.0,
             })
         })
     }
@@ -622,8 +650,16 @@ export default function GroupManager({ rigs, activeCarPool, activeMapPool }: Gro
                                                 <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
                                             </div>
 
-                                            <button onClick={() => removeRigFromGroup(selectedGroup.id, rigId)}
-                                                className="text-white/10 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
+                                            <button onClick={() => sendRigCommand(selectedGroup.id, rigId, 'LAUNCH_RACE')}
+                                                className="text-white/10 hover:text-green-400 transition-colors opacity-0 group-hover:opacity-100 mr-0.5" title="Start Race">
+                                                <Play size={12} />
+                                            </button>
+                                            <button onClick={() => sendRigCommand(selectedGroup.id, rigId, 'KILL_RACE')}
+                                                className="text-white/10 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 mr-0.5" title="Stop Race">
+                                                <Power size={12} />
+                                            </button>
+                                            <button onClick={() => { sendRigCommand(selectedGroup.id, rigId, 'KILL_RACE'); removeRigFromGroup(selectedGroup.id, rigId) }}
+                                                className="text-white/10 hover:text-amber-400 transition-colors opacity-0 group-hover:opacity-100" title="Remove Rig">
                                                 <UserMinus size={12} />
                                             </button>
                                         </div>
@@ -765,6 +801,22 @@ export default function GroupManager({ rigs, activeCarPool, activeMapPool }: Gro
                                 <span className="text-xs font-black w-24 text-right text-white/70">
                                     {selectedGroup.ai_count === 0 ? 'No AI' : `${AI_STEPS.find(s => s.value === selectedGroup.ai_difficulty)?.label ?? 'Medium'} (${selectedGroup.ai_difficulty})`}
                                 </span>
+                            </div>
+
+                            {/* CSP AI Traffic — No Hesi / SRP */}
+                            <div className="pt-3 border-t border-white/5">
+                                <h5 className="text-[9px] uppercase font-black text-white/50 tracking-[0.3em] mb-2 flex items-center gap-1.5">
+                                    <Zap size={9} className="text-amber-400" /> CSP AI Traffic (No Hesi / SRP)
+                                </h5>
+                                <SliderRow label="Traffic" icon={Car} value={selectedGroup.ai_traffic_count ?? 0} min={0} max={50} unit=" cars"
+                                    onChange={v => updateGroup(selectedGroup.id, { ai_traffic_count: v })} />
+                                <div className={`mt-1 ${(selectedGroup.ai_traffic_count ?? 0) === 0 ? 'opacity-30 pointer-events-none' : ''}`}>
+                                    <SliderRow label="Density" icon={Gauge} value={selectedGroup.ai_traffic_density ?? 1.0} min={0.1} max={3.0} step={0.1} unit="x"
+                                        onChange={v => updateGroup(selectedGroup.id, { ai_traffic_density: parseFloat(v.toFixed(1)) })} />
+                                </div>
+                                {(selectedGroup.ai_traffic_count ?? 0) > 0 && (
+                                    <p className="text-[9px] text-amber-400/50 font-bold mt-1">Requires CSP + compatible track splines</p>
+                                )}
                             </div>
 
                             {/* Session Timer + Freeplay */}

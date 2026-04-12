@@ -217,17 +217,29 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
 
         # Sessions — only for offline (non-server) mode
         if not use_server:
-            # Single race session as SESSION_0 — matches CM's Quick Race format
-            race_type = 3 if race_laps > 0 else 2
-            lines.append(
-                f"\n[SESSION_0]\n"
-                f"NAME=Quick Race\n"
-                f"DURATION_MINUTES={race_time}\n"
-                f"SPAWN_SET=START\n"
-                f"TYPE={race_type}\n"
-                f"LAPS={race_laps}\n"
-                f"STARTING_POSITION={total_cars}"
-            )
+            if race_laps > 0:
+                # Normal Quick Race
+                lines.append(
+                    f"\n[SESSION_0]\n"
+                    f"NAME=Quick Race\n"
+                    f"DURATION_MINUTES={race_time}\n"
+                    f"SPAWN_SET=START\n"
+                    f"TYPE=3\n"
+                    f"LAPS={race_laps}\n"
+                    f"STARTING_POSITION={total_cars}"
+                )
+            else:
+                # Practice Mode
+                prac_time = practice_time if practice_time > 0 else 60
+                lines.append(
+                    f"\n[SESSION_0]\n"
+                    f"NAME=Practice\n"
+                    f"DURATION_MINUTES={prac_time}\n"
+                    f"SPAWN_SET=PITLANE\n"
+                    f"TYPE=1\n"
+                    f"LAPS=0\n"
+                    f"STARTING_POSITION={total_cars}"
+                )
 
         # [GROOVE]
         lines.append(
