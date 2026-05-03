@@ -178,6 +178,11 @@ export default function SessionTimerBar() {
     }, [activeTimers])
 
     const addTime = async (groupId: string, currentDuration: number, addMins: number) => {
+        // Optimistic update for instant UI feedback
+        setActiveTimers(prev => prev.map(t => 
+            t.groupId === groupId ? { ...t, durationMin: currentDuration + addMins } : t
+        ))
+        
         await fetch(`/api/groups/${groupId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },

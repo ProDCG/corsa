@@ -645,15 +645,11 @@ export default function GroupManager({ rigs, activeCarPool, activeMapPool }: Gro
                                             </div>
 
                                             <button onClick={() => sendRigCommand(selectedGroup.id, rigId, 'LAUNCH_RACE')}
-                                                className="text-white/10 hover:text-green-400 transition-colors opacity-0 group-hover:opacity-100 mr-0.5" title="Start Race">
+                                                className="text-white/10 hover:text-green-400 transition-colors opacity-0 group-hover:opacity-100 mr-0.5" title={selectedGroup.mode === 'multiplayer' ? "Join Race" : "Start Race"}>
                                                 <Play size={12} />
                                             </button>
-                                            <button onClick={() => sendRigCommand(selectedGroup.id, rigId, 'KILL_RACE')}
-                                                className="text-white/10 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 mr-0.5" title="Stop Race">
-                                                <Power size={12} />
-                                            </button>
                                             <button onClick={() => { sendRigCommand(selectedGroup.id, rigId, 'KILL_RACE'); removeRigFromGroup(selectedGroup.id, rigId) }}
-                                                className="text-white/10 hover:text-amber-400 transition-colors opacity-0 group-hover:opacity-100" title="Remove Rig">
+                                                className="text-white/10 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100" title="Stop Race">
                                                 <UserMinus size={12} />
                                             </button>
                                         </div>

@@ -688,7 +688,7 @@ class ACServerManager:
                 f"MODEL={rig_car}\n"
                 f"SKIN=\n"
                 f"SPECTATOR_MODE=0\n"
-                f"DRIVERNAME={driver_name}\n"
+                f"DRIVERNAME=\n"
                 f"TEAM=\n"
                 f"GUID=\n"
                 f"BALLAST=0\n"
