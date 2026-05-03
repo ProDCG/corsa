@@ -39,6 +39,21 @@ def create_router(state: AppState) -> APIRouter:
             return state.leaderboard_db.get_by_track(track)
         return state.leaderboard
 
+    @router.delete("/leaderboard")
+    async def clear_leaderboard() -> dict[str, str]:
+        """Clear all leaderboard data."""
+        state.leaderboard_db.clear_leaderboard()
+        # Also clear in-memory state if tracking recent session laps
+        state.leaderboard = []
+        return {"status": "success"}
+
+    @router.delete("/leaderboard/{record_id}")
+    async def delete_leaderboard_record(record_id: int) -> dict[str, str]:
+        """Delete a single leaderboard record by ID."""
+        if state.leaderboard_db.delete_record(record_id):
+            return {"status": "success"}
+        return {"status": "error", "message": "Record not found"}
+
     @router.get("/lobby")
     async def get_lobby() -> dict[str, object]:
         """Public feed for TV displays — session-best per driver, sorted by fastest lap time."""

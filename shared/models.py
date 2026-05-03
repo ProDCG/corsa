@@ -193,6 +193,7 @@ class Preset(BaseModel):
 class LeaderboardEntry(BaseModel):
     """A single lap record on the leaderboard."""
 
+    id: int | None = None
     rig_id: str
     driver_name: str | None = None
     car: str | None = None

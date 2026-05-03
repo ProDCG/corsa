@@ -1,4 +1,4 @@
-import { Activity, Cpu, Monitor, Zap, Power, RotateCcw, Play, Check, Image, Car, Settings2, Flag, Clock, ShieldCheck, LayoutGrid, Users, Lock, Unlock, Wrench, ChevronLeft, ChevronRight, Thermometer, Fuel, Gauge, Square, ChevronDown, MapPin, Headphones, Mic } from 'lucide-react'
+import { Activity, Cpu, Monitor, Zap, Power, RotateCcw, Play, Check, Image, Car, Settings2, Flag, Clock, ShieldCheck, LayoutGrid, Users, Lock, Unlock, Wrench, ChevronLeft, ChevronRight, Thermometer, Fuel, Gauge, Square, ChevronDown, MapPin, Headphones, Mic, Trash } from 'lucide-react'
 import Kiosk from './Kiosk'
 import Lobby from './Lobby'
 import GroupManager from './components/GroupManager'
@@ -1132,8 +1132,21 @@ function App() {
                                     <h2 className="text-4xl font-black italic uppercase tracking-tighter mb-2">Hall of Fame</h2>
                                     <p className="text-sm text-white/40 uppercase tracking-[0.4em] font-bold">Race Results // Facility Leaderboard</p>
                                 </div>
-                                <div className="p-4 bg-ridge-brand rounded-2xl rotate-3 shadow-2xl shadow-ridge-brand/40">
-                                    <Flag size={32} />
+                                <div className="flex gap-4 items-center">
+                                    <button 
+                                        onClick={async () => {
+                                            if (confirm("Are you sure you want to permanently clear the entire leaderboard?")) {
+                                                await fetch('/api/leaderboard', { method: 'DELETE' });
+                                                setLeaderboard([]);
+                                            }
+                                        }}
+                                        className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-400 bg-red-500/10 hover:bg-red-500/20 px-4 py-2 rounded-xl transition-all border border-red-500/20"
+                                    >
+                                        Clear Leaderboard
+                                    </button>
+                                    <div className="p-4 bg-ridge-brand rounded-2xl rotate-3 shadow-2xl shadow-ridge-brand/40">
+                                        <Flag size={32} />
+                                    </div>
                                 </div>
                             </div>
 
@@ -1202,11 +1215,12 @@ function App() {
                                             <th className="text-right px-5 py-4 text-[10px] font-black uppercase tracking-widest text-white/50">Laps</th>
                                             <th className="text-right px-5 py-4 text-[10px] font-black uppercase tracking-widest text-white/50">Time</th>
                                             <th className="text-right px-5 py-4 text-[10px] font-black uppercase tracking-widest text-white/50">Date</th>
+                                            <th className="text-right px-5 py-4 text-[10px] font-black uppercase tracking-widest text-white/50"></th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {filtered.length > 0 ? filtered.map((entry: any, idx: number) => (
-                                            <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                            <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
                                                 <td className="px-5 py-3.5">
                                                     <span className={`text-lg font-black italic tabular-nums ${idx < 3 ? 'text-ridge-brand' : 'text-white/30'}`}>{idx + 1}</span>
                                                 </td>
@@ -1242,6 +1256,22 @@ function App() {
                                                     <span className="text-[10px] font-bold text-white/40 tabular-nums">
                                                         {entry.timestamp ? new Date(entry.timestamp * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                                                     </span>
+                                                </td>
+                                                <td className="px-5 py-3.5 text-right opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    {entry.id && (
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (confirm("Delete this record?")) {
+                                                                    await fetch(`/api/leaderboard/${entry.id}`, { method: 'DELETE' });
+                                                                    setLeaderboard(leaderboard.filter((e: any) => e.id !== entry.id));
+                                                                }
+                                                            }}
+                                                            className="text-white/20 hover:text-red-400 transition-colors"
+                                                            title="Delete Record"
+                                                        >
+                                                            <Trash size={14} />
+                                                        </button>
+                                                    )}
                                                 </td>
                                             </tr>
                                         )) : (

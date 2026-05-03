@@ -128,6 +128,7 @@ class LeaderboardDB:
     def _rows_to_entries(self, rows: list[sqlite3.Row]) -> list[LeaderboardEntry]:
         return [
             LeaderboardEntry(
+                id=dict(r).get("id"),
                 rig_id=r["rig_id"],
                 driver_name=r["driver_name"],
                 car=r["car"],
@@ -140,6 +141,23 @@ class LeaderboardDB:
             )
             for r in rows
         ]
+
+    def delete_record(self, record_id: int) -> bool:
+        """Delete a specific record from laps. Does not affect session_best for simplicity."""
+        conn = self._connect()
+        cursor = conn.execute("DELETE FROM laps WHERE id = ?", (record_id,))
+        deleted = cursor.rowcount > 0
+        conn.commit()
+        conn.close()
+        return deleted
+
+    def clear_leaderboard(self) -> None:
+        """Clear all records from laps and session_best."""
+        conn = self._connect()
+        conn.execute("DELETE FROM laps")
+        conn.execute("DELETE FROM session_best")
+        conn.commit()
+        conn.close()
 
     def get_all(self, limit: int = 200) -> list[LeaderboardEntry]:
         """Get all entries, most recent first."""
