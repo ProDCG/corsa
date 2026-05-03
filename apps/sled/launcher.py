@@ -83,8 +83,8 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
         os.makedirs(os.path.dirname(cfg_path), exist_ok=True)
 
         # ── Timing params ──
-        practice_time = int(str(params.get("practice_time", 0) or 0))
-        qualy_time = int(str(params.get("qualy_time", 0) or 0))
+        _practice_time = int(str(params.get("practice_time", 0) or 0))
+        _qualy_time = int(str(params.get("qualy_time", 0) or 0))
         race_laps = int(str(params.get("race_laps", 10) or 10))
         race_time = int(str(params.get("race_time", 0) or 0))
 
@@ -201,10 +201,10 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
 
         # [WIND]
         lines.append(
-            f"\n[WIND]\n"
-            f"SPEED_KMH_MIN=0\n"
-            f"SPEED_KMH_MAX=0\n"
-            f"DIRECTION_DEG=90"
+            "\n[WIND]\n"
+            "SPEED_KMH_MIN=0\n"
+            "SPEED_KMH_MAX=0\n"
+            "DIRECTION_DEG=90"
         )
 
         # [TEMPERATURE]
@@ -231,33 +231,33 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
 
         # [GROOVE]
         lines.append(
-            f"\n[GROOVE]\n"
-            f"VIRTUAL_LAPS=10\n"
-            f"MAX_LAPS=30\n"
-            f"STARTING_LAPS=0"
+            "\n[GROOVE]\n"
+            "VIRTUAL_LAPS=10\n"
+            "MAX_LAPS=30\n"
+            "STARTING_LAPS=0"
         )
 
         # [GHOST_CAR]
         lines.append(
-            f"\n[GHOST_CAR]\n"
-            f"RECORDING=0\n"
-            f"PLAYING=0\n"
-            f"LOAD=0\n"
-            f"FILE=\n"
-            f"ENABLED=0"
+            "\n[GHOST_CAR]\n"
+            "RECORDING=0\n"
+            "PLAYING=0\n"
+            "LOAD=0\n"
+            "FILE=\n"
+            "ENABLED=0"
         )
 
         # [LAP_INVALIDATOR]
         lines.append(
-            f"\n[LAP_INVALIDATOR]\n"
-            f"ALLOWED_TYRES_OUT=-1"
+            "\n[LAP_INVALIDATOR]\n"
+            "ALLOWED_TYRES_OUT=-1"
         )
 
         # [HEADER]
         lines.append(
-            f"\n[HEADER]\n"
-            f"VERSION=2\n"
-            f"CM_FEATURE_SET=2"
+            "\n[HEADER]\n"
+            "VERSION=2\n"
+            "CM_FEATURE_SET=2"
         )
 
         # [REMOTE]
@@ -314,24 +314,24 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
 
         # Trailing standard sections
         lines.append(
-            f"\n[BENCHMARK]\n"
-            f"ACTIVE=0"
+            "\n[BENCHMARK]\n"
+            "ACTIVE=0"
         )
         lines.append(
-            f"\n[REPLAY]\n"
-            f"ACTIVE=0"
+            "\n[REPLAY]\n"
+            "ACTIVE=0"
         )
         lines.append(
-            f"\n[RESTART]\n"
-            f"ACTIVE=0"
+            "\n[RESTART]\n"
+            "ACTIVE=0"
         )
         lines.append(
-            f"\n[__PREVIEW_GENERATION]\n"
-            f"ACTIVE=0"
+            "\n[__PREVIEW_GENERATION]\n"
+            "ACTIVE=0"
         )
         lines.append(
-            f"\n[OPTIONS]\n"
-            f"USE_MPH=0"
+            "\n[OPTIONS]\n"
+            "USE_MPH=0"
         )
 
         content = "\n".join(lines)
@@ -405,7 +405,7 @@ def generate_race_ini(config: SledConfig, params: dict[str, object]) -> str | No
 
             # Verify critical values
             for check_key in ["SUN_ANGLE", "__CM_WEATHER_TYPE", "NAME=", "TRACK="]:
-                matches = [l for l in written_content.splitlines() if check_key in l]
+                matches = [line for line in written_content.splitlines() if check_key in line]
                 for m in matches:
                     logger.info("VERIFY %s: %s", check_key, m.strip())
 
@@ -470,8 +470,8 @@ def launch_ac(config: SledConfig, params: dict[str, object]) -> subprocess.Popen
         try:
             with open(ini_path) as f:
                 pre_launch = f.read()
-            sun_lines = [l for l in pre_launch.splitlines() if "SUN_ANGLE" in l]
-            weather_lines = [l for l in pre_launch.splitlines() if l.startswith("NAME=")]
+            sun_lines = [line for line in pre_launch.splitlines() if "SUN_ANGLE" in line]
+            weather_lines = [line for line in pre_launch.splitlines() if line.startswith("NAME=")]
             logger.info("PRE-LAUNCH SUN_ANGLE: %s", sun_lines)
             logger.info("PRE-LAUNCH WEATHER: %s", weather_lines)
             logger.info("PRE-LAUNCH file size: %d bytes", len(pre_launch))

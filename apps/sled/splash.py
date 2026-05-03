@@ -23,7 +23,6 @@ import sys
 import threading
 import time
 import tkinter as tk
-from io import BytesIO
 from pathlib import Path
 from urllib import request as urlrequest
 from urllib.error import URLError
@@ -43,13 +42,12 @@ except ImportError:
 
 try:
     import cv2
-    import numpy as np
     HAS_CV2 = True
 except ImportError:
     HAS_CV2 = False
 
 
-def _pil_to_tk(pil_img: "Image.Image") -> tk.PhotoImage:
+def _pil_to_tk(pil_img: Image.Image) -> tk.PhotoImage:
     """Convert a PIL Image to a Tkinter PhotoImage via PPM bytes.
 
     Works without ImageTk by using the raw PPM format that Tkinter
@@ -59,7 +57,7 @@ def _pil_to_tk(pil_img: "Image.Image") -> tk.PhotoImage:
         return ImageTk.PhotoImage(pil_img)
     # Fallback: convert to PPM data and use tk.PhotoImage
     rgb = pil_img.convert("RGB")
-    data = rgb.tobytes("raw", "PPM")
+    _data = rgb.tobytes("raw", "PPM")
     # Build a proper PPM header
     w, h = rgb.size
     ppm = f"P6\n{w} {h}\n255\n".encode() + rgb.tobytes()
@@ -226,7 +224,7 @@ class DesktopBlocker:
             logger.warning("Failed to resolve asset %s: %s", filename, e)
             return None
 
-    def _load_logo(self, filename: str, max_height: int = 50) -> "tk.PhotoImage | None":
+    def _load_logo(self, filename: str, max_height: int = 50) -> tk.PhotoImage | None:
         """Load a logo from local filesystem or orchestrator and return a Tk-compatible image."""
         if not HAS_PIL:
             return None
@@ -302,7 +300,7 @@ class DesktopBlocker:
 
         cap.release()
 
-    def _update_bg_frame(self, photo: "tk.PhotoImage") -> None:
+    def _update_bg_frame(self, photo: tk.PhotoImage) -> None:
         """Update the background canvas image (must run on main thread)."""
         self._bg_photo = photo  # Prevent GC
         self.canvas.itemconfig(self._bg_canvas_id, image=photo)

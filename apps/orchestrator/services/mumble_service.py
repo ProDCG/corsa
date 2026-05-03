@@ -460,7 +460,7 @@ class MumbleService:
             # Verify channels were created
             time.sleep(1.0)
             created_rooms = []
-            for cid, ch in self._mumble.channels.items():
+            for _cid, ch in self._mumble.channels.items():
                 ch_name = ch["name"] if isinstance(ch, dict) else getattr(ch, "name", "?")
                 if ch_name in MUMBLE_CHANNELS:
                     created_rooms.append(ch_name)
@@ -492,7 +492,7 @@ class MumbleService:
         connected_users: list[str] = []
         if self._mumble:
             try:
-                for sid, user in self._mumble.users.items():
+                for _sid, user in self._mumble.users.items():
                     uname = user.get("name", "?") if isinstance(user, dict) else getattr(user, "name", "?")
                     if uname != MUMBLE_BOT_USER:
                         connected_users.append(uname)
@@ -630,7 +630,7 @@ class MumbleService:
         if self._connected and self._mumble:
             try:
                 users_by_channel: dict[str, list[str]] = {}
-                for session_id, user in self._mumble.users.items():
+                for _session_id, user in self._mumble.users.items():
                     user_name = self._get_name(user)
                     if user_name in (MUMBLE_BOT_USER, "SuperUser"):
                         continue

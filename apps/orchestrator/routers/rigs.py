@@ -168,8 +168,7 @@ def create_router(state: AppState) -> APIRouter:
                     if raw_time is not None:
                         lap_time_ms = _parse_lap_time_ms(raw_time)
 
-                    state.add_leaderboard_entry(
-                        LeaderboardEntry(
+                    entry = LeaderboardEntry(
                             rig_id=rig_id,
                             driver_name=str(rig.get("driver_name", "")) or None,
                             car=str(rig.get("selected_car", "")),
@@ -177,8 +176,11 @@ def create_router(state: AppState) -> APIRouter:
                             group_name=rig_group.name if rig_group else None,
                             lap=int(completed),
                             lap_time_ms=lap_time_ms,
+                            session_id=rig_group.id if rig_group else None,
                         )
-                    )
+                    state.add_leaderboard_entry(entry)
+                    # Also upsert into session_best (peak performance per driver)
+                    state.upsert_session_best(entry)
 
         # Service connectivity indicators
         if update.simhub_connected is not None:

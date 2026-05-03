@@ -28,6 +28,19 @@ CREATE TABLE IF NOT EXISTS laps (
 CREATE INDEX IF NOT EXISTS idx_laps_track ON laps(track);
 CREATE INDEX IF NOT EXISTS idx_laps_session ON laps(session_id);
 CREATE INDEX IF NOT EXISTS idx_laps_timestamp ON laps(timestamp DESC);
+
+CREATE TABLE IF NOT EXISTS session_best (
+    rig_id        TEXT NOT NULL,
+    driver_name   TEXT,
+    car           TEXT,
+    track         TEXT,
+    group_name    TEXT,
+    lap           INTEGER NOT NULL DEFAULT 0,
+    lap_time_ms   INTEGER,
+    session_id    TEXT NOT NULL,
+    timestamp     REAL NOT NULL,
+    PRIMARY KEY (rig_id, session_id)
+);
 """
 
 
@@ -57,6 +70,46 @@ class LeaderboardDB:
             conn.execute(
                 """INSERT INTO laps (rig_id, driver_name, car, track, group_name, lap, lap_time_ms, session_id, timestamp)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    entry.rig_id,
+                    entry.driver_name,
+                    entry.car,
+                    entry.track,
+                    entry.group_name,
+                    entry.lap,
+                    entry.lap_time_ms,
+                    entry.session_id,
+                    entry.timestamp,
+                ),
+            )
+            conn.commit()
+            conn.close()
+
+    def upsert_session_best(self, entry: LeaderboardEntry) -> None:
+        """Insert or update the session best for this rig/driver."""
+        if not entry.session_id:
+            return
+        with self._lock:
+            conn = self._connect()
+            conn.execute(
+                """
+                INSERT INTO session_best (rig_id, driver_name, car, track, group_name, lap, lap_time_ms, session_id, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(rig_id, session_id) DO UPDATE SET
+                       lap_time_ms = CASE
+                           WHEN session_best.lap_time_ms IS NULL OR session_best.lap_time_ms <= 0 THEN EXCLUDED.lap_time_ms
+                           WHEN EXCLUDED.lap_time_ms > 0 AND (
+                               EXCLUDED.lap_time_ms < session_best.lap_time_ms
+                           ) THEN EXCLUDED.lap_time_ms
+                           ELSE session_best.lap_time_ms
+                       END,
+                       lap = MAX(session_best.lap, EXCLUDED.lap),
+                       driver_name = COALESCE(EXCLUDED.driver_name, session_best.driver_name),
+                       car = COALESCE(EXCLUDED.car, session_best.car),
+                       track = COALESCE(EXCLUDED.track, session_best.track),
+                       group_name = COALESCE(EXCLUDED.group_name, session_best.group_name),
+                       timestamp = EXCLUDED.timestamp
+                """,
                 (
                     entry.rig_id,
                     entry.driver_name,
@@ -141,6 +194,49 @@ class LeaderboardDB:
                WHERE lap = (SELECT MAX(lap) FROM laps l2
                             WHERE l2.rig_id = l1.rig_id AND l2.track = l1.track)
                ORDER BY track, lap DESC"""
+        ).fetchall()
+        conn.close()
+        return self._rows_to_entries(rows)
+
+    def get_session_best(self, session_id: str | None = None, limit: int = 50) -> list[LeaderboardEntry]:
+        """Get session-best entries (one per driver, fastest lap only)."""
+        conn = self._connect()
+        if session_id:
+            rows = conn.execute(
+                """SELECT * FROM session_best
+                   WHERE session_id = ?
+                   ORDER BY CASE WHEN lap_time_ms IS NULL THEN 1 ELSE 0 END,
+                            lap_time_ms ASC
+                   LIMIT ?""",
+                (session_id, limit),
+            ).fetchall()
+        else:
+            row = conn.execute(
+                "SELECT session_id FROM session_best WHERE session_id IS NOT NULL ORDER BY timestamp DESC LIMIT 1"
+            ).fetchone()
+            if not row:
+                conn.close()
+                return []
+            rows = conn.execute(
+                """SELECT * FROM session_best
+                   WHERE session_id = ?
+                   ORDER BY CASE WHEN lap_time_ms IS NULL THEN 1 ELSE 0 END,
+                            lap_time_ms ASC
+                   LIMIT ?""",
+                (row["session_id"], limit),
+            ).fetchall()
+        conn.close()
+        return self._rows_to_entries(rows)
+
+    def get_session_best_all(self, limit: int = 100) -> list[LeaderboardEntry]:
+        """Get all session-best entries across all sessions, sorted by time."""
+        conn = self._connect()
+        rows = conn.execute(
+            """SELECT * FROM session_best
+               ORDER BY CASE WHEN lap_time_ms IS NULL THEN 1 ELSE 0 END,
+                        lap_time_ms ASC
+               LIMIT ?""",
+            (limit,),
         ).fetchall()
         conn.close()
         return self._rows_to_entries(rows)

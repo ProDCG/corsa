@@ -311,6 +311,28 @@ export default function GroupManager({ rigs, activeCarPool, activeMapPool }: Gro
         })
     }
 
+    const sendRigCommand = async (groupId: string, rigId: string, action: string) => {
+        const group = groups.find(g => g.id === groupId)
+        if (!group) return
+        await fetch(`/api/command`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                rig_id: rigId,
+                action,
+                track: group.track,
+                weather: group.weather,
+                practice_time: group.practice_time,
+                qualy_time: group.qualy_time,
+                race_laps: group.race_laps,
+                ai_count: group.ai_count,
+                ai_difficulty: group.ai_difficulty,
+                car_pool: activeCarPool.length > 0 ? activeCarPool : group.car_pool,
+                use_server: group.mode === 'multiplayer',
+            })
+        })
+    }
+
     const startServerForGroup = async (groupId: string): Promise<boolean> => {
         const group = groups.find(g => g.id === groupId)
         if (!group) return false
@@ -622,8 +644,16 @@ export default function GroupManager({ rigs, activeCarPool, activeMapPool }: Gro
                                                 <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
                                             </div>
 
-                                            <button onClick={() => removeRigFromGroup(selectedGroup.id, rigId)}
-                                                className="text-white/10 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
+                                            <button onClick={() => sendRigCommand(selectedGroup.id, rigId, 'LAUNCH_RACE')}
+                                                className="text-white/10 hover:text-green-400 transition-colors opacity-0 group-hover:opacity-100 mr-0.5" title="Start Race">
+                                                <Play size={12} />
+                                            </button>
+                                            <button onClick={() => sendRigCommand(selectedGroup.id, rigId, 'KILL_RACE')}
+                                                className="text-white/10 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 mr-0.5" title="Stop Race">
+                                                <Power size={12} />
+                                            </button>
+                                            <button onClick={() => { sendRigCommand(selectedGroup.id, rigId, 'KILL_RACE'); removeRigFromGroup(selectedGroup.id, rigId) }}
+                                                className="text-white/10 hover:text-amber-400 transition-colors opacity-0 group-hover:opacity-100" title="Remove Rig">
                                                 <UserMinus size={12} />
                                             </button>
                                         </div>
@@ -787,6 +817,16 @@ export default function GroupManager({ rigs, activeCarPool, activeMapPool }: Gro
                                             onChange={e => updateGroup(selectedGroup.id, { session_duration_min: parseInt(e.target.value) || 30 })}
                                             className="w-24 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none focus:border-ridge-brand" />
                                         <span className="text-[10px] text-white/40 font-bold uppercase">minutes per session</span>
+                                        <div className="flex items-center gap-1.5 ml-auto">
+                                            <button onClick={() => updateGroup(selectedGroup.id, { session_duration_min: (selectedGroup.session_duration_min || 30) + 5 })}
+                                                className="bg-white/5 hover:bg-ridge-brand/20 hover:text-ridge-brand text-[10px] font-black uppercase text-white/50 px-2 py-1 rounded transition-colors">
+                                                +5m
+                                            </button>
+                                            <button onClick={() => updateGroup(selectedGroup.id, { session_duration_min: (selectedGroup.session_duration_min || 30) + 15 })}
+                                                className="bg-white/5 hover:bg-ridge-brand/20 hover:text-ridge-brand text-[10px] font-black uppercase text-white/50 px-2 py-1 rounded transition-colors">
+                                                +15m
+                                            </button>
+                                        </div>
                                     </div>
                                 ) : (
                                     <p className="text-[10px] text-amber-400/60 font-bold uppercase tracking-widest">No time limit — session runs until manually stopped</p>

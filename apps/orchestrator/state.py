@@ -384,6 +384,10 @@ class AppState:
     def add_leaderboard_entry(self, entry: LeaderboardEntry) -> None:
         self._leaderboard_db.insert(entry)
 
+    def upsert_session_best(self, entry: LeaderboardEntry) -> None:
+        """Insert or update the session-best table (keeps only fastest lap per driver per session)."""
+        self._leaderboard_db.upsert_session_best(entry)
+
     @property
     def leaderboard_db(self) -> LeaderboardDB:
         return self._leaderboard_db

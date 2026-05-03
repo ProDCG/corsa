@@ -66,7 +66,11 @@ export default function SessionTimerBar() {
                         const existing = prev.find(t => t.groupId === group.id)
                         if (hasRacing) {
                             if (existing) {
-                                next.push(existing) // Keep existing timer
+                                next.push({
+                                    ...existing,
+                                    durationMin: group.session_duration_min || 30,
+                                    freeplay: group.freeplay || false,
+                                })
                             } else {
                                 next.push({
                                     groupId: group.id,
@@ -80,8 +84,8 @@ export default function SessionTimerBar() {
                         // If not racing, timer is removed
                     }
                     // Only update if changed
-                    const nj = JSON.stringify(next.map(t => t.groupId))
-                    const pj = JSON.stringify(prev.map(t => t.groupId))
+                    const nj = JSON.stringify(next.map(t => `${t.groupId}:${t.durationMin}:${t.freeplay}`))
+                    const pj = JSON.stringify(prev.map(t => `${t.groupId}:${t.durationMin}:${t.freeplay}`))
                     return nj !== pj ? next : prev
                 })
             } catch { /* offline */ }
@@ -173,6 +177,14 @@ export default function SessionTimerBar() {
         return () => cancelAnimationFrame(animRef.current)
     }, [activeTimers])
 
+    const addTime = async (groupId: string, currentDuration: number, addMins: number) => {
+        await fetch(`/api/groups/${groupId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_duration_min: currentDuration + addMins })
+        })
+    }
+
     if (activeTimers.length === 0) return null
 
     return (
@@ -189,8 +201,14 @@ export default function SessionTimerBar() {
                     )}
                     <span data-timer-id={timer.groupId} className="text-sm font-black tabular-nums text-white">--:--</span>
                     {!timer.freeplay && (
-                        <span data-expired-id={timer.groupId} style={{ display: 'none' }}
-                            className="text-[8px] font-black uppercase text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded">EXPIRED</span>
+                        <>
+                            <span data-expired-id={timer.groupId} style={{ display: 'none' }}
+                                className="text-[8px] font-black uppercase text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded">EXPIRED</span>
+                            <button onClick={() => addTime(timer.groupId, timer.durationMin, 5)}
+                                className="ml-1 text-[9px] font-black text-white/40 hover:text-ridge-brand bg-white/5 hover:bg-ridge-brand/20 px-1.5 py-0.5 rounded transition-all">
+                                +5m
+                            </button>
+                        </>
                     )}
                 </div>
             ))}
