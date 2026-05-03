@@ -439,10 +439,10 @@ class RigAgent:
         # Force-kill AC processes by name (belt and suspenders)
         if IS_WINDOWS:
             import subprocess as _sp
-            for exe in ("AssettoCorsa.exe", "acs.exe", "acs_x86.exe"):
+            for exe in ("AssettoCorsa.exe", "assettocorsa.exe", "acs.exe", "acs_x86.exe"):
                 try:
                     _sp.run(
-                        ["taskkill", "/F", "/IM", exe],
+                        ["taskkill", "/F", "/T", "/IM", exe],
                         capture_output=True, timeout=5,
                     )
                 except Exception:
@@ -454,7 +454,7 @@ class RigAgent:
                 for proc in psutil.process_iter(["name"]):
                     try:
                         name = proc.info.get("name", "")
-                        if name in ("AssettoCorsa.exe", "acs.exe", "acs_x86.exe"):
+                        if name in ("AssettoCorsa.exe", "assettocorsa.exe", "acs.exe", "acs_x86.exe"):
                             proc.kill()
                     except (psutil.NoSuchProcess, psutil.AccessDenied):
                         pass
