@@ -640,7 +640,11 @@ function App() {
                                             placeholder="Enter name..."
                                             defaultValue={rig.driver_name || ''}
                                             onBlur={async (e) => {
-                                                const name = e.target.value.trim()
+                                                let name = e.target.value.trim()
+                                                if (!name) {
+                                                    name = rig.rig_id
+                                                    e.target.value = name
+                                                }
                                                 await fetch(`/api/rigs/${rig.rig_id}/driver_name`, {
                                                     method: 'POST',
                                                     headers: { 'Content-Type': 'application/json' },

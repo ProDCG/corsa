@@ -58,6 +58,48 @@ interface Rig {
     mode?: string
 }
 
+/* ------------------------------------------------------------------ */
+/*  Helper Components                                                  */
+/* ------------------------------------------------------------------ */
+
+const SmartNumberInput = ({ value, onChange, min, max, className, placeholder = "0" }: any) => {
+    const [local, setLocal] = useState(value?.toString() || '')
+    
+    // Sync external changes (like presets) into local state, but only if they differ when parsed
+    useEffect(() => {
+        if (parseInt(local) !== value && local !== '') {
+            setLocal(value?.toString() || '0')
+        }
+    }, [value])
+
+    return (
+        <input
+            type="number"
+            min={min}
+            max={max}
+            className={className}
+            placeholder={placeholder}
+            value={local}
+            onChange={e => {
+                setLocal(e.target.value)
+                const parsed = parseInt(e.target.value)
+                if (!isNaN(parsed)) {
+                    onChange(parsed)
+                }
+            }}
+            onBlur={e => {
+                if (e.target.value === '' || isNaN(parseInt(e.target.value))) {
+                    setLocal('0')
+                    onChange(0)
+                }
+            }}
+            onKeyDown={e => {
+                if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+            }}
+        />
+    )
+}
+
 interface CatalogCar { id: string; name: string; brand: string; car_class: string }
 interface CatalogTrack { id: string; name: string }
 interface CatalogWeather { id: string; name: string }
@@ -754,26 +796,26 @@ export default function GroupManager({ rigs, activeCarPool, activeMapPool }: Gro
                             <div className="grid grid-cols-4 gap-3">
                                 <div>
                                     <label className="flex items-center gap-1 text-[9px] uppercase font-black text-white/50 tracking-widest mb-1"><Flag size={9} /> Laps</label>
-                                    <input type="number" min={0} max={100} value={selectedGroup.race_laps}
-                                        onChange={e => updateGroup(selectedGroup.id, { race_laps: parseInt(e.target.value) ?? 0 })}
+                                    <SmartNumberInput min={0} max={100} value={selectedGroup.race_laps}
+                                        onChange={(val: number) => updateGroup(selectedGroup.id, { race_laps: val })}
                                         className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none focus:border-ridge-brand" />
                                 </div>
                                 <div>
                                     <label className="flex items-center gap-1 text-[9px] uppercase font-black text-white/50 tracking-widest mb-1"><Timer size={9} /> Practice (m)</label>
-                                    <input type="number" min={0} max={60} value={selectedGroup.practice_time}
-                                        onChange={e => updateGroup(selectedGroup.id, { practice_time: parseInt(e.target.value) || 0 })}
+                                    <SmartNumberInput min={0} max={60} value={selectedGroup.practice_time}
+                                        onChange={(val: number) => updateGroup(selectedGroup.id, { practice_time: val })}
                                         className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none focus:border-ridge-brand" />
                                 </div>
                                 <div>
                                     <label className="flex items-center gap-1 text-[9px] uppercase font-black text-white/50 tracking-widest mb-1"><Trophy size={9} /> Qualify (m)</label>
-                                    <input type="number" min={0} max={60} value={selectedGroup.qualy_time}
-                                        onChange={e => updateGroup(selectedGroup.id, { qualy_time: parseInt(e.target.value) || 0 })}
+                                    <SmartNumberInput min={0} max={60} value={selectedGroup.qualy_time}
+                                        onChange={(val: number) => updateGroup(selectedGroup.id, { qualy_time: val })}
                                         className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none focus:border-ridge-brand" />
                                 </div>
                                 <div>
                                     <label className="flex items-center gap-1 text-[9px] uppercase font-black text-white/50 tracking-widest mb-1"><Cpu size={9} /> AI Cars</label>
-                                    <input type="number" min={0} max={30} value={selectedGroup.ai_count}
-                                        onChange={e => updateGroup(selectedGroup.id, { ai_count: parseInt(e.target.value) || 0 })}
+                                    <SmartNumberInput min={0} max={30} value={selectedGroup.ai_count}
+                                        onChange={(val: number) => updateGroup(selectedGroup.id, { ai_count: val })}
                                         className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none focus:border-ridge-brand" />
                                 </div>
                             </div>
@@ -809,8 +851,8 @@ export default function GroupManager({ rigs, activeCarPool, activeMapPool }: Gro
                                 </div>
                                 {!selectedGroup.freeplay ? (
                                     <div className="flex items-center gap-3">
-                                        <input type="number" min={1} max={480} value={selectedGroup.session_duration_min ?? 30}
-                                            onChange={e => updateGroup(selectedGroup.id, { session_duration_min: parseInt(e.target.value) || 30 })}
+                                        <SmartNumberInput min={1} max={480} value={selectedGroup.session_duration_min ?? 30} placeholder="30"
+                                            onChange={(val: number) => updateGroup(selectedGroup.id, { session_duration_min: val || 30 })}
                                             className="w-24 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none focus:border-ridge-brand" />
                                         <span className="text-[10px] text-white/40 font-bold uppercase">minutes per session</span>
                                         <div className="flex items-center gap-1.5 ml-auto">
