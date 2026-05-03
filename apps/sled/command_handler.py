@@ -39,10 +39,17 @@ class CommandHandler:
         while True:
             conn, addr = sock.accept()
             with conn:
-                data = conn.recv(4096)
-                if data:
+                buffer = b""
+                while True:
+                    chunk = conn.recv(4096)
+                    if not chunk:
+                        break
+                    buffer += chunk
+                    if b"\n" in chunk:
+                        break
+                if buffer:
                     try:
-                        payload = json.loads(data.decode("utf-8"))
+                        payload = json.loads(buffer.decode("utf-8").strip())
                         logger.info("Command received from %s: %s", addr[0], payload.get("action"))
                         self._dispatch(payload)
                     except Exception as e:
