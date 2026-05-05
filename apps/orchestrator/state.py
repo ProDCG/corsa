@@ -258,7 +258,7 @@ class AppState:
             group = self._groups.get(group_id)
             if not group:
                 return None
-            for field in ("name", "mode", "track", "weather", "car_pool",
+            for field in ("name", "mode", "track", "track_layout", "weather", "car_pool",
                           "ai_count", "ai_difficulty", "practice_time",
                           "qualy_time", "race_laps", "sun_angle",
                           "time_mult", "session_duration_min",
