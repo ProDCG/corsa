@@ -166,9 +166,7 @@ def create_router(state: AppState) -> APIRouter:
         
         # Read the direct config from disk if it exists
         repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-        safe_name = "".join(c if c.isalnum() else "_" for c in group.name)
-        server_dir = os.path.join(repo_root, "data", f"server_{safe_name}")
-        cfg_path = os.path.join(server_dir, "cfg", "server_cfg.ini")
+        cfg_path = os.path.join(repo_root, "data", "servers", group_id, "cfg", "server_cfg.ini")
         
         if os.path.exists(cfg_path):
             with open(cfg_path, "r", encoding="utf-8") as f:
