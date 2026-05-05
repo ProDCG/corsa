@@ -83,16 +83,14 @@ BG_COLOR = "#050505"
 POLL_INTERVAL_MS = 3000  # Poll orchestrator every 3 seconds
 
 
-def _load_rig_config() -> dict[str, object]:
-    """Load config.json to get rig_id and orchestrator_ip."""
-    config_path = Path(__file__).resolve().parent / "config.json"
-    if config_path.exists():
-        try:
-            with open(config_path) as f:
-                return json.load(f)
-        except Exception:
-            pass
-    return {}
+def _load_rig_config():
+    from apps.sled.config import load_config
+    try:
+        return load_config()
+    except Exception as e:
+        logger.error(f"Failed to load config in splash: {e}")
+        from apps.sled.config import SledConfig
+        return SledConfig()
 
 
 class DesktopBlocker:
@@ -145,6 +143,11 @@ class DesktopBlocker:
         self._esc_count = 0
         self._esc_timer: str | None = None
         self.root.bind("<Escape>", self._handle_escape)
+
+        # Emergency Mouse Unlock: 5 clicks in the top-left corner
+        self._mouse_click_count = 0
+        self._mouse_click_timer: str | None = None
+        self.root.bind("<Button-1>", self._handle_mouse_click)
 
         # Get screen dimensions
         self.sw = self.root.winfo_screenwidth()
@@ -697,6 +700,34 @@ class DesktopBlocker:
         else:
             self._enter_unlocked_mode()
 
+    def _handle_mouse_click(self, event: object) -> None:
+        """Emergency unlock if clicked 5 times rapidly in the top-left corner."""
+        try:
+            self.root.focus_force()
+        except Exception:
+            pass
+
+        # event.x / event.y is relative to the window
+        # We only care if it's in the top left 200x200 area
+        x = getattr(event, "x", 0)
+        y = getattr(event, "y", 0)
+        if x < 200 and y < 200:
+            self._mouse_click_count += 1
+            if self._mouse_click_count >= 5:
+                logger.warning("Emergency mouse unlock triggered!")
+                self._mouse_click_count = 0
+                self._enter_unlocked_mode()
+            else:
+                if self._mouse_click_timer:
+                    try:
+                        self.root.after_cancel(self._mouse_click_timer)
+                    except Exception:
+                        pass
+                self._mouse_click_timer = self.root.after(2000, self._reset_mouse_click)
+
+    def _reset_mouse_click(self) -> None:
+        self._mouse_click_count = 0
+
     def _reset_esc(self) -> None:
         self._esc_count = 0
         self.update_status("SYSTEMS ONLINE — READY")
@@ -806,8 +837,8 @@ def main() -> None:
 
     # Load config for rig identity
     cfg = _load_rig_config()
-    rig_id = cfg.get("rig_id", "RIG")
-    orchestrator_ip = cfg.get("orchestrator_ip", "---")
+    rig_id = cfg.rig_id
+    orchestrator_ip = cfg.orchestrator_ip
 
     logger.info("Rig ID: %s, Admin: %s", rig_id, orchestrator_ip)
 

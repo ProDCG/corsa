@@ -61,6 +61,7 @@ def load_config(config_path: str | None = None) -> SledConfig:
                 with open(path) as f:
                     data = json.load(f)
                 return SledConfig(**data)
-            except Exception:
+            except Exception as e:
+                print(f"Error loading config {path}: {e}")
                 pass
     return SledConfig()
