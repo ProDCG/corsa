@@ -204,11 +204,13 @@ class ACServerManager:
         )
 
         enable_csp = getattr(self.state.settings, "enable_csp", False)
+        
+        track_layout = group.track_layout if group else None
 
         self._write_server_cfg(
             config_dir, group_name, track, all_cars_list, udp_port, tcp_port, http_port,
             race_laps, practice_time, qualy_time, total_slots, weather,
-            sun_angle, time_mult, enable_csp=enable_csp
+            sun_angle, time_mult, enable_csp=enable_csp, track_layout=track_layout
         )
 
         self._write_entry_list(config_dir, rig_ids, all_cars_list, ai_count, ai_difficulty)
@@ -489,24 +491,21 @@ class ACServerManager:
         time_mult: int = 1,
         enable_csp: bool = False,
         write_to_disk: bool = True,
+        track_layout: str | None = None,
     ) -> str | None:
         """Write server_cfg.ini for an AC dedicated server."""
         if not cars:
             return  # Cannot write server config without any cars
         car_str = ";".join(cars)
         
-        # Format track path for CSP if enabled
         if enable_csp:
-            # Use the directory traversal hack
-            track_path = f"csp/2000/../D/../{track}"
+            base_track = f"csp/2000/../D/../{track}"
         else:
-            track_path = track
-            
-        # Handle multi-layout tracks (e.g. nordschleife/touristenfahrten)
-        base_track = track_path
-        config_track = ""
+            base_track = track
+
+        config_track = track_layout if track_layout else ""
         
-        # We auto-assign their most common/expected layout if the user just picked the base track
+        # We auto-assign their most common/expected layout if the user didn't specify one
         default_layouts = {
             "ks_nordschleife": "nordschleife",
             "ks_silverstone": "gp",
@@ -517,18 +516,8 @@ class ACServerManager:
             "ks_barcelona": "layout_gp"
         }
         
-        if "/" in track:
-            parts = track.split("/", 1)
-            
-            if enable_csp:
-                base_track = f"csp/2000/../D/../{parts[0]}"
-            else:
-                base_track = parts[0]
-                
-            config_track = parts[1]
-        else:
-            if track in default_layouts:
-                config_track = default_layouts[track]
+        if not config_track and track in default_layouts:
+            config_track = default_layouts[track]
 
         cfg = (
             f"[SERVER]\n"

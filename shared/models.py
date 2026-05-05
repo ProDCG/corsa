@@ -52,6 +52,7 @@ class RigGroup(BaseModel):
     rig_ids: list[str] = Field(default_factory=list)
     # Per-group race settings
     track: str = "monza"
+    track_layout: str | None = None
     weather: str = "3_clear"
     car_pool: list[str] = Field(default_factory=list)
     ai_count: int = 0

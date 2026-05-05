@@ -117,18 +117,56 @@ def create_router(state: AppState) -> APIRouter:
         cars_out.sort(key=lambda x: x["name"].lower())
 
         seen_track_ids: set[str] = set()
-        tracks_out: list[dict[str, str]] = []
+        tracks_out: list[dict[str, object]] = []
         for t in scanned_tracks:
             if t.id not in seen_track_ids:
                 seen_track_ids.add(t.id)
-                tracks_out.append({"id": t.id, "name": t.name})
-        tracks_out.sort(key=lambda x: x["name"].lower())
+                tracks_out.append({"id": t.id, "name": t.name, "layouts": t.layouts})
+        tracks_out.sort(key=lambda x: str(x["name"]).lower())
 
         return {
             "tracks": tracks_out,
             "cars": cars_out,
             "weather": [{"id": w.id, "name": w.name} for w in WEATHER_OPTIONS],
         }
+
+    @router.get("/tracks/{track_id}/map")
+    @router.get("/tracks/{track_id}/{layout_id}/map")
+    async def get_track_map(track_id: str, layout_id: str | None = None) -> object:
+        """Return the map.png for a given track/layout."""
+        import os
+        from fastapi.responses import FileResponse, Response
+        from shared.constants import DEFAULT_AC_FOLDER
+
+        content_folder = state.settings.content_folder or DEFAULT_AC_FOLDER
+        
+        candidates = [
+            os.path.join(content_folder, "Client", "content", "tracks", track_id),
+            os.path.join(content_folder, "content", "tracks", track_id),
+            os.path.join(content_folder, "tracks", track_id),
+        ]
+        
+        track_dir = None
+        for path in candidates:
+            if os.path.isdir(path):
+                track_dir = path
+                break
+                
+        if not track_dir:
+            return Response(status_code=404, content="Track not found")
+            
+        # If layout is specified, try layout dir first, then fallback to base dir
+        if layout_id:
+            layout_map = os.path.join(track_dir, layout_id, "map.png")
+            if os.path.isfile(layout_map):
+                return FileResponse(layout_map)
+                
+        # Base dir fallback
+        base_map = os.path.join(track_dir, "map.png")
+        if os.path.isfile(base_map):
+            return FileResponse(base_map)
+            
+        return Response(status_code=404, content="Map not found")
 
     @router.post("/update")
     async def full_system_update(background_tasks: BackgroundTasks) -> dict[str, object]:

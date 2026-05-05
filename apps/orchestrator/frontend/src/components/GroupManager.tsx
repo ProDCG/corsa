@@ -11,6 +11,7 @@ interface RigGroup {
     mode: 'multiplayer' | 'solo'
     rig_ids: string[]
     track: string
+    track_layout: string | null
     weather: string
     car_pool: string[]
     ai_count: number
@@ -101,7 +102,7 @@ const SmartNumberInput = ({ value, onChange, min, max, className, placeholder = 
 }
 
 interface CatalogCar { id: string; name: string; brand: string; car_class: string }
-interface CatalogTrack { id: string; name: string }
+interface CatalogTrack { id: string; name: string; layouts?: { id: string; name: string }[] }
 interface CatalogWeather { id: string; name: string }
 
 interface GroupManagerProps {
@@ -758,12 +759,48 @@ export default function GroupManager({ rigs, activeCarPool, activeMapPool }: Gro
                             <div className="grid grid-cols-3 gap-3">
                                 <div>
                                     <label className="flex items-center gap-1 text-[9px] uppercase font-black text-white/50 tracking-widest mb-1"><Map size={9} /> Circuit</label>
-                                    <Select value={selectedGroup.track} onChange={e => updateGroup(selectedGroup.id, { track: e.target.value })}>
-                                        {(activeMapPool.length > 0
-                                            ? tracks.filter(t => activeMapPool.includes(t.id))
-                                            : tracks
-                                        ).map(t => <option key={t.id} value={t.id}>{displayName(t.id)}</option>)}
-                                    </Select>
+                                    <div className="flex gap-2">
+                                        <div className="flex-1">
+                                            <Select value={selectedGroup.track} onChange={e => {
+                                                const trackId = e.target.value
+                                                const t = tracks.find(x => x.id === trackId)
+                                                updateGroup(selectedGroup.id, { 
+                                                    track: trackId, 
+                                                    track_layout: t?.layouts && t.layouts.length > 0 ? t.layouts[0].id : null 
+                                                })
+                                            }}>
+                                                {(activeMapPool.length > 0
+                                                    ? tracks.filter(t => activeMapPool.includes(t.id))
+                                                    : tracks
+                                                ).map(t => <option key={t.id} value={t.id}>{displayName(t.id)}</option>)}
+                                            </Select>
+                                        </div>
+                                        {(() => {
+                                            const t = tracks.find(x => x.id === selectedGroup.track)
+                                            if (t && t.layouts && t.layouts.length > 0) {
+                                                return (
+                                                    <div className="flex-1">
+                                                        <Select value={selectedGroup.track_layout || ''} onChange={e => updateGroup(selectedGroup.id, { track_layout: e.target.value })}>
+                                                            {t.layouts.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                                                        </Select>
+                                                    </div>
+                                                )
+                                            }
+                                            return null
+                                        })()}
+                                    </div>
+                                    
+                                    {/* Track Map Image */}
+                                    <div className="mt-3 aspect-video bg-black/40 rounded-lg border border-white/5 overflow-hidden relative flex items-center justify-center">
+                                        <img 
+                                            src={`/api/settings/tracks/${selectedGroup.track}${selectedGroup.track_layout ? '/' + selectedGroup.track_layout : ''}/map`} 
+                                            alt="Track Map"
+                                            className="w-full h-full object-contain p-2"
+                                            onError={(e) => {
+                                                (e.target as HTMLImageElement).style.display = 'none';
+                                            }}
+                                        />
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="flex items-center gap-1 text-[9px] uppercase font-black text-white/50 tracking-widest mb-1"><Cloud size={9} /> Weather</label>
@@ -785,7 +822,7 @@ export default function GroupManager({ rigs, activeCarPool, activeMapPool }: Gro
                                             return best
                                         })()
                                         return (
-                                            <Select value={currentIdx}
+                                            <Select value={currentIdx.toString()}
                                                 onChange={e => updateGroup(selectedGroup.id, { sun_angle: availableSteps[parseInt(e.target.value)].angle })}>
                                                 {availableSteps.map((s, idx) => (
                                                     <option key={idx} value={idx}>{s.label}</option>
