@@ -131,21 +131,27 @@ def scan_tracks(content_folder: str) -> list[ScannedTrack]:
                     name = data.get("name", entry)
                 except (json.JSONDecodeError, KeyError):
                     pass
+                tracks.append(ScannedTrack(id=entry, name=name))
             else:
                 # Check for track config variants (subdirectories with ui/)
+                found_layouts = False
                 for sub in sorted(os.listdir(track_path)):
                     sub_ui = os.path.join(track_path, sub, "ui", "ui_track.json")
                     if os.path.isfile(sub_ui):
+                        found_layouts = True
+                        layout_name = f"{entry} ({sub})"
                         try:
                             with open(sub_ui, encoding="utf-8", errors="replace") as f:
                                 raw = f.read().lstrip("\ufeff")
                             data = json.loads(raw)
-                            name = data.get("name", entry)
+                            layout_name = data.get("name", layout_name)
                         except (json.JSONDecodeError, KeyError):
                             pass
-                        break
-
-            tracks.append(ScannedTrack(id=entry, name=name))
+                        tracks.append(ScannedTrack(id=f"{entry}/{sub}", name=layout_name))
+                
+                # If no sub-layouts found but ui/ folder was missing, just add base
+                if not found_layouts:
+                    tracks.append(ScannedTrack(id=entry, name=entry))
     except OSError as e:
         logger.error("Failed to scan tracks directory %s: %s", tracks_dir, e)
 

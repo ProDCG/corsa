@@ -501,13 +501,26 @@ class ACServerManager:
             track_path = f"csp/2000/../D/../{track}"
         else:
             track_path = track
+            
+        # Handle multi-layout tracks (e.g. nordschleife/touristenfahrten)
+        base_track = track_path
+        config_track = ""
+        if "/" in track:
+            parts = track.split("/", 1)
+            
+            if enable_csp:
+                base_track = f"csp/2000/../D/../{parts[0]}"
+            else:
+                base_track = parts[0]
+                
+            config_track = parts[1]
 
         cfg = (
             f"[SERVER]\n"
             f"NAME=Ridge - {name}\n"
             f"CARS={car_str}\n"
-            f"CONFIG_TRACK=\n"
-            f"TRACK={track_path}\n"
+            f"CONFIG_TRACK={config_track}\n"
+            f"TRACK={base_track}\n"
             f"SUN_ANGLE={sun_angle}\n"
             f"PASSWORD=\n"
             f"ADMIN_PASSWORD=ridgeadmin\n"
