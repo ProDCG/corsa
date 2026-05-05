@@ -578,15 +578,6 @@ export default function GroupManager({ rigs, activeCarPool, activeMapPool }: Gro
                                 {/* Single START RACE button — auto-deploys server for multiplayer */}
                                 <button
                                     onClick={async () => {
-                                        await fetch('/api/leaderboard/test_lap', { method: 'POST' })
-                                        alert("Injected test lap into the leaderboard!")
-                                    }}
-                                    className="bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 px-3 py-2 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase" title="Inject Fake Lap for Leaderboard Testing">
-                                    <Trophy size={14} /> Fake Lap
-                                </button>
-
-                                <button
-                                    onClick={async () => {
                                         if (selectedGroup.mode === 'multiplayer' && !isSelectedServerRunning) {
                                             // Deploy server first — abort if it fails
                                             const ok = await startServerForGroup(selectedGroup.id)

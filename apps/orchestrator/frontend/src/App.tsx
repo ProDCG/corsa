@@ -1,4 +1,4 @@
-import { Activity, Cpu, Monitor, Zap, Power, RotateCcw, Play, Check, Image, Car, Settings2, Flag, Clock, ShieldCheck, LayoutGrid, Users, Lock, Unlock, Wrench, ChevronLeft, ChevronRight, Thermometer, Fuel, Gauge, Square, ChevronDown, MapPin, Headphones, Mic, Trash } from 'lucide-react'
+import { Activity, Cpu, Monitor, Zap, Power, RotateCcw, Play, Check, Image, Car, Settings2, Flag, Clock, ShieldCheck, LayoutGrid, Users, Lock, Unlock, Wrench, ChevronLeft, ChevronRight, Thermometer, Fuel, Gauge, Square, ChevronDown, MapPin, Headphones, Mic, Trash, Trophy } from 'lucide-react'
 import Kiosk from './Kiosk'
 import Lobby from './Lobby'
 import GroupManager from './components/GroupManager'
@@ -1138,6 +1138,15 @@ function App() {
                                     <p className="text-sm text-white/40 uppercase tracking-[0.4em] font-bold">Race Results // Facility Leaderboard</p>
                                 </div>
                                 <div className="flex gap-4 items-center">
+                                    <button 
+                                        onClick={async () => {
+                                            await fetch('/api/leaderboard/test_lap', { method: 'POST' });
+                                            await fetchFilteredLeaderboard();
+                                        }}
+                                        className="text-[10px] font-black uppercase tracking-widest text-purple-400 hover:text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 px-4 py-2 rounded-xl transition-all border border-purple-500/20 flex items-center gap-2"
+                                    >
+                                        <Trophy size={14} /> Inject Lap
+                                    </button>
                                     <button 
                                         onClick={async () => {
                                             if (confirm("Are you sure you want to permanently clear the entire leaderboard?")) {
