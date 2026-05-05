@@ -1382,7 +1382,7 @@ function App() {
                                                 </div>
                                             </div>
                                             <div className="text-[8px] font-bold uppercase tracking-widest text-white/30 space-y-1">
-                                                <p>{preset.track.toUpperCase()} // ENV {preset.weather.split('_').slice(1).join(' ')}</p>
+                                                <p>{preset.track.toUpperCase()} // ENV {preset.weather.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</p>
                                                 <p>{preset.race_laps} Laps | {preset.qualy_time}m Qualify | DRS: {preset.allow_drs ? 'ON' : 'OFF'}</p>
                                             </div>
                                         </div>
