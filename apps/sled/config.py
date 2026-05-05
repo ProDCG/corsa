@@ -35,7 +35,7 @@ class SledConfig(BaseModel):
     udp_bridge_port: int = 9996
     standalone_mode: bool = False  # Auto-set when orchestrator is unreachable
     mumble_enabled: bool = True  # Auto-launch Mumble client on startup
-    auto_drive_enabled: bool = False  # Auto-press a key to drive after launch
+    auto_drive_enabled: bool = True  # Auto-press a key to drive after launch
     auto_drive_delay_sec: int = 15  # Wait time before pressing key
     auto_drive_vk_code: int = 0x0D  # Virtual-Key code to press (0x0D is Enter)
 
