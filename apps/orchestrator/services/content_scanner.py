@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 logger = logging.getLogger("ridge.content_scanner")
 
@@ -30,6 +30,7 @@ class ScannedTrack:
 
     id: str
     name: str
+    layouts: list[dict[str, str]] = field(default_factory=list)
 
 
 def scan_cars(content_folder: str) -> list[ScannedCar]:
