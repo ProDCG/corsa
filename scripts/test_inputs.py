@@ -12,6 +12,15 @@ def main():
     pygame.init()
     pygame.joystick.init()
 
+    # Create a small window. Pygame REQUIRES a focused window to capture keyboard events!
+    screen = pygame.display.set_mode((400, 200))
+    pygame.display.set_caption("CLICK ME FOR INPUTS")
+    
+    font = pygame.font.SysFont(None, 24)
+    text = font.render("Keep this window focused!", True, (255, 255, 255))
+    screen.blit(text, (20, 80))
+    pygame.display.flip()
+
     joystick_count = pygame.joystick.get_count()
     if joystick_count == 0:
         print("No controllers or steering wheels found. Please ensure it is plugged in.")
