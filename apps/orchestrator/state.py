@@ -259,8 +259,11 @@ class AppState:
             if not group:
                 return None
             for field in ("name", "mode", "track", "track_layout", "weather", "car_pool",
-                          "ai_count", "ai_difficulty", "practice_time",
-                          "qualy_time", "race_laps", "sun_angle",
+                          "ai_count", "ai_difficulty", 
+                          "practice_enabled", "practice_time",
+                          "qualy_enabled", "qualy_time", 
+                          "race_enabled", "race_laps", 
+                          "penalties_enabled", "sun_angle",
                           "time_mult", "session_duration_min",
                           "ambient_temp", "track_grip", "freeplay"):
                 value = kwargs.get(field)

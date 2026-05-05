@@ -210,7 +210,11 @@ class ACServerManager:
         self._write_server_cfg(
             config_dir, group_name, track, all_cars_list, udp_port, tcp_port, http_port,
             race_laps, practice_time, qualy_time, total_slots, weather,
-            sun_angle, time_mult, enable_csp=enable_csp, track_layout=track_layout
+            sun_angle, time_mult, enable_csp=enable_csp, track_layout=track_layout,
+            practice_enabled=group.practice_enabled if group else False,
+            qualy_enabled=group.qualy_enabled if group else False,
+            race_enabled=group.race_enabled if group else True,
+            penalties_enabled=group.penalties_enabled if group else False,
         )
 
         self._write_entry_list(config_dir, rig_ids, all_cars_list, ai_count, ai_difficulty)
@@ -492,6 +496,10 @@ class ACServerManager:
         enable_csp: bool = False,
         write_to_disk: bool = True,
         track_layout: str | None = None,
+        practice_enabled: bool = False,
+        qualy_enabled: bool = False,
+        race_enabled: bool = True,
+        penalties_enabled: bool = False,
     ) -> str | None:
         """Write server_cfg.ini for an AC dedicated server."""
         if not cars:
@@ -545,9 +553,9 @@ class ACServerManager:
             f"VOTE_DURATION=20\n"
             f"BLACKLIST_MODE=1\n"
             f"FUEL_RATE=100\n"
-            f"DAMAGE_MULTIPLIER=100\n"
+            f"DAMAGE_MULTIPLIER=0\n"
             f"TYRE_WEAR_RATE=100\n"
-            f"ALLOWED_TYRES_OUT=2\n"
+            f"ALLOWED_TYRES_OUT={2 if penalties_enabled else -1}\n"
             f"ABS_ALLOWED=1\n"
             f"TC_ALLOWED=1\n"
             f"START_RULE=0\n"
@@ -583,7 +591,7 @@ class ACServerManager:
         )
 
         # Practice session — use __CM_PRACTICE_OFF to disable
-        if practice_time > 0:
+        if practice_enabled:
             cfg += (
                 f"[PRACTICE]\n"
                 f"NAME=Practice\n"
@@ -595,13 +603,13 @@ class ACServerManager:
             cfg += (
                 "[__CM_PRACTICE_OFF]\n"
                 "NAME=Practice\n"
-                "TIME=1\n"
+                "TIME=90\n"
                 "IS_OPEN=1\n"
                 "\n"
             )
 
         # Qualifying — use __CM_QUALIFY_OFF prefix to disable (CM convention)
-        if qualy_time > 0:
+        if qualy_enabled:
             cfg += (
                 f"[QUALIFY]\n"
                 f"NAME=Qualify\n"
@@ -612,14 +620,14 @@ class ACServerManager:
         else:
             cfg += (
                 "[__CM_QUALIFY_OFF]\n"
-                "NAME=Qualify\n"
+                "NAME=Qualification\n"
                 "TIME=10\n"
                 "IS_OPEN=1\n"
                 "\n"
             )
 
-        # Race session — use __CM_RACE_OFF prefix when no race laps set
-        if race_laps > 0:
+        # Race session — use __CM_RACE_OFF prefix when disabled
+        if race_enabled:
             cfg += (
                 f"[RACE]\n"
                 f"NAME=Race\n"
@@ -635,9 +643,9 @@ class ACServerManager:
                 "[__CM_RACE_OFF]\n"
                 "NAME=Race\n"
                 "TIME=0\n"
-                "IS_OPEN=1\n"
-                "WAIT_TIME=60\n"
-                "LAPS=5\n"
+                "IS_OPEN=2\n"
+                "WAIT_TIME=13\n"
+                "LAPS=1\n"
                 "__CM_TIME_OFF=10\n"
                 "\n"
             )

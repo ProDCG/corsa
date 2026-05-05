@@ -57,9 +57,13 @@ class RigGroup(BaseModel):
     car_pool: list[str] = Field(default_factory=list)
     ai_count: int = 0
     ai_difficulty: int = 80  # 0-100 (AC's AI strength)
+    practice_enabled: bool = False
     practice_time: int = 0
+    qualy_enabled: bool = False
     qualy_time: int = 0
+    race_enabled: bool = True
     race_laps: int = 10
+    penalties_enabled: bool = False
     sun_angle: int = 48  # -80 to 80 degrees (time of day)
     time_mult: int = 1  # Time speed multiplier (1 = real-time)
     session_duration_min: int = 30  # Session countdown timer (minutes)
@@ -86,9 +90,13 @@ class RigGroupUpdate(BaseModel):
     car_pool: list[str] | None = None
     ai_count: int | None = None
     ai_difficulty: int | None = None
+    practice_enabled: bool | None = None
     practice_time: int | None = None
+    qualy_enabled: bool | None = None
     qualy_time: int | None = None
+    race_enabled: bool | None = None
     race_laps: int | None = None
+    penalties_enabled: bool | None = None
     sun_angle: int | None = None
     time_mult: int | None = None
     session_duration_min: int | None = None

@@ -16,9 +16,13 @@ interface RigGroup {
     car_pool: string[]
     ai_count: number
     ai_difficulty: number
+    practice_enabled: boolean
     practice_time: number
+    qualy_enabled: boolean
     qualy_time: number
+    race_enabled: boolean
     race_laps: number
+    penalties_enabled: boolean
     sun_angle: number
     time_mult: number
     session_duration_min: number
@@ -848,49 +852,93 @@ export default function GroupManager({ rigs, activeCarPool, activeMapPool }: Gro
 
                         {/* ---- RACE SETTINGS ---- */}
                         <div className="glass rounded-2xl p-5 border border-white/10 space-y-3">
-                            <h4 className="text-[9px] uppercase font-black text-white/50 tracking-[0.3em] mb-1">Race Settings</h4>
+                            <div className="flex items-center justify-between mb-1">
+                                <h4 className="text-[9px] uppercase font-black text-white/50 tracking-[0.3em]">Race Settings</h4>
+                                <button
+                                    onClick={() => updateGroup(selectedGroup.id, { penalties_enabled: !selectedGroup.penalties_enabled })}
+                                    className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${selectedGroup.penalties_enabled
+                                            ? 'bg-red-500/20 text-red-400 border-2 border-red-500/50 shadow-lg shadow-red-500/10'
+                                            : 'bg-white/5 text-white/40 border border-white/10 hover:border-white/20'
+                                        }`}
+                                >
+                                    <Settings size={10} /> {selectedGroup.penalties_enabled ? 'Penalties ON' : 'Penalties OFF'}
+                                </button>
+                            </div>
 
-                            {/* Compact number inputs row */}
-                            <div className="grid grid-cols-4 gap-3">
-                                <div>
-                                    <label className="flex items-center gap-1 text-[9px] uppercase font-black text-white/50 tracking-widest mb-1"><Flag size={9} /> Laps</label>
-                                    <SmartNumberInput min={0} max={100} value={selectedGroup.race_laps}
-                                        onChange={(val: number) => updateGroup(selectedGroup.id, { race_laps: val })}
-                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none focus:border-ridge-brand" />
+                            <div className="grid grid-cols-3 gap-3">
+                                {/* Practice Card */}
+                                <div className={`flex flex-col p-3 rounded-xl border transition-colors ${selectedGroup.practice_enabled ? 'border-ridge-brand bg-ridge-brand/5' : 'border-white/10 bg-white/5 opacity-50'}`}>
+                                    <label className="flex items-center gap-2 cursor-pointer mb-2">
+                                        <input type="checkbox" className="accent-ridge-brand w-3.5 h-3.5" checked={selectedGroup.practice_enabled ?? false}
+                                            onChange={e => updateGroup(selectedGroup.id, { practice_enabled: e.target.checked })} />
+                                        <span className="text-[10px] uppercase font-black text-white/70 tracking-widest flex items-center gap-1"><Timer size={10}/> Practice</span>
+                                    </label>
+                                    {selectedGroup.practice_enabled && (
+                                        <div className="flex items-center gap-2 mt-auto">
+                                            <SmartNumberInput min={1} max={120} value={selectedGroup.practice_time}
+                                                onChange={(val: number) => updateGroup(selectedGroup.id, { practice_time: val })}
+                                                className="w-16 bg-black/40 border border-white/10 rounded px-2 py-1 text-xs font-bold outline-none focus:border-ridge-brand text-center" />
+                                            <span className="text-[9px] font-bold text-white/40 uppercase">Minutes</span>
+                                        </div>
+                                    )}
                                 </div>
-                                <div>
-                                    <label className="flex items-center gap-1 text-[9px] uppercase font-black text-white/50 tracking-widest mb-1"><Timer size={9} /> Practice (m)</label>
-                                    <SmartNumberInput min={0} max={60} value={selectedGroup.practice_time}
-                                        onChange={(val: number) => updateGroup(selectedGroup.id, { practice_time: val })}
-                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none focus:border-ridge-brand" />
+                                {/* Qualy Card */}
+                                <div className={`flex flex-col p-3 rounded-xl border transition-colors ${selectedGroup.qualy_enabled ? 'border-ridge-brand bg-ridge-brand/5' : 'border-white/10 bg-white/5 opacity-50'}`}>
+                                    <label className="flex items-center gap-2 cursor-pointer mb-2">
+                                        <input type="checkbox" className="accent-ridge-brand w-3.5 h-3.5" checked={selectedGroup.qualy_enabled ?? false}
+                                            onChange={e => updateGroup(selectedGroup.id, { qualy_enabled: e.target.checked })} />
+                                        <span className="text-[10px] uppercase font-black text-white/70 tracking-widest flex items-center gap-1"><Trophy size={10}/> Qualify</span>
+                                    </label>
+                                    {selectedGroup.qualy_enabled && (
+                                        <div className="flex items-center gap-2 mt-auto">
+                                            <SmartNumberInput min={1} max={120} value={selectedGroup.qualy_time}
+                                                onChange={(val: number) => updateGroup(selectedGroup.id, { qualy_time: val })}
+                                                className="w-16 bg-black/40 border border-white/10 rounded px-2 py-1 text-xs font-bold outline-none focus:border-ridge-brand text-center" />
+                                            <span className="text-[9px] font-bold text-white/40 uppercase">Minutes</span>
+                                        </div>
+                                    )}
                                 </div>
-                                <div>
-                                    <label className="flex items-center gap-1 text-[9px] uppercase font-black text-white/50 tracking-widest mb-1"><Trophy size={9} /> Qualify (m)</label>
-                                    <SmartNumberInput min={0} max={60} value={selectedGroup.qualy_time}
-                                        onChange={(val: number) => updateGroup(selectedGroup.id, { qualy_time: val })}
-                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none focus:border-ridge-brand" />
+                                {/* Race Card */}
+                                <div className={`flex flex-col p-3 rounded-xl border transition-colors ${selectedGroup.race_enabled !== false ? 'border-ridge-brand bg-ridge-brand/5' : 'border-white/10 bg-white/5 opacity-50'}`}>
+                                    <label className="flex items-center gap-2 cursor-pointer mb-2">
+                                        <input type="checkbox" className="accent-ridge-brand w-3.5 h-3.5" checked={selectedGroup.race_enabled !== false}
+                                            onChange={e => updateGroup(selectedGroup.id, { race_enabled: e.target.checked })} />
+                                        <span className="text-[10px] uppercase font-black text-white/70 tracking-widest flex items-center gap-1"><Flag size={10}/> Race</span>
+                                    </label>
+                                    {selectedGroup.race_enabled !== false && (
+                                        <div className="flex items-center gap-2 mt-auto">
+                                            <SmartNumberInput min={1} max={200} value={selectedGroup.race_laps}
+                                                onChange={(val: number) => updateGroup(selectedGroup.id, { race_laps: val })}
+                                                className="w-16 bg-black/40 border border-white/10 rounded px-2 py-1 text-xs font-bold outline-none focus:border-ridge-brand text-center" />
+                                            <span className="text-[9px] font-bold text-white/40 uppercase">Laps</span>
+                                        </div>
+                                    )}
                                 </div>
-                                <div>
+                            </div>
+
+                            {/* AI Controls */}
+                            <div className="flex items-center gap-4 mt-3">
+                                <div className="w-1/3">
                                     <label className="flex items-center gap-1 text-[9px] uppercase font-black text-white/50 tracking-widest mb-1"><Cpu size={9} /> AI Cars</label>
                                     <SmartNumberInput min={0} max={30} value={selectedGroup.ai_count}
                                         onChange={(val: number) => updateGroup(selectedGroup.id, { ai_count: val })}
                                         className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none focus:border-ridge-brand" />
                                 </div>
-                            </div>
-
-                            {/* AI Difficulty — always visible, locked when AI=0 */}
-                            <div className={`flex items-center gap-3 ${selectedGroup.ai_count === 0 ? 'opacity-30 pointer-events-none' : ''}`}>
-                                <label className="flex items-center gap-1 text-[9px] uppercase font-black text-white/50 tracking-widest w-20 shrink-0"><Gauge size={9} /> AI Skill</label>
-                                <span className="text-[8px] text-white/25 font-mono w-6 text-right shrink-0">0</span>
-                                <input type="range" min={0} max={5} step={1}
-                                    value={AI_STEPS.findIndex(s => s.value === selectedGroup.ai_difficulty) >= 0 ? AI_STEPS.findIndex(s => s.value === selectedGroup.ai_difficulty) : 3}
-                                    onChange={e => updateGroup(selectedGroup.id, { ai_difficulty: AI_STEPS[parseInt(e.target.value)].value })}
-                                    className="flex-1 accent-ridge-brand cursor-pointer h-1"
-                                    disabled={selectedGroup.ai_count === 0} />
-                                <span className="text-[8px] text-white/25 font-mono w-6 shrink-0">5</span>
-                                <span className="text-xs font-black w-24 text-right text-white/70">
-                                    {selectedGroup.ai_count === 0 ? 'No AI' : `${AI_STEPS.find(s => s.value === selectedGroup.ai_difficulty)?.label ?? 'Medium'} (${selectedGroup.ai_difficulty})`}
-                                </span>
+                                <div className={`flex-1 flex flex-col ${selectedGroup.ai_count === 0 ? 'opacity-30 pointer-events-none' : ''}`}>
+                                    <label className="flex items-center gap-1 text-[9px] uppercase font-black text-white/50 tracking-widest mb-1"><Gauge size={9} /> AI Skill</label>
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-[8px] text-white/25 font-mono w-4 shrink-0">0</span>
+                                        <input type="range" min={0} max={5} step={1}
+                                            value={AI_STEPS.findIndex(s => s.value === selectedGroup.ai_difficulty) >= 0 ? AI_STEPS.findIndex(s => s.value === selectedGroup.ai_difficulty) : 3}
+                                            onChange={e => updateGroup(selectedGroup.id, { ai_difficulty: AI_STEPS[parseInt(e.target.value)].value })}
+                                            className="flex-1 accent-ridge-brand cursor-pointer h-1"
+                                            disabled={selectedGroup.ai_count === 0} />
+                                        <span className="text-[8px] text-white/25 font-mono w-4 shrink-0">5</span>
+                                        <span className="text-xs font-black w-24 text-right text-white/70">
+                                            {selectedGroup.ai_count === 0 ? 'No AI' : `${AI_STEPS.find(s => s.value === selectedGroup.ai_difficulty)?.label ?? 'Medium'} (${selectedGroup.ai_difficulty})`}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Session Timer + Freeplay */}
