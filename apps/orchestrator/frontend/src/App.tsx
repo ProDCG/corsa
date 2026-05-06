@@ -318,6 +318,24 @@ function App() {
         return () => clearInterval(interval)
     }, [])
 
+    const fetchFilteredLeaderboard = async () => {
+        try {
+            const params = new URLSearchParams()
+            params.set('view', leaderboardFilter === 'today' ? 'today' : 'all_best')
+            if (leaderboardTrack) params.set('track', leaderboardTrack)
+            if (leaderboardSortDesc) params.set('sort_desc', 'true')
+            
+            const res = await fetch(`/api/leaderboard?${params.toString()}`)
+            const data = await res.json()
+            if (Array.isArray(data)) setLeaderboard(data)
+        } catch { /* offline */ }
+    }
+
+    useEffect(() => {
+        if (activeTab === 'leaderboard') {
+            fetchFilteredLeaderboard()
+        }
+    }, [leaderboardFilter, leaderboardTrack, leaderboardSortDesc, activeTab])
     const toggleCarInPool = async (carId: string) => {
         const newPool = activeCarPool.includes(carId)
             ? activeCarPool.filter((id: string) => id !== carId)
@@ -1110,25 +1128,6 @@ function App() {
 
                     {/* LEADERBOARD VIEW */}
                     {activeTab === 'leaderboard' && (() => {
-                        // Build query URL with filters
-                        const fetchFilteredLeaderboard = async () => {
-                            try {
-                                const params = new URLSearchParams()
-                                params.set('view', leaderboardFilter === 'today' ? 'today' : 'all_best')
-                                if (leaderboardTrack) params.set('track', leaderboardTrack)
-                                if (leaderboardSortDesc) params.set('sort_desc', 'true')
-                                
-                                const res = await fetch(`/api/leaderboard?${params.toString()}`)
-                                const data = await res.json()
-                                if (Array.isArray(data)) setLeaderboard(data)
-                            } catch { /* offline */ }
-                        }
-
-                        // Trigger fetch when filters change
-                        useEffect(() => {
-                            fetchFilteredLeaderboard()
-                        }, [leaderboardFilter, leaderboardTrack, leaderboardSortDesc])
-
                         // Available tracks from leaderboard data
                         const tracks = [...new Set(leaderboard.map((e: any) => e.track).filter(Boolean))]
                         // Data is already sorted by the backend API based on our parameters
