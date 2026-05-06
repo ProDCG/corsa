@@ -37,8 +37,7 @@ class SledConfig(BaseModel):
     mumble_enabled: bool = True  # Auto-launch Mumble client on startup
     auto_drive_enabled: bool = True  # Auto-press a key to drive after launch
     auto_drive_delay_sec: int = 15  # Wait time before pressing key
-    auto_drive_click_x: int = 50  # X coordinate of Drive button
-    auto_drive_click_y: int = 50  # Y coordinate of Drive button
+    auto_drive_vk_code: int = 0x0D  # Virtual-Key code to press (0x0D is Enter)
 
 
 def load_config(config_path: str | None = None) -> SledConfig:

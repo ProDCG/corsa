@@ -422,21 +422,16 @@ class RigAgent:
                     logger.info("Auto-drive armed. Waiting %d seconds before pressing key...", self.config.auto_drive_delay_sec)
                     time.sleep(self.config.auto_drive_delay_sec)
                     if self.status != "idle":
-                        logger.info("Simulating mouse click to start driving")
+                        logger.info("Simulating DirectX-level Ctrl + Space via pydirectinput to start driving")
                         try:
-                            # 50, 50 is typically the top left corner where the steering wheel icon is
-                            click_x = getattr(self.config, "auto_drive_click_x", 50)
-                            click_y = getattr(self.config, "auto_drive_click_y", 50)
-                            
-                            logger.info("Executing auto-drive click at %d,%d", click_x, click_y)
-                            # SetCursorPos
-                            ctypes.windll.user32.SetCursorPos(click_x, click_y)
-                            # mouse_event (MOUSEEVENTF_LEFTDOWN = 0x0002, MOUSEEVENTF_LEFTUP = 0x0004)
-                            ctypes.windll.user32.mouse_event(0x0002, 0, 0, 0, 0)
-                            time.sleep(0.1)
-                            ctypes.windll.user32.mouse_event(0x0004, 0, 0, 0, 0)
+                            import pydirectinput
+                            pydirectinput.keyDown('ctrl')
+                            pydirectinput.press('space')
+                            pydirectinput.keyUp('ctrl')
+                        except ImportError:
+                            logger.error("pydirectinput not installed! Run: pip install pydirectinput")
                         except Exception as e:
-                            logger.error("Auto-drive mouse click failed: %s", e)
+                            logger.error("Auto-drive pydirectinput failed: %s", e)
                 
                 threading.Thread(target=auto_press, daemon=True).start()
                 
