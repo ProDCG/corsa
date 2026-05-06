@@ -179,15 +179,6 @@ function App() {
                     setServerStatus((prev: string) => sData.status !== prev ? sData.status : prev)
                 }
 
-                const lRes = await fetch('/api/leaderboard')
-                if (lRes.ok) {
-                    const lData = await lRes.json()
-                    setLeaderboard((prev: any[]) => {
-                        const newJson = JSON.stringify(lData)
-                        const oldJson = JSON.stringify(prev)
-                        return newJson !== oldJson ? lData : prev
-                    })
-                }
             } catch (err) {
                 // Backend offline — silently ignore
             }
@@ -334,6 +325,8 @@ function App() {
     useEffect(() => {
         if (activeTab === 'leaderboard') {
             fetchFilteredLeaderboard()
+            const interval = setInterval(fetchFilteredLeaderboard, 2000)
+            return () => clearInterval(interval)
         }
     }, [leaderboardFilter, leaderboardTrack, leaderboardSortDesc, activeTab])
     const toggleCarInPool = async (carId: string) => {
