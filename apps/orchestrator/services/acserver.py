@@ -42,6 +42,7 @@ class ACServerInstance:
     max_clients: int = 10
     ai_count: int = 0
     ai_difficulty: int = 80
+    engine: str = "kunos"   # "kunos" | "assetto_server"
 
 
 class ACServerManager:
@@ -59,6 +60,8 @@ class ACServerManager:
             self.ac_server_exe = default
         else:
             self.ac_server_exe = ""
+
+        self.as_server_exe = getattr(state.settings, "assetto_server_exe", "") or ""
 
         # Working directory for server configs
         self._work_dir = os.path.join(os.getcwd(), "data", "servers")
@@ -106,8 +109,11 @@ class ACServerManager:
         if group_id in self._servers:
             self.stop_server(group_id)
 
-        if not os.path.exists(self.ac_server_exe):
-            return {"status": "error", "message": f"acServer.exe not found at {self.ac_server_exe}"}
+        engine = getattr(self.state.settings, "server_engine", "kunos")
+        exe = self.as_server_exe if engine == "assetto_server" else self.ac_server_exe
+        
+        if not os.path.exists(exe):
+            return {"status": "error", "message": f"Server binary not found: {exe}"}
 
         # Assign unique ports — find lowest available offset not already in use.
         # Note: stop_server (line above) already removed the old entry for this
@@ -137,8 +143,7 @@ class ACServerManager:
 
         # ── Validate cars against AC content directory ──
         # Only include cars that actually exist on disk to prevent client crashes
-        ac_server_dir = os.path.dirname(self.ac_server_exe)
-        ac_root = os.path.dirname(ac_server_dir)
+        ac_root = os.path.dirname(os.path.dirname(self.ac_server_exe))
         ac_content_cars = os.path.join(ac_root, "content", "cars")
 
         # If no cars were provided (empty car_pool), auto-discover from disk
@@ -215,9 +220,13 @@ class ACServerManager:
             qualy_enabled=group.qualy_enabled if group else False,
             race_enabled=group.race_enabled if group else True,
             penalties_enabled=group.penalties_enabled if group else False,
+            engine=engine,
         )
 
         self._write_entry_list(config_dir, rig_ids, all_cars_list, ai_count, ai_difficulty, total_slots)
+        
+        if engine == "assetto_server" and group:
+            self._write_extra_cfg(config_dir, group, ai_count, weather)
 
         csp_ext_path = os.path.join(config_dir, "cfg", "csp_extra_options.ini")
         try:
@@ -229,50 +238,59 @@ class ACServerManager:
         except Exception as e:
             logger.warning("Could not manage csp_extra_options.ini: %s", e)
 
-        # Each server instance needs its own isolated directory to avoid
-        # config collisions when running parallel servers.  We copy the
-        # acServer executable into the per-group config_dir and launch from
-        # there so each process reads its own cfg/ folder.
-        ac_server_dir = os.path.dirname(self.ac_server_exe)
-        ac_server_name = os.path.basename(self.ac_server_exe)
-        local_exe = os.path.join(config_dir, ac_server_name)
+        if engine == "kunos":
+            # Each server instance needs its own isolated directory to avoid
+            # config collisions when running parallel servers.  We copy the
+            # acServer executable into the per-group config_dir and launch from
+            # there so each process reads its own cfg/ folder.
+            ac_server_dir = os.path.dirname(exe)
+            ac_server_name = os.path.basename(exe)
+            local_exe = os.path.join(config_dir, ac_server_name)
 
-        # Copy the server executable into the isolated dir (small file)
-        try:
-            shutil.copy2(self.ac_server_exe, local_exe)
-        except Exception as e:
-            logger.error("Failed to copy acServer exe to %s: %s", config_dir, e)
-            return {"status": "error", "message": f"Could not copy server exe: {e}"}
-
-        # Sync car/track content from main AC install to this server's content dir
-        self._sync_server_content(config_dir, all_cars_list, track, enable_csp=enable_csp)
-
-        # Also link/copy any additional DLLs the server needs from the
-        # original server directory (e.g. steam_api.dll, etc.)
-        for extra in os.listdir(ac_server_dir):
-            src_path = os.path.join(ac_server_dir, extra)
-            dst_path = os.path.join(config_dir, extra)
-            if extra == ac_server_name or extra == "cfg":
-                continue  # Already handled
-            if os.path.exists(dst_path):
-                continue  # Already present from a previous run
+            # Copy the server executable into the isolated dir (small file)
             try:
-                if os.path.isfile(src_path):
-                    shutil.copy2(src_path, dst_path)
-                elif os.path.isdir(src_path) and extra == "content":
-                    # Content dir is handled by _sync_server_content
-                    continue
-                elif os.path.isdir(src_path):
-                    # For other dirs, create a junction/symlink to save space
-                    if IS_WINDOWS:
-                        subprocess.run(
-                            ["cmd", "/c", "mklink", "/J", dst_path, src_path],
-                            check=False, capture_output=True,
-                        )
-                    else:
-                        os.symlink(src_path, dst_path)
-            except Exception:
-                pass  # Non-critical
+                shutil.copy2(exe, local_exe)
+            except Exception as e:
+                logger.error("Failed to copy acServer exe to %s: %s", config_dir, e)
+                return {"status": "error", "message": f"Could not copy server exe: {e}"}
+
+            # Sync car/track content from main AC install to this server's content dir
+            self._sync_server_content(config_dir, all_cars_list, track, enable_csp=enable_csp)
+
+            # Also link/copy any additional DLLs the server needs from the
+            # original server directory (e.g. steam_api.dll, etc.)
+            for extra in os.listdir(ac_server_dir):
+                src_path = os.path.join(ac_server_dir, extra)
+                dst_path = os.path.join(config_dir, extra)
+                if extra == ac_server_name or extra == "cfg":
+                    continue  # Already handled
+                if os.path.exists(dst_path):
+                    continue  # Already present from a previous run
+                try:
+                    if os.path.isfile(src_path):
+                        shutil.copy2(src_path, dst_path)
+                    elif os.path.isdir(src_path) and extra == "content":
+                        # Content dir is handled by _sync_server_content
+                        continue
+                    elif os.path.isdir(src_path):
+                        # For other dirs, create a junction/symlink to save space
+                        if IS_WINDOWS:
+                            subprocess.run(
+                                ["cmd", "/c", "mklink", "/J", dst_path, src_path],
+                                check=False, capture_output=True,
+                            )
+                        else:
+                            os.symlink(src_path, dst_path)
+                except Exception:
+                    pass  # Non-critical
+
+            launch_dir = config_dir
+            launch_args = [local_exe]
+        else:
+            # AssettoServer
+            # Runs from its own install directory and points to configs
+            launch_dir = os.path.dirname(exe)
+            launch_args = [exe, "--config", os.path.join(config_dir, "cfg", "server_cfg.ini")]
 
         # Launch acServer from the isolated per-group directory
         try:
@@ -282,8 +300,8 @@ class ACServerManager:
             logger.info("AC server log → %s", log_path)
 
             proc = subprocess.Popen(
-                [local_exe],
-                cwd=config_dir,
+                launch_args,
+                cwd=launch_dir,
                 stdout=log_file,
                 stderr=subprocess.STDOUT,
                 creationflags=subprocess.CREATE_NO_WINDOW if IS_WINDOWS else 0,  # type: ignore[attr-defined]
@@ -348,6 +366,7 @@ class ACServerManager:
                 max_clients=total_slots,
                 ai_count=ai_count,
                 ai_difficulty=ai_difficulty,
+                engine=engine,
             )
             self._servers[group_id] = server
             logger.info("AC server started for '%s' on port %d (PID: %d) — still alive after 3s ✓", group_name, udp_port, proc.pid)
@@ -505,6 +524,7 @@ class ACServerManager:
         qualy_enabled: bool = False,
         race_enabled: bool = True,
         penalties_enabled: bool = False,
+        engine: str = "kunos",
     ) -> str | None:
         """Write server_cfg.ini for an AC dedicated server."""
         if not cars:
@@ -733,11 +753,14 @@ class ACServerManager:
             f"DISABLE_CHECKSUMS=0\n"
             f"REGISTER_TO_CM_LOBBY=1\n"
             f"\n"
-            f"[__CM_PLUGIN]\n"
-            f"ACTIVE={1 if enable_csp else 0}\n"
-            f"REAL_CONDITIONS=0\n"
         )
-        if enable_csp:
+        if engine != "assetto_server":
+            cfg += (
+                f"[__CM_PLUGIN]\n"
+                f"ACTIVE={1 if enable_csp else 0}\n"
+                f"REAL_CONDITIONS=0\n"
+            )
+        if enable_csp and engine != "assetto_server":
             import json, base64
                 
             # Generate the real conditions JSON and encode it dynamically to ensure time is forced
@@ -781,6 +804,53 @@ class ACServerManager:
             logger.info("Wrote server_cfg.ini and welcome.txt: track=%s cars=%s max_clients=%d port=%d",
                           track, car_str, max_clients, udp_port)
         return cfg
+
+    def _write_extra_cfg(
+        self,
+        config_dir: str,
+        group: RigGroup,
+        ai_count: int,
+        weather: str,
+    ) -> None:
+        """Write extra_cfg.yml for AssettoServer."""
+        import yaml   # pyyaml — already available or add to pyproject.toml
+
+        enable_ai = getattr(group, "ai_traffic", False) and ai_count > 0
+        weather_plugin = getattr(group, "weather_plugin", "none")
+        enable_wfx = getattr(group, "enable_weather_fx", False)
+
+        cfg = {
+            "EnableAi": enable_ai,
+            "EnableWeatherFx": enable_wfx,
+            "EnableClientMessages": True,
+            "EnableCspCustomLighting": True,
+            "CSPTrackOptions": {},
+            "AiParams": {
+                "AiBehavior": "TrafficMode",
+                "MaxAiUpdateRateHz": 25,
+            } if enable_ai else {},
+            "Plugins": [],
+        }
+
+        # Weather plugin block
+        if weather_plugin == "random":
+            cfg["Plugins"].append({
+                "Name": "RandomWeatherPlugin",
+                "Filename": "RandomWeatherPlugin",
+                "WeatherChangeIntervalMinimumMinutes": 30,
+                "WeatherChangeIntervalMaximumMinutes": 90,
+            })
+        elif weather_plugin == "live":
+            cfg["Plugins"].append({
+                "Name": "LiveWeatherPlugin",
+                "Filename": "LiveWeatherPlugin",
+                # API key will need to come from settings
+            })
+
+        extra_path = os.path.join(config_dir, "cfg", "extra_cfg.yml")
+        with open(extra_path, "w") as f:
+            yaml.dump(cfg, f, default_flow_style=False, sort_keys=False)
+        logger.info("Wrote extra_cfg.yml for AssettoServer (AI=%s, WFX=%s)", enable_ai, enable_wfx)
 
     def _write_entry_list(
         self, config_dir: str, rig_ids: list[str], cars: list[str],

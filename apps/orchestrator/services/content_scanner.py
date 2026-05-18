@@ -31,6 +31,7 @@ class ScannedTrack:
     id: str
     name: str
     layouts: list[dict[str, str]] = field(default_factory=list)
+    has_ai_spline: bool = False
 
 
 def scan_cars(content_folder: str) -> list[ScannedCar]:
@@ -154,7 +155,11 @@ def scan_tracks(content_folder: str) -> list[ScannedTrack]:
                             pass
                         layouts.append({"id": sub, "name": layout_name})
 
-            tracks.append(ScannedTrack(id=entry, name=name, layouts=layouts))
+            ai_spline = (
+                os.path.isfile(os.path.join(track_path, "ai", "fast_lane.ai")) or
+                os.path.isfile(os.path.join(track_path, "ai", "fast_lane.aip"))
+            )
+            tracks.append(ScannedTrack(id=entry, name=name, layouts=layouts, has_ai_spline=ai_spline))
     except OSError as e:
         logger.error("Failed to scan tracks directory %s: %s", tracks_dir, e)
 

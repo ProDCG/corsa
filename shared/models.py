@@ -71,6 +71,9 @@ class RigGroup(BaseModel):
     ambient_temp: int = 26  # Ambient temperature °C
     track_grip: int = 100  # Track grip 0-100%
     freeplay: bool = False  # When true, session timer is disabled
+    ai_traffic: bool = False               # Enable AS AI traffic (auto-enabled when track has fast_lane.ai)
+    weather_plugin: str = "none"           # "none" | "random" | "live" | "voting"
+    enable_weather_fx: bool = False        # Enable CSP WeatherFX via AS
 
 
 class RigGroupCreate(BaseModel):
@@ -105,6 +108,9 @@ class RigGroupUpdate(BaseModel):
     ambient_temp: int | None = None
     track_grip: int | None = None
     freeplay: bool | None = None
+    ai_traffic: bool | None = None
+    weather_plugin: str | None = None
+    enable_weather_fx: bool | None = None
 
 
 class RigGroupAddRig(BaseModel):
@@ -152,6 +158,8 @@ class GlobalSettings(BaseModel):
     selected_weather: str = "15"
     content_folder: str = r"C:\Program Files (x86)\Steam\steamapps\common\assettocorsa"
     enable_csp: bool = False
+    server_engine: str = "kunos"           # "kunos" | "assetto_server"
+    assetto_server_exe: str = ""           # Path to AssettoServer binary (auto-populated by installer)
 
 
 class Branding(BaseModel):

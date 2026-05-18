@@ -60,7 +60,7 @@ function App() {
 
     // Dynamic car catalog from backend
     const [catalogCars, setCatalogCars] = useState<{id: string; name: string; brand: string; car_class: string}[]>([])
-    const [catalogTracks, setCatalogTracks] = useState<{id: string; name: string}[]>([])
+    const [catalogTracks, setCatalogTracks] = useState<{id: string; name: string; has_ai_spline?: boolean}[]>([])
     const [rigs, setRigs] = useState<Rig[]>([])
 
     // Global Session & Race Settings
@@ -74,7 +74,8 @@ function App() {
         selected_weather: '15',
         useMultiplayer: false,
         content_folder: 'C:\\Program Files (x86)\\Steam\\steamapps\\common\\assettocorsa',
-        enable_csp: false
+        enable_csp: false,
+        server_engine: 'kunos',
     })
     const [serverStatus, setServerStatus] = useState<'online' | 'offline'>('offline')
     const [selectedCar, setSelectedCar] = useState('ks_ferrari_488_gt3')
@@ -871,7 +872,12 @@ function App() {
                                     >
                                         <div className="flex justify-between items-start">
                                             <MapPin size={32} className={`transition-all ${activeMapPool.includes(track.id) ? 'text-ridge-brand' : 'opacity-20'}`} />
-                                            {activeMapPool.includes(track.id) ? <Check className="text-ridge-brand" size={16} /> : <Zap size={16} className="opacity-10" />}
+                                            <div className="flex flex-col items-end gap-2">
+                                                {activeMapPool.includes(track.id) ? <Check className="text-ridge-brand" size={16} /> : <Zap size={16} className="opacity-10" />}
+                                                {track.has_ai_spline && (
+                                                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${activeMapPool.includes(track.id) ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-white/5 text-white/20 border border-white/10'}`}>AI Traffic</span>
+                                                )}
+                                            </div>
                                         </div>
                                         <div>
                                             <span className={`font-black italic uppercase text-xs tracking-tighter ${activeMapPool.includes(track.id) ? 'text-white' : 'group-hover:text-white/40 transition-colors'}`}>{track.name}</span>
@@ -1347,6 +1353,18 @@ function App() {
                                         <div>
                                             <p className="text-[11px] font-black uppercase text-white/80">Enable CM Weather & Shaders (CSP)</p>
                                             <p className="text-[9px] text-white/40 uppercase font-black mt-1">Forces CSP on clients and enables dynamic real-world weather sync</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3 bg-white/5 border border-white/10 p-4 rounded-xl">
+                                        <div 
+                                            className={`w-10 h-6 rounded-full cursor-pointer transition-colors relative ${raceSettings.server_engine === 'assetto_server' ? 'bg-ridge-brand' : 'bg-black/40'}`}
+                                            onClick={() => setRaceSettings({ ...raceSettings, server_engine: raceSettings.server_engine === 'assetto_server' ? 'kunos' : 'assetto_server' })}
+                                        >
+                                            <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${raceSettings.server_engine === 'assetto_server' ? 'left-5' : 'left-1'}`} />
+                                        </div>
+                                        <div>
+                                            <p className="text-[11px] font-black uppercase text-white/80">Enable AssettoServer Engine</p>
+                                            <p className="text-[9px] text-white/40 uppercase font-black mt-1">Uses alternative server binary for AI traffic and advanced modes</p>
                                         </div>
                                     </div>
                                     <button
