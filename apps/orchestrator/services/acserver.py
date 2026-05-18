@@ -110,7 +110,8 @@ class ACServerManager:
             self.stop_server(group_id)
 
         engine = getattr(self.state.settings, "server_engine", "kunos")
-        exe = self.as_server_exe if engine == "assetto_server" else self.ac_server_exe
+        dynamic_as_exe = getattr(self.state.settings, "assetto_server_exe", "") or self.as_server_exe
+        exe = dynamic_as_exe if engine == "assetto_server" else self.ac_server_exe
         
         if not os.path.exists(exe):
             return {"status": "error", "message": f"Server binary not found: {exe}"}
