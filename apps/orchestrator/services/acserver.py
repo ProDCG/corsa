@@ -533,7 +533,7 @@ class ACServerManager:
         car_str = ";".join(cars)
         
         if enable_csp:
-            base_track = f"csp/2651/../{track}"
+            base_track = f"csp/2000/../{track}"
         else:
             base_track = track
 
@@ -823,6 +823,7 @@ class ACServerManager:
         cfg = {
             "IgnoreConfigurationErrors": {
                 "MissingCarChecksums": True,
+                "MissingTrackParams": True,
             },
             "EnableAi": enable_ai,
             "EnableWeatherFx": enable_wfx,
