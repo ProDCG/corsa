@@ -533,7 +533,7 @@ class ACServerManager:
         car_str = ";".join(cars)
         
         if enable_csp:
-            base_track = f"csp/1793/../{track}"
+            base_track = f"csp/1937/../{track}"
         else:
             base_track = track
 
@@ -827,8 +827,7 @@ class ACServerManager:
             },
             "EnableAi": enable_ai,
             "EnableWeatherFx": enable_wfx,
-            "EnableClientMessages": True,
-            "MinimumCSPVersion": 1793,
+            "MinimumCSPVersion": 1937,
             "AiParams": {} if enable_ai else {},
         }
 
