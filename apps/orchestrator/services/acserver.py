@@ -828,6 +828,7 @@ class ACServerManager:
             "EnableAi": enable_ai,
             "EnableWeatherFx": enable_wfx,
             "EnableClientMessages": True,
+            "MinimumCSPVersion": 1793,
             "AiParams": {} if enable_ai else {},
         }
 
