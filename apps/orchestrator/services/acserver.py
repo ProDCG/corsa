@@ -505,6 +505,7 @@ class ACServerManager:
         track_layout: str | None = None,
         practice_enabled: bool = False,
         qualy_enabled: bool = False,
+        race_enabled: bool = True,
         unlimited_fuel: bool = False,
         damage_enabled: bool = True,
         penalties_enabled: bool = False,
