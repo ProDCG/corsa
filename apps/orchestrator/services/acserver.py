@@ -828,27 +828,29 @@ class ACServerManager:
             "EnableWeatherFx": enable_wfx,
             "EnableClientMessages": True,
             "AiParams": {} if enable_ai else {},
-            "Plugins": [],
         }
-
-        # Weather plugin block
-        if weather_plugin == "random":
-            cfg["Plugins"].append({
-                "Name": "RandomWeatherPlugin",
-                "Filename": "RandomWeatherPlugin",
-                "WeatherChangeIntervalMinimumMinutes": 30,
-                "WeatherChangeIntervalMaximumMinutes": 90,
-            })
-        elif weather_plugin == "live":
-            cfg["Plugins"].append({
-                "Name": "LiveWeatherPlugin",
-                "Filename": "LiveWeatherPlugin",
-                # API key will need to come from settings
-            })
 
         extra_path = os.path.join(config_dir, "cfg", "extra_cfg.yml")
         with open(extra_path, "w") as f:
-            yaml.dump(cfg, f, default_flow_style=False, sort_keys=False)
+            yaml.dump(cfg, f, default_flow_style=False)
+
+        # Weather plugin block (New 0.0.55 format: individual files)
+        if weather_plugin == "random":
+            plugin_cfg = {
+                "Enabled": True,
+                "WeatherChangeIntervalMinimumMinutes": 30,
+                "WeatherChangeIntervalMaximumMinutes": 90,
+            }
+            plugin_path = os.path.join(config_dir, "cfg", "plugin_random_weather_cfg.yml")
+            with open(plugin_path, "w") as f:
+                yaml.dump(plugin_cfg, f, default_flow_style=False)
+        elif weather_plugin == "live":
+            plugin_cfg = {
+                "Enabled": True,
+            }
+            plugin_path = os.path.join(config_dir, "cfg", "plugin_live_weather_cfg.yml")
+            with open(plugin_path, "w") as f:
+                yaml.dump(plugin_cfg, f, default_flow_style=False)
         logger.info("Wrote extra_cfg.yml for AssettoServer (AI=%s, WFX=%s)", enable_ai, enable_wfx)
 
     def _write_entry_list(
