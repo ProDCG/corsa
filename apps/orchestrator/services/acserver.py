@@ -821,6 +821,7 @@ class ACServerManager:
         enable_wfx = getattr(group, "enable_weather_fx", False)
 
         cfg = {
+            "MissingCarChecksums": True,
             "EnableAi": enable_ai,
             "EnableWeatherFx": enable_wfx,
             "EnableClientMessages": True,
