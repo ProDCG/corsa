@@ -288,10 +288,10 @@ class ACServerManager:
             launch_args = [local_exe]
         else:
             # AssettoServer
-            # Uses basefolder to read config_dir/cfg and config_dir/content
+            # Uses cwd to read config_dir/cfg and config_dir/content
             self._sync_server_content(config_dir, all_cars_list, track, enable_csp=enable_csp)
             launch_dir = os.path.dirname(exe)
-            launch_args = [exe, "--basefolder", config_dir]
+            launch_args = [exe]
 
         # Launch acServer from the isolated per-group directory
         try:
