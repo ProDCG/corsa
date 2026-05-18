@@ -827,8 +827,6 @@ class ACServerManager:
             "EnableAi": enable_ai,
             "EnableWeatherFx": enable_wfx,
             "EnableClientMessages": True,
-            "EnableCspCustomLighting": True,
-            "CSPTrackOptions": {},
             "AiParams": {
                 "AiBehavior": "TrafficMode",
                 "MaxAiUpdateRateHz": 25,
