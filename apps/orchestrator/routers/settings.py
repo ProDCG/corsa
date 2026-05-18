@@ -25,6 +25,7 @@ def create_router(state: AppState) -> APIRouter:
     @router.post("/settings")
     async def update_settings(update: GlobalSettings) -> dict[str, object]:
         state.settings = update
+        state.save_state()
         return {"status": "success", "settings": update.model_dump()}
 
     @router.get("/carpool")
