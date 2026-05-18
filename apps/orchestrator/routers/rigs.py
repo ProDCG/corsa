@@ -46,9 +46,16 @@ def _parse_lap_time_ms(raw: object) -> int | None:
     try:
         parts = s.split(":")
         if len(parts) == 3:
-            # HH:MM:SS.mmm
-            h, m, sec = int(parts[0]), int(parts[1]), float(parts[2])
-            return int((h * 3600 + m * 60 + sec) * 1000)
+            # Could be HH:MM:SS.mmm or MM:SS:mmm (where mm is separated by a colon)
+            # Check if parts[2] contains a decimal or if it's an integer representing milliseconds
+            if "." not in parts[2] and len(parts[2]) <= 3:
+                # Format: MM:SS:mmm (e.g. 2:13:123)
+                m, sec, ms = int(parts[0]), int(parts[1]), int(parts[2])
+                return int((m * 60 + sec) * 1000 + ms)
+            else:
+                # Format: HH:MM:SS.mmm
+                h, m, sec = int(parts[0]), int(parts[1]), float(parts[2])
+                return int((h * 3600 + m * 60 + sec) * 1000)
         elif len(parts) == 2:
             # MM:SS.mmm
             m, sec = int(parts[0]), float(parts[1])

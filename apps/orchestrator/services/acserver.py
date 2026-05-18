@@ -211,10 +211,12 @@ class ACServerManager:
             config_dir, group_name, track, all_cars_list, udp_port, tcp_port, http_port,
             race_laps, practice_time, qualy_time, total_slots, weather,
             sun_angle, time_mult, enable_csp=enable_csp, track_layout=track_layout,
-            practice_enabled=group.practice_enabled if group else False,
-            qualy_enabled=group.qualy_enabled if group else False,
-            race_enabled=group.race_enabled if group else True,
-            penalties_enabled=group.penalties_enabled if group else False,
+            practice_enabled=getattr(group, "practice_enabled", False) if group else False,
+            qualy_enabled=getattr(group, "qualy_enabled", False) if group else False,
+            race_enabled=getattr(group, "race_enabled", True) if group else True,
+            penalties_enabled=getattr(group, "penalties_enabled", False) if group else False,
+            unlimited_fuel=getattr(group, "unlimited_fuel", False) if group else False,
+            damage_enabled=getattr(group, "damage_enabled", True) if group else True,
         )
 
         self._write_entry_list(config_dir, rig_ids, all_cars_list, ai_count, ai_difficulty, total_slots)
@@ -503,7 +505,8 @@ class ACServerManager:
         track_layout: str | None = None,
         practice_enabled: bool = False,
         qualy_enabled: bool = False,
-        race_enabled: bool = True,
+        unlimited_fuel: bool = False,
+        damage_enabled: bool = True,
         penalties_enabled: bool = False,
     ) -> str | None:
         """Write server_cfg.ini for an AC dedicated server."""
@@ -538,6 +541,7 @@ class ACServerManager:
             f"CARS={car_str}\n"
             f"CONFIG_TRACK={config_track}\n"
             f"TRACK={base_track}\n"
+            f"USE_EXTENDED_PHYSICS=1\n"
             f"SUN_ANGLE={sun_angle}\n"
             f"PASSWORD=\n"
             f"ADMIN_PASSWORD=ridgeadmin\n"
@@ -557,8 +561,8 @@ class ACServerManager:
             f"VOTING_QUORUM=80\n"
             f"VOTE_DURATION=20\n"
             f"BLACKLIST_MODE=1\n"
-            f"FUEL_RATE=100\n"
-            f"DAMAGE_MULTIPLIER=0\n"
+            f"FUEL_RATE={0 if unlimited_fuel else 100}\n"
+            f"DAMAGE_MULTIPLIER={100 if damage_enabled else 0}\n"
             f"TYRE_WEAR_RATE=100\n"
             f"ALLOWED_TYRES_OUT={2 if penalties_enabled else -1}\n"
             f"ABS_ALLOWED=1\n"

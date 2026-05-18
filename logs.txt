@@ -1,0 +1,883 @@
+Server CFG Path :  cfg/server_cfg.ini
+Entry List Path :  cfg/entry_list.ini
+Assetto Corsa Dedicated Server v1.15
+Protocol version: 202
+2026-05-18 11:58:21.9394983 -0700 PDT m=+0.002156100
+Num CPU: 20
+LOCAL IP 0: fe80::bf74:2f1b:d8a9:4daf%Ethernet
+LOCAL IP 1: fe80::19dc:a3e3:d223:17ae%Wi-Fi
+LOCAL IP 2: 192.168.9.119
+LOCAL IP 3: 192.168.9.116
+LOCAL IP 4: fd80:978e:ae6b:deb7:692b:95c0:2059:5e5e
+LOCAL IP 5: fd80:978e:ae6b:deb7:966c:a07a:be0a:103c
+LOCAL IP 6: fd80:978e:ae6b:deb7:1407:e1c9:318e:b30c
+LOCAL IP 7: fd80:978e:ae6b:deb7:1f24:9bcb:7790:3d0a
+Using cfg path:  cfg/server_cfg.ini
+Car list:
+_abarth500_
+_abarth500_s1_
+_alfa_romeo_giulietta_qv_
+_alfa_romeo_giulietta_qv_le_
+_bmw_1m_
+_bmw_1m_s3_
+_bmw_m3_e30_
+_bmw_m3_e30_drift_
+_bmw_m3_e30_dtm_
+_bmw_m3_e30_gra_
+_bmw_m3_e30_s1_
+_bmw_m3_e92_
+_bmw_m3_e92_drift_
+_bmw_m3_e92_s1_
+_bmw_m3_gt2_
+_bmw_z4_
+_bmw_z4_drift_
+_bmw_z4_gt3_
+_bmw_z4_s1_
+_ferrari_312t_
+_ferrari_458_
+_ferrari_458_gt2_
+_ferrari_458_s3_
+_ferrari_599xxevo_
+_ferrari_f40_
+_ferrari_f40_s3_
+_ferrari_laferrari_
+_ks_abarth500_assetto_corse_
+_ks_abarth_595ss_
+_ks_abarth_595ss_s1_
+_ks_abarth_595ss_s2_
+_ks_alfa_33_stradale_
+_ks_alfa_giulia_qv_
+_ks_alfa_mito_qv_
+_ks_alfa_romeo_155_v6_
+_ks_alfa_romeo_4c_
+_ks_alfa_romeo_gta_
+_ks_audi_a1s1_
+_ks_audi_r18_etron_quattro_
+_ks_audi_r8_lms_
+_ks_audi_r8_lms_2016_
+_ks_audi_r8_plus_
+_ks_audi_sport_quattro_
+_ks_audi_sport_quattro_rally_
+_ks_audi_sport_quattro_s1_
+_ks_audi_tt_cup_
+_ks_audi_tt_vln_
+_ks_bmw_m235i_racing_
+_ks_bmw_m4_
+_ks_bmw_m4_akrapovic_
+_ks_corvette_c7_stingray_
+_ks_corvette_c7r_
+_ks_ferrari_250_gto_
+_ks_ferrari_288_gto_
+_ks_ferrari_312_67_
+_ks_ferrari_330_p4_
+_ks_ferrari_488_gt3_
+_ks_ferrari_488_gtb_
+_ks_ferrari_812_superfast_
+_ks_ferrari_f138_
+_ks_ferrari_f2004_
+_ks_ferrari_fxx_k_
+_ks_ferrari_sf15t_
+_ks_ferrari_sf70h_
+_ks_ford_escort_mk1_
+_ks_ford_gt40_
+_ks_ford_mustang_2015_
+_ks_glickenhaus_scg003_
+_ks_lamborghini_aventador_sv_
+_ks_lamborghini_countach_
+_ks_lamborghini_countach_s1_
+_ks_lamborghini_gallardo_sl_
+_ks_lamborghini_gallardo_sl_s3_
+_ks_lamborghini_huracan_gt3_
+_ks_lamborghini_huracan_performante_
+_ks_lamborghini_huracan_st_
+_ks_lamborghini_miura_sv_
+_ks_lamborghini_sesto_elemento_
+_ks_lotus_25_
+_ks_lotus_3_eleven_
+_ks_lotus_72d_
+_ks_maserati_250f_12cyl_
+_ks_maserati_250f_6cyl_
+_ks_maserati_alfieri_
+_ks_maserati_gt_mc_gt4_
+_ks_maserati_levante_
+_ks_maserati_mc12_gt1_
+_ks_maserati_quattroporte_
+_ks_mazda_787b_
+_ks_mazda_miata_
+_ks_mazda_mx5_cup_
+_ks_mazda_mx5_nd_
+_ks_mazda_rx7_spirit_r_
+_ks_mazda_rx7_tuned_
+_ks_mclaren_570s_
+_ks_mclaren_650_gt3_
+_ks_mclaren_f1_gtr_
+_ks_mclaren_p1_
+_ks_mclaren_p1_gtr_
+_ks_mercedes_190_evo2_
+_ks_mercedes_amg_gt3_
+_ks_mercedes_c9_
+_ks_nissan_370z_
+_ks_nissan_gtr_
+_ks_nissan_gtr_gt3_
+_ks_nissan_skyline_r34_
+_ks_pagani_huayra_bc_
+_ks_porsche_718_boxster_s_
+_ks_porsche_718_boxster_s_pdk_
+_ks_porsche_718_cayman_s_
+_ks_porsche_718_spyder_rs_
+_ks_porsche_908_lh_
+_ks_porsche_911_carrera_rsr_
+_ks_porsche_911_gt1_
+_ks_porsche_911_gt3_cup_2017_
+_ks_porsche_911_gt3_r_2016_
+_ks_porsche_911_gt3_rs_
+_ks_porsche_911_r_
+_ks_porsche_911_rsr_2017_
+_ks_porsche_917_30_
+_ks_porsche_917_k_
+_ks_porsche_918_spyder_
+_ks_porsche_919_hybrid_2015_
+_ks_porsche_919_hybrid_2016_
+_ks_porsche_935_78_moby_dick_
+_ks_porsche_962c_longtail_
+_ks_porsche_962c_shorttail_
+_ks_porsche_991_carrera_s_
+_ks_porsche_991_turbo_s_
+_ks_porsche_cayenne_
+_ks_porsche_cayman_gt4_clubsport_
+_ks_porsche_cayman_gt4_std_
+_ks_porsche_macan_
+_ks_porsche_panamera_
+_ks_praga_r1_
+_ks_ruf_rt12r_
+_ks_ruf_rt12r_awd_
+_ks_toyota_ae86_
+_ks_toyota_ae86_drift_
+_ks_toyota_ae86_tuned_
+_ks_toyota_celica_st185_
+_ks_toyota_gt86_
+_ks_toyota_supra_mkiv_
+_ks_toyota_supra_mkiv_drift_
+_ks_toyota_supra_mkiv_tuned_
+_ks_toyota_ts040_
+_ktm_xbow_r_
+_lotus_2_eleven_
+_lotus_2_eleven_gt4_
+_lotus_49_
+_lotus_98t_
+_lotus_elise_sc_
+_lotus_elise_sc_s1_
+_lotus_elise_sc_s2_
+_lotus_evora_gtc_
+_lotus_evora_gte_
+_lotus_evora_gte_carbon_
+_lotus_evora_gx_
+_lotus_evora_s_
+_lotus_evora_s_s2_
+_lotus_exige_240_
+_lotus_exige_240_s3_
+_lotus_exige_s_
+_lotus_exige_s_roadster_
+_lotus_exige_scura_
+_lotus_exige_v6_cup_
+_lotus_exos_125_
+_lotus_exos_125_s1_
+_mclaren_mp412c_
+_mclaren_mp412c_gt3_
+_mercedes_sls_
+_mercedes_sls_gt3_
+_nohesi_370z_widebody_
+_nohesi_audi_rs3_saloon_vlct_
+_nohesi_bmw_1m_e82_
+_nohesi_bmw_e90_
+_nohesi_bmw_m340i_g20_chris_
+_nohesi_bmw_m3_g80_
+_nohesi_bmw_m3_g81_
+_nohesi_bmw_m4_g82_adro_chris_
+_nohesi_bmw_x5m_f95_
+_nohesi_c63_23_
+_nohesi_cadillac_ctsv_vlct_
+_nohesi_ct5v_
+_nohesi_ferrari_812_nlargo_
+_nohesi_ford_mustang_gtd_
+_nohesi_hellcat_charger_
+_nohesi_infiniti_g37_
+_nohesi_lamborghini_svj_63_
+_nohesi_lamborghini_urus_chris_
+_nohesi_mercedes_c63_amg_w204_blackseries_
+_nohesi_porsche_gt3rs_vlct_
+_nohesi_realistic_ford_mustang_gtd_
+_nohesi_realistic_lamborghini_urus_chris_
+_nohesi_realistic_nissan_gtr_r35_vlct_
+_nohesi_realistic_porsche_992_gt3_adro_
+_nohesi_realistic_porsche_gt3rs_vlct_
+_nohesi_rs6_c7_
+_nohesi_toyota_chaser_jzx100_
+_nohesi_traffic_audi_a6_
+_nohesi_traffic_bmw_i7_
+_nohesi_traffic_bmw_x5_
+_nohesi_traffic_ford_bronco_
+_nohesi_traffic_ford_puma_
+_nohesi_traffic_kia_k5_
+_nohesi_traffic_mazda_3_
+Client interval HZ: 18
+WARNING: pitstop window needs a valid range
+WARNING: MAX_CONTACTS_PER_KM disabled
+AUTH_PLUGIN_ADDRESS 
+TRACK=monza
+CARS=["abarth500" "abarth500_s1" "alfa_romeo_giulietta_qv" "alfa_romeo_giulietta_qv_le" "bmw_1m" "bmw_1m_s3" "bmw_m3_e30" "bmw_m3_e30_drift" "bmw_m3_e30_dtm" "bmw_m3_e30_gra" "bmw_m3_e30_s1" "bmw_m3_e92" "bmw_m3_e92_drift" "bmw_m3_e92_s1" "bmw_m3_gt2" "bmw_z4" "bmw_z4_drift" "bmw_z4_gt3" "bmw_z4_s1" "ferrari_312t" "ferrari_458" "ferrari_458_gt2" "ferrari_458_s3" "ferrari_599xxevo" "ferrari_f40" "ferrari_f40_s3" "ferrari_laferrari" "ks_abarth500_assetto_corse" "ks_abarth_595ss" "ks_abarth_595ss_s1" "ks_abarth_595ss_s2" "ks_alfa_33_stradale" "ks_alfa_giulia_qv" "ks_alfa_mito_qv" "ks_alfa_romeo_155_v6" "ks_alfa_romeo_4c" "ks_alfa_romeo_gta" "ks_audi_a1s1" "ks_audi_r18_etron_quattro" "ks_audi_r8_lms" "ks_audi_r8_lms_2016" "ks_audi_r8_plus" "ks_audi_sport_quattro" "ks_audi_sport_quattro_rally" "ks_audi_sport_quattro_s1" "ks_audi_tt_cup" "ks_audi_tt_vln" "ks_bmw_m235i_racing" "ks_bmw_m4" "ks_bmw_m4_akrapovic" "ks_corvette_c7_stingray" "ks_corvette_c7r" "ks_ferrari_250_gto" "ks_ferrari_288_gto" "ks_ferrari_312_67" "ks_ferrari_330_p4" "ks_ferrari_488_gt3" "ks_ferrari_488_gtb" "ks_ferrari_812_superfast" "ks_ferrari_f138" "ks_ferrari_f2004" "ks_ferrari_fxx_k" "ks_ferrari_sf15t" "ks_ferrari_sf70h" "ks_ford_escort_mk1" "ks_ford_gt40" "ks_ford_mustang_2015" "ks_glickenhaus_scg003" "ks_lamborghini_aventador_sv" "ks_lamborghini_countach" "ks_lamborghini_countach_s1" "ks_lamborghini_gallardo_sl" "ks_lamborghini_gallardo_sl_s3" "ks_lamborghini_huracan_gt3" "ks_lamborghini_huracan_performante" "ks_lamborghini_huracan_st" "ks_lamborghini_miura_sv" "ks_lamborghini_sesto_elemento" "ks_lotus_25" "ks_lotus_3_eleven" "ks_lotus_72d" "ks_maserati_250f_12cyl" "ks_maserati_250f_6cyl" "ks_maserati_alfieri" "ks_maserati_gt_mc_gt4" "ks_maserati_levante" "ks_maserati_mc12_gt1" "ks_maserati_quattroporte" "ks_mazda_787b" "ks_mazda_miata" "ks_mazda_mx5_cup" "ks_mazda_mx5_nd" "ks_mazda_rx7_spirit_r" "ks_mazda_rx7_tuned" "ks_mclaren_570s" "ks_mclaren_650_gt3" "ks_mclaren_f1_gtr" "ks_mclaren_p1" "ks_mclaren_p1_gtr" "ks_mercedes_190_evo2" "ks_mercedes_amg_gt3" "ks_mercedes_c9" "ks_nissan_370z" "ks_nissan_gtr" "ks_nissan_gtr_gt3" "ks_nissan_skyline_r34" "ks_pagani_huayra_bc" "ks_porsche_718_boxster_s" "ks_porsche_718_boxster_s_pdk" "ks_porsche_718_cayman_s" "ks_porsche_718_spyder_rs" "ks_porsche_908_lh" "ks_porsche_911_carrera_rsr" "ks_porsche_911_gt1" "ks_porsche_911_gt3_cup_2017" "ks_porsche_911_gt3_r_2016" "ks_porsche_911_gt3_rs" "ks_porsche_911_r" "ks_porsche_911_rsr_2017" "ks_porsche_917_30" "ks_porsche_917_k" "ks_porsche_918_spyder" "ks_porsche_919_hybrid_2015" "ks_porsche_919_hybrid_2016" "ks_porsche_935_78_moby_dick" "ks_porsche_962c_longtail" "ks_porsche_962c_shorttail" "ks_porsche_991_carrera_s" "ks_porsche_991_turbo_s" "ks_porsche_cayenne" "ks_porsche_cayman_gt4_clubsport" "ks_porsche_cayman_gt4_std" "ks_porsche_macan" "ks_porsche_panamera" "ks_praga_r1" "ks_ruf_rt12r" "ks_ruf_rt12r_awd" "ks_toyota_ae86" "ks_toyota_ae86_drift" "ks_toyota_ae86_tuned" "ks_toyota_celica_st185" "ks_toyota_gt86" "ks_toyota_supra_mkiv" "ks_toyota_supra_mkiv_drift" "ks_toyota_supra_mkiv_tuned" "ks_toyota_ts040" "ktm_xbow_r" "lotus_2_eleven" "lotus_2_eleven_gt4" "lotus_49" "lotus_98t" "lotus_elise_sc" "lotus_elise_sc_s1" "lotus_elise_sc_s2" "lotus_evora_gtc" "lotus_evora_gte" "lotus_evora_gte_carbon" "lotus_evora_gx" "lotus_evora_s" "lotus_evora_s_s2" "lotus_exige_240" "lotus_exige_240_s3" "lotus_exige_s" "lotus_exige_s_roadster" "lotus_exige_scura" "lotus_exige_v6_cup" "lotus_exos_125" "lotus_exos_125_s1" "mclaren_mp412c" "mclaren_mp412c_gt3" "mercedes_sls" "mercedes_sls_gt3" "nohesi_370z_widebody" "nohesi_audi_rs3_saloon_vlct" "nohesi_bmw_1m_e82" "nohesi_bmw_e90" "nohesi_bmw_m340i_g20_chris" "nohesi_bmw_m3_g80" "nohesi_bmw_m3_g81" "nohesi_bmw_m4_g82_adro_chris" "nohesi_bmw_x5m_f95" "nohesi_c63_23" "nohesi_cadillac_ctsv_vlct" "nohesi_ct5v" "nohesi_ferrari_812_nlargo" "nohesi_ford_mustang_gtd" "nohesi_hellcat_charger" "nohesi_infiniti_g37" "nohesi_lamborghini_svj_63" "nohesi_lamborghini_urus_chris" "nohesi_mercedes_c63_amg_w204_blackseries" "nohesi_porsche_gt3rs_vlct" "nohesi_realistic_ford_mustang_gtd" "nohesi_realistic_lamborghini_urus_chris" "nohesi_realistic_nissan_gtr_r35_vlct" "nohesi_realistic_porsche_992_gt3_adro" "nohesi_realistic_porsche_gt3rs_vlct" "nohesi_rs6_c7" "nohesi_toyota_chaser_jzx100" "nohesi_traffic_audi_a6" "nohesi_traffic_bmw_i7" "nohesi_traffic_bmw_x5" "nohesi_traffic_ford_bronco" "nohesi_traffic_ford_puma" "nohesi_traffic_kia_k5" "nohesi_traffic_mazda_3"]
+Loading PRACTICE session
+SESSION: Practice
+TYPE=PRACTICE
+TIME=30
+LAPS=0
+OPEN=1
+WAIT TIME=0
+
+SESSION: Race
+TYPE=RACE
+TIME=0
+LAPS=10
+OPEN=1
+WAIT TIME=60
+
+DynamicTrack: first session, resetting grip
+Trying to load DRS zones from: content/tracks/monza/data/drs_zones.ini
+open content/tracks/monza/data/drs_zones.ini: The system cannot find the path specified.
+Weather update. Ambient: 17.642767 Road: 23.363827 Graphics: sol_42_thunderstorm_type=15_time=37800
+Wind update. Speed: 0 Direction: 0
+CHECKSUM: system/data/surfaces.ini=41949b9f7045cad2af3f5eb951d170a9
+WARNING: Cannot open file  content/tracks/monza/data/surfaces.ini  for checksum, the client check will be disabled for this file
+Calculating checksum for folder content/cars/abarth500/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/abarth500_s1/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/alfa_romeo_giulietta_qv/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/alfa_romeo_giulietta_qv_le/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/bmw_1m/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/bmw_1m_s3/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/bmw_m3_e30/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/bmw_m3_e30_drift/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/bmw_m3_e30_dtm/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/bmw_m3_e30_gra/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/bmw_m3_e30_s1/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/bmw_m3_e92/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/bmw_m3_e92_drift/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/bmw_m3_e92_s1/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/bmw_m3_gt2/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/bmw_z4/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/bmw_z4_drift/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/bmw_z4_gt3/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/bmw_z4_s1/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ferrari_312t/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ferrari_458/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ferrari_458_gt2/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ferrari_458_s3/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ferrari_599xxevo/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ferrari_f40/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ferrari_f40_s3/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ferrari_laferrari/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_abarth500_assetto_corse/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_abarth_595ss/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_abarth_595ss_s1/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_abarth_595ss_s2/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_alfa_33_stradale/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_alfa_giulia_qv/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_alfa_mito_qv/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_alfa_romeo_155_v6/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_alfa_romeo_4c/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_alfa_romeo_gta/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_audi_a1s1/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_audi_r18_etron_quattro/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_audi_r8_lms/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_audi_r8_lms_2016/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_audi_r8_plus/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_audi_sport_quattro/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_audi_sport_quattro_rally/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_audi_sport_quattro_s1/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_audi_tt_cup/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_audi_tt_vln/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_bmw_m235i_racing/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_bmw_m4/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_bmw_m4_akrapovic/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_corvette_c7_stingray/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_corvette_c7r/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_ferrari_250_gto/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_ferrari_288_gto/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_ferrari_312_67/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_ferrari_330_p4/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_ferrari_488_gt3/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_ferrari_488_gtb/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_ferrari_812_superfast/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_ferrari_f138/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_ferrari_f2004/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_ferrari_fxx_k/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_ferrari_sf15t/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_ferrari_sf70h/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_ford_escort_mk1/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_ford_gt40/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_ford_mustang_2015/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_glickenhaus_scg003/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_lamborghini_aventador_sv/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_lamborghini_countach/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_lamborghini_countach_s1/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_lamborghini_gallardo_sl/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_lamborghini_gallardo_sl_s3/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_lamborghini_huracan_gt3/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_lamborghini_huracan_performante/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_lamborghini_huracan_st/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_lamborghini_miura_sv/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_lamborghini_sesto_elemento/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_lotus_25/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_lotus_3_eleven/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_lotus_72d/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_maserati_250f_12cyl/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_maserati_250f_6cyl/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_maserati_alfieri/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_maserati_gt_mc_gt4/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_maserati_levante/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_maserati_mc12_gt1/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_maserati_quattroporte/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_mazda_787b/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_mazda_miata/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_mazda_mx5_cup/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_mazda_mx5_nd/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_mazda_rx7_spirit_r/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_mazda_rx7_tuned/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_mclaren_570s/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_mclaren_650_gt3/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_mclaren_f1_gtr/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_mclaren_p1/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_mclaren_p1_gtr/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_mercedes_190_evo2/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_mercedes_amg_gt3/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_mercedes_c9/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_nissan_370z/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_nissan_gtr/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_nissan_gtr_gt3/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_nissan_skyline_r34/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_pagani_huayra_bc/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_porsche_718_boxster_s/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_porsche_718_boxster_s_pdk/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_porsche_718_cayman_s/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_porsche_718_spyder_rs/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_porsche_908_lh/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_porsche_911_carrera_rsr/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_porsche_911_gt1/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_porsche_911_gt3_cup_2017/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_porsche_911_gt3_r_2016/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_porsche_911_gt3_rs/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_porsche_911_r/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_porsche_911_rsr_2017/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_porsche_917_30/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_porsche_917_k/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_porsche_918_spyder/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_porsche_919_hybrid_2015/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_porsche_919_hybrid_2016/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_porsche_935_78_moby_dick/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_porsche_962c_longtail/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_porsche_962c_shorttail/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_porsche_991_carrera_s/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_porsche_991_turbo_s/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_porsche_cayenne/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_porsche_cayman_gt4_clubsport/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_porsche_cayman_gt4_std/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_porsche_macan/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_porsche_panamera/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_praga_r1/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_ruf_rt12r/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_ruf_rt12r_awd/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_toyota_ae86/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_toyota_ae86_drift/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_toyota_ae86_tuned/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_toyota_celica_st185/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_toyota_gt86/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_toyota_supra_mkiv/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_toyota_supra_mkiv_drift/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_toyota_supra_mkiv_tuned/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ks_toyota_ts040/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/ktm_xbow_r/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/lotus_2_eleven/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/lotus_2_eleven_gt4/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/lotus_49/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/lotus_98t/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/lotus_elise_sc/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/lotus_elise_sc_s1/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/lotus_elise_sc_s2/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/lotus_evora_gtc/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/lotus_evora_gte/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/lotus_evora_gte_carbon/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/lotus_evora_gx/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/lotus_evora_s/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/lotus_evora_s_s2/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/lotus_exige_240/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/lotus_exige_240_s3/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/lotus_exige_s/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/lotus_exige_s_roadster/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/lotus_exige_scura/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/lotus_exige_v6_cup/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/lotus_exos_125/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/lotus_exos_125_s1/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/mclaren_mp412c/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/mclaren_mp412c_gt3/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/mercedes_sls/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/mercedes_sls_gt3/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_370z_widebody/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_audi_rs3_saloon_vlct/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_bmw_1m_e82/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_bmw_e90/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_bmw_m340i_g20_chris/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_bmw_m3_g80/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_bmw_m3_g81/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_bmw_m4_g82_adro_chris/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_bmw_x5m_f95/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_c63_23/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_cadillac_ctsv_vlct/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_ct5v/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_ferrari_812_nlargo/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_ford_mustang_gtd/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_hellcat_charger/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_infiniti_g37/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_lamborghini_svj_63/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_lamborghini_urus_chris/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_mercedes_c63_amg_w204_blackseries/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_porsche_gt3rs_vlct/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_realistic_ford_mustang_gtd/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_realistic_lamborghini_urus_chris/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_realistic_nissan_gtr_r35_vlct/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_realistic_porsche_992_gt3_adro/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_realistic_porsche_gt3rs_vlct/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_rs6_c7/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_toyota_chaser_jzx100/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_traffic_audi_a6/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_traffic_bmw_i7/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_traffic_bmw_x5/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_traffic_ford_bronco/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_traffic_ford_puma/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_traffic_kia_k5/data
+Error calculating checksum: Folder not found
+Calculating checksum for folder content/cars/nohesi_traffic_mazda_3/data
+Error calculating checksum: Folder not found
+Loading blacklist
+Opening entry list:  cfg/entry_list.ini
+Found car  CAR_0
+CAR: 0 ks_ferrari_sf70h (0) [ []]  []  Ballast: 0 kg
+CAR: 0 ks_ferrari_sf70h (0) [ []]  []  Restrictor: 0
+open setups/ks_ferrari_sf70h.ini: The system cannot find the file specified.
+Found car  CAR_1
+CAR: 1 abarth500 (1) [AI Driver 1 [AI]] AI Driver 1 [AI]  Ballast: 0 kg
+CAR: 1 abarth500 (1) [AI Driver 1 [AI]] AI Driver 1 [AI]  Restrictor: 0
+open setups/abarth500.ini: The system cannot find the file specified.
+Found car  CAR_2
+CAR: 2 abarth500_s1 (2) [AI Driver 2 [AI]] AI Driver 2 [AI]  Ballast: 0 kg
+CAR: 2 abarth500_s1 (2) [AI Driver 2 [AI]] AI Driver 2 [AI]  Restrictor: 0
+open setups/abarth500_s1.ini: The system cannot find the file specified.
+Found car  CAR_3
+CAR: 3 alfa_romeo_giulietta_qv (3) [AI Driver 3 [AI]] AI Driver 3 [AI]  Ballast: 0 kg
+CAR: 3 alfa_romeo_giulietta_qv (3) [AI Driver 3 [AI]] AI Driver 3 [AI]  Restrictor: 0
+open setups/alfa_romeo_giulietta_qv.ini: The system cannot find the file specified.
+Found car  CAR_4
+CAR: 4 alfa_romeo_giulietta_qv_le (4) [AI Driver 4 [AI]] AI Driver 4 [AI]  Ballast: 0 kg
+CAR: 4 alfa_romeo_giulietta_qv_le (4) [AI Driver 4 [AI]] AI Driver 4 [AI]  Restrictor: 0
+open setups/alfa_romeo_giulietta_qv_le.ini: The system cannot find the file specified.
+Found car  CAR_5
+CAR: 5 bmw_1m (5) [AI Driver 5 [AI]] AI Driver 5 [AI]  Ballast: 0 kg
+CAR: 5 bmw_1m (5) [AI Driver 5 [AI]] AI Driver 5 [AI]  Restrictor: 0
+open setups/bmw_1m.ini: The system cannot find the file specified.
+Found car  CAR_6
+CAR: 6 bmw_1m_s3 (6) [AI Driver 6 [AI]] AI Driver 6 [AI]  Ballast: 0 kg
+CAR: 6 bmw_1m_s3 (6) [AI Driver 6 [AI]] AI Driver 6 [AI]  Restrictor: 0
+open setups/bmw_1m_s3.ini: The system cannot find the file specified.
+Found car  CAR_7
+CAR: 7 bmw_m3_e30 (7) [AI Driver 7 [AI]] AI Driver 7 [AI]  Ballast: 0 kg
+CAR: 7 bmw_m3_e30 (7) [AI Driver 7 [AI]] AI Driver 7 [AI]  Restrictor: 0
+open setups/bmw_m3_e30.ini: The system cannot find the file specified.
+Found car  CAR_8
+CAR: 8 bmw_m3_e30_drift (8) [AI Driver 8 [AI]] AI Driver 8 [AI]  Ballast: 0 kg
+CAR: 8 bmw_m3_e30_drift (8) [AI Driver 8 [AI]] AI Driver 8 [AI]  Restrictor: 0
+open setups/bmw_m3_e30_drift.ini: The system cannot find the file specified.
+Found car  CAR_9
+CAR: 9 bmw_m3_e30_dtm (9) [AI Driver 9 [AI]] AI Driver 9 [AI]  Ballast: 0 kg
+CAR: 9 bmw_m3_e30_dtm (9) [AI Driver 9 [AI]] AI Driver 9 [AI]  Restrictor: 0
+open setups/bmw_m3_e30_dtm.ini: The system cannot find the file specified.
+Found car  CAR_10
+CAR: 10 bmw_m3_e30_gra (10) [AI Driver 10 [AI]] AI Driver 10 [AI]  Ballast: 0 kg
+CAR: 10 bmw_m3_e30_gra (10) [AI Driver 10 [AI]] AI Driver 10 [AI]  Restrictor: 0
+open setups/bmw_m3_e30_gra.ini: The system cannot find the file specified.
+Found car  CAR_11
+CAR: 11 bmw_m3_e30_s1 (11) [AI Driver 11 [AI]] AI Driver 11 [AI]  Ballast: 0 kg
+CAR: 11 bmw_m3_e30_s1 (11) [AI Driver 11 [AI]] AI Driver 11 [AI]  Restrictor: 0
+open setups/bmw_m3_e30_s1.ini: The system cannot find the file specified.
+Found car  CAR_12
+CAR: 12 bmw_m3_e92 (12) [AI Driver 12 [AI]] AI Driver 12 [AI]  Ballast: 0 kg
+CAR: 12 bmw_m3_e92 (12) [AI Driver 12 [AI]] AI Driver 12 [AI]  Restrictor: 0
+open setups/bmw_m3_e92.ini: The system cannot find the file specified.
+Found car  CAR_13
+CAR: 13 bmw_m3_e92_drift (13) [AI Driver 13 [AI]] AI Driver 13 [AI]  Ballast: 0 kg
+CAR: 13 bmw_m3_e92_drift (13) [AI Driver 13 [AI]] AI Driver 13 [AI]  Restrictor: 0
+open setups/bmw_m3_e92_drift.ini: The system cannot find the file specified.
+Found car  CAR_14
+CAR: 14 bmw_m3_e92_s1 (14) [AI Driver 14 [AI]] AI Driver 14 [AI]  Ballast: 0 kg
+CAR: 14 bmw_m3_e92_s1 (14) [AI Driver 14 [AI]] AI Driver 14 [AI]  Restrictor: 0
+open setups/bmw_m3_e92_s1.ini: The system cannot find the file specified.
+Found car  CAR_15
+CAR: 15 bmw_m3_gt2 (15) [AI Driver 15 [AI]] AI Driver 15 [AI]  Ballast: 0 kg
+CAR: 15 bmw_m3_gt2 (15) [AI Driver 15 [AI]] AI Driver 15 [AI]  Restrictor: 0
+open setups/bmw_m3_gt2.ini: The system cannot find the file specified.
+Found car  CAR_16
+CAR: 16 bmw_z4 (16) [AI Driver 16 [AI]] AI Driver 16 [AI]  Ballast: 0 kg
+CAR: 16 bmw_z4 (16) [AI Driver 16 [AI]] AI Driver 16 [AI]  Restrictor: 0
+open setups/bmw_z4.ini: The system cannot find the file specified.
+Found car  CAR_17
+CAR: 17 bmw_z4_drift (17) [AI Driver 17 [AI]] AI Driver 17 [AI]  Ballast: 0 kg
+CAR: 17 bmw_z4_drift (17) [AI Driver 17 [AI]] AI Driver 17 [AI]  Restrictor: 0
+open setups/bmw_z4_drift.ini: The system cannot find the file specified.
+Found car  CAR_18
+CAR: 18 bmw_z4_gt3 (18) [AI Driver 18 [AI]] AI Driver 18 [AI]  Ballast: 0 kg
+CAR: 18 bmw_z4_gt3 (18) [AI Driver 18 [AI]] AI Driver 18 [AI]  Restrictor: 0
+open setups/bmw_z4_gt3.ini: The system cannot find the file specified.
+Found car  CAR_19
+CAR: 19 bmw_z4_s1 (19) [AI Driver 19 [AI]] AI Driver 19 [AI]  Ballast: 0 kg
+CAR: 19 bmw_z4_s1 (19) [AI Driver 19 [AI]] AI Driver 19 [AI]  Restrictor: 0
+open setups/bmw_z4_s1.ini: The system cannot find the file specified.
+Found car  CAR_20
+CAR: 20 ferrari_312t (20) [AI Driver 20 [AI]] AI Driver 20 [AI]  Ballast: 0 kg
+CAR: 20 ferrari_312t (20) [AI Driver 20 [AI]] AI Driver 20 [AI]  Restrictor: 0
+open setups/ferrari_312t.ini: The system cannot find the file specified.
+Found car  CAR_21
+CAR: 21 ferrari_458 (21) [AI Driver 21 [AI]] AI Driver 21 [AI]  Ballast: 0 kg
+CAR: 21 ferrari_458 (21) [AI Driver 21 [AI]] AI Driver 21 [AI]  Restrictor: 0
+open setups/ferrari_458.ini: The system cannot find the file specified.
+Found car  CAR_22
+CAR: 22 ferrari_458_gt2 (22) [AI Driver 22 [AI]] AI Driver 22 [AI]  Ballast: 0 kg
+CAR: 22 ferrari_458_gt2 (22) [AI Driver 22 [AI]] AI Driver 22 [AI]  Restrictor: 0
+open setups/ferrari_458_gt2.ini: The system cannot find the file specified.
+Found car  CAR_23
+CAR: 23 ferrari_458_s3 (23) [AI Driver 23 [AI]] AI Driver 23 [AI]  Ballast: 0 kg
+CAR: 23 ferrari_458_s3 (23) [AI Driver 23 [AI]] AI Driver 23 [AI]  Restrictor: 0
+open setups/ferrari_458_s3.ini: The system cannot find the file specified.
+Found car  CAR_24
+CAR: 24 ferrari_599xxevo (24) [AI Driver 24 [AI]] AI Driver 24 [AI]  Ballast: 0 kg
+CAR: 24 ferrari_599xxevo (24) [AI Driver 24 [AI]] AI Driver 24 [AI]  Restrictor: 0
+open setups/ferrari_599xxevo.ini: The system cannot find the file specified.
+Found car  CAR_25
+CAR: 25 ferrari_f40 (25) [AI Driver 25 [AI]] AI Driver 25 [AI]  Ballast: 0 kg
+CAR: 25 ferrari_f40 (25) [AI Driver 25 [AI]] AI Driver 25 [AI]  Restrictor: 0
+open setups/ferrari_f40.ini: The system cannot find the file specified.
+Found car  CAR_26
+CAR: 26 ferrari_f40_s3 (26) [AI Driver 26 [AI]] AI Driver 26 [AI]  Ballast: 0 kg
+CAR: 26 ferrari_f40_s3 (26) [AI Driver 26 [AI]] AI Driver 26 [AI]  Restrictor: 0
+open setups/ferrari_f40_s3.ini: The system cannot find the file specified.
+Found car  CAR_27
+CAR: 27 ferrari_laferrari (27) [AI Driver 27 [AI]] AI Driver 27 [AI]  Ballast: 0 kg
+CAR: 27 ferrari_laferrari (27) [AI Driver 27 [AI]] AI Driver 27 [AI]  Restrictor: 0
+open setups/ferrari_laferrari.ini: The system cannot find the file specified.
+Found car  CAR_28
+CAR: 28 ks_abarth500_assetto_corse (28) [AI Driver 28 [AI]] AI Driver 28 [AI]  Ballast: 0 kg
+CAR: 28 ks_abarth500_assetto_corse (28) [AI Driver 28 [AI]] AI Driver 28 [AI]  Restrictor: 0
+open setups/ks_abarth500_assetto_corse.ini: The system cannot find the file specified.
+Found car  CAR_29
+CAR: 29 ks_abarth_595ss (29) [AI Driver 29 [AI]] AI Driver 29 [AI]  Ballast: 0 kg
+CAR: 29 ks_abarth_595ss (29) [AI Driver 29 [AI]] AI Driver 29 [AI]  Restrictor: 0
+open setups/ks_abarth_595ss.ini: The system cannot find the file specified.
+Found car  CAR_30
+CAR: 30 ks_abarth_595ss_s1 (30) [AI Driver 30 [AI]] AI Driver 30 [AI]  Ballast: 0 kg
+CAR: 30 ks_abarth_595ss_s1 (30) [AI Driver 30 [AI]] AI Driver 30 [AI]  Restrictor: 0
+open setups/ks_abarth_595ss_s1.ini: The system cannot find the file specified.
+Random seed: 1125401184
+Starting TCP listener at port 9600
+Session has 0 laps, will not save json
+NextSession
+SESSION: Practice
+TYPE=PRACTICE
+TIME=30
+LAPS=0
+OPEN=1
+WAIT TIME=0
+
+DynamicTrack: first session, resetting grip
+Weather update. Ambient: 17.81249 Road: 24.58111 Graphics: sol_42_thunderstorm_type=15_time=37800
+Wind update. Speed: 0 Direction: 0
+No laptime available, use car index for grids
+POS: 1, SessionID:0
+POS: 2, SessionID:1
+POS: 3, SessionID:2
+POS: 4, SessionID:3
+POS: 5, SessionID:4
+POS: 6, SessionID:5
+POS: 7, SessionID:6
+POS: 8, SessionID:7
+POS: 9, SessionID:8
+POS: 10, SessionID:9
+POS: 11, SessionID:10
+POS: 12, SessionID:11
+POS: 13, SessionID:12
+POS: 14, SessionID:13
+POS: 15, SessionID:14
+POS: 16, SessionID:15
+Starting HTTP server on port  8080
+POS: 17, SessionID:16
+POS: 18, SessionID:17
+POS: 19, SessionID:18
+POS: 20, SessionID:19
+POS: 21, SessionID:20
+POS: 22, SessionID:21
+POS: 23, SessionID:22
+POS: 24, SessionID:23
+POS: 25, SessionID:24
+POS: 26, SessionID:25
+POS: 27, SessionID:26
+POS: 28, SessionID:27
+POS: 29, SessionID:28
+POS: 30, SessionID:29
+POS: 31, SessionID:30
+SENDING session name : Practice
+SENDING session index : 0
+SENDING session type : 1
+SENDING session time : 30
+SENDING session laps : 0
+Server started
+New connection from &{{2146141200}}
+SOCKET NO DELAY SET
+TCP packet 61
+ACP_REQUEST_CONNECTION via TCP
+
+NEW PICKUP CONNECTION from  192.168.9.84:62385
+VERSION 202
+SR2
+REQUESTED CAR: ks_ferrari_sf70h*
+ENTRY LIST OPEN MODE 1
+Looking for available slot by name for GUID 76561198737112027 ks_ferrari_sf70h
+Looking for available slot
+Slot found at index 0
+ResetCarResults, index: 0
+DRIVER ACCEPTED FOR CAR 0
+DRIVER ACCEPTED FOR CAR SR2
+Tyre blankets: false
+Sending SESSION ID : 0
+Sending type 1
+Sending type 3
+Sending ID : 0
+Sending type 1
+FIND AND SEND PLAYER'S POSITION
+ELAPSED=8564
+Sending 1 checksum requests
+SERVER TIME: 8588
+DRIVER: SR2 [Ridge-Link]
+TCP packet 63
+Dispatching TCP message to ks_ferrari_sf70h (0) [SR2 [Ridge-Link]]
+Sending car list from index:0
+TCP packet 63
+Dispatching TCP message to ks_ferrari_sf70h (0) [SR2 [Ridge-Link]]
+Sending car list from index:10
+TCP packet 63
+Dispatching TCP message to ks_ferrari_sf70h (0) [SR2 [Ridge-Link]]
+Sending car list from index:20
+TCP packet 63
+Dispatching TCP message to ks_ferrari_sf70h (0) [SR2 [Ridge-Link]]
+Sending car list from index:30
+
+
+

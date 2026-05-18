@@ -24,6 +24,8 @@ interface RigGroup {
     race_enabled: boolean
     race_laps: number
     penalties_enabled: boolean
+    unlimited_fuel: boolean
+    damage_enabled: boolean
     allow_wrong_way: boolean
     sun_angle: number
     time_mult: number
@@ -941,13 +943,31 @@ export default function GroupManager({ rigs, activeCarPool, activeMapPool }: Gro
                                         <RefreshCw size={10} /> {selectedGroup.allow_wrong_way ? 'Wrong Way OK' : 'Wrong Way OFF'}
                                     </button>
                                     <button
+                                        onClick={() => updateGroup(selectedGroup.id, { unlimited_fuel: !selectedGroup.unlimited_fuel })}
+                                        className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${selectedGroup.unlimited_fuel
+                                                ? 'bg-green-500/20 text-green-400 border-2 border-green-500/50 shadow-lg shadow-green-500/10'
+                                                : 'bg-white/5 text-white/40 border border-white/10 hover:border-white/20'
+                                            }`}
+                                    >
+                                        <Settings size={10} /> {selectedGroup.unlimited_fuel ? 'Fuel: UNLIMITED' : 'Fuel: NORMAL'}
+                                    </button>
+                                    <button
+                                        onClick={() => updateGroup(selectedGroup.id, { damage_enabled: !selectedGroup.damage_enabled })}
+                                        className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${selectedGroup.damage_enabled
+                                                ? 'bg-white/5 text-white/40 border border-white/10 hover:border-white/20'
+                                                : 'bg-blue-500/20 text-blue-400 border-2 border-blue-500/50 shadow-lg shadow-blue-500/10'
+                                            }`}
+                                    >
+                                        <Settings size={10} /> {selectedGroup.damage_enabled ? 'Damage: ON' : 'Damage: OFF'}
+                                    </button>
+                                    <button
                                         onClick={() => updateGroup(selectedGroup.id, { penalties_enabled: !selectedGroup.penalties_enabled })}
                                         className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${selectedGroup.penalties_enabled
                                                 ? 'bg-red-500/20 text-red-400 border-2 border-red-500/50 shadow-lg shadow-red-500/10'
                                                 : 'bg-white/5 text-white/40 border border-white/10 hover:border-white/20'
                                             }`}
                                     >
-                                        <Settings size={10} /> {selectedGroup.penalties_enabled ? 'Penalties ON' : 'Penalties OFF'}
+                                        <Settings size={10} /> {selectedGroup.penalties_enabled ? 'Penalties: ON' : 'Penalties: OFF'}
                                     </button>
                                 </div>
                             </div>

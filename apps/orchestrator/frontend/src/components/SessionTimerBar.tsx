@@ -12,6 +12,12 @@ interface RigGroup {
     rig_ids: string[]
     session_duration_min: number
     freeplay: boolean
+    race_laps: number
+    penalties_enabled: boolean
+    unlimited_fuel: boolean
+    damage_enabled: boolean
+    allow_wrong_way: boolean
+    sun_angle: number
 }
 
 interface ActiveTimer {
