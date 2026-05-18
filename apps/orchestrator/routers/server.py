@@ -199,8 +199,18 @@ def create_router(state: AppState) -> APIRouter:
         # If AS isn't explicitly configured, try to auto-detect it
         if not as_exe:
             repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-            auto_as_exe = os.path.join(repo_root, "AssettoServer", "AssettoServer.exe")
-            if os.path.exists(auto_as_exe):
+            
+            # Check for Windows .exe or native Linux binary
+            auto_as_exe_win = os.path.join(repo_root, "AssettoServer", "AssettoServer.exe")
+            auto_as_exe_lin = os.path.join(repo_root, "AssettoServer", "AssettoServer")
+            
+            auto_as_exe = None
+            if os.path.exists(auto_as_exe_win):
+                auto_as_exe = auto_as_exe_win
+            elif os.path.exists(auto_as_exe_lin):
+                auto_as_exe = auto_as_exe_lin
+                
+            if auto_as_exe:
                 as_exe = auto_as_exe
                 
                 # Pre-populate settings for future

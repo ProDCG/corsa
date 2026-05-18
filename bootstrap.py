@@ -349,8 +349,9 @@ def main() -> None:
 
         # AssettoServer optional binary check
         repo_root = os.path.dirname(os.path.abspath(__file__))
-        as_exe = os.path.join(repo_root, "AssettoServer", "AssettoServer.exe")
-        if not os.path.exists(as_exe):
+        as_exe_win = os.path.join(repo_root, "AssettoServer", "AssettoServer.exe")
+        as_exe_lin = os.path.join(repo_root, "AssettoServer", "AssettoServer")
+        if not (os.path.exists(as_exe_win) or os.path.exists(as_exe_lin)):
             print()
             print("  [!] AssettoServer not found (optional — needed for AI Traffic / No Hesi mode)")
             print("      Download: https://github.com/compujuckel/AssettoServer/releases/latest")
