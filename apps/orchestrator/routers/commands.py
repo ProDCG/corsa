@@ -47,6 +47,11 @@ def create_router(state: AppState) -> APIRouter:
         driver_name = rig.get("driver_name")
         if driver_name and str(driver_name).strip():
             payload["driver_name"] = str(driver_name).strip()
+            
+        # Sled agent Pure weather fallback: if "None", force Clear (15) to prevent rain
+        if payload.get("weather") == "None":
+            payload["weather"] = "15"
+            
         return payload
 
     @router.post("/command")
@@ -175,7 +180,11 @@ def create_router(state: AppState) -> APIRouter:
                 if command.action == "LAUNCH_RACE":
                     payload["track"] = payload.get("track") or group.track
                     payload["track_layout"] = payload.get("track_layout") if "track_layout" in payload else group.track_layout
-                    payload["weather"] = payload.get("weather") or group.weather
+                    # Sled agent Pure weather fallback: if "None", force Clear (15) to prevent rain
+                    w = payload.get("weather") or group.weather
+                    if w == "None":
+                        w = "15"
+                    payload["weather"] = w
                     payload["race_laps"] = payload.get("race_laps") or group.race_laps
                     payload["practice_time"] = payload.get("practice_time") or group.practice_time
                     payload["qualy_time"] = payload.get("qualy_time") or group.qualy_time
@@ -188,6 +197,8 @@ def create_router(state: AppState) -> APIRouter:
                     payload["ambient_temp"] = group.ambient_temp
                     payload["track_grip"] = group.track_grip
                     payload["penalties_enabled"] = group.penalties_enabled
+                    payload["unlimited_fuel"] = group.unlimited_fuel
+                    payload["damage_enabled"] = group.damage_enabled
                     payload["allow_wrong_way"] = group.allow_wrong_way
                     # Solo groups always run offline; multiplayer uses AC server
                     payload["use_server"] = group.mode == "multiplayer"

@@ -263,7 +263,8 @@ class AppState:
                           "practice_enabled", "practice_time",
                           "qualy_enabled", "qualy_time", 
                           "race_enabled", "race_laps", 
-                          "penalties_enabled", "allow_wrong_way", "sun_angle",
+                          "penalties_enabled", "unlimited_fuel", "damage_enabled",
+                          "allow_wrong_way", "sun_angle",
                           "time_mult", "session_duration_min",
                           "ambient_temp", "track_grip", "freeplay"):
                 value = kwargs.get(field)
