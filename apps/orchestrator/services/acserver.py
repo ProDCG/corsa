@@ -827,10 +827,7 @@ class ACServerManager:
             "EnableAi": enable_ai,
             "EnableWeatherFx": enable_wfx,
             "EnableClientMessages": True,
-            "AiParams": {
-                "AiBehavior": "TrafficMode",
-                "MaxAiUpdateRateHz": 25,
-            } if enable_ai else {},
+            "AiParams": {} if enable_ai else {},
             "Plugins": [],
         }
 
