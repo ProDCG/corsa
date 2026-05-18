@@ -254,9 +254,6 @@ class ACServerManager:
                 logger.error("Failed to copy acServer exe to %s: %s", config_dir, e)
                 return {"status": "error", "message": f"Could not copy server exe: {e}"}
 
-            # Sync car/track content from main AC install to this server's content dir
-            self._sync_server_content(config_dir, all_cars_list, track, enable_csp=enable_csp)
-
             # Also link/copy any additional DLLs the server needs from the
             # original server directory (e.g. steam_api.dll, etc.)
             for extra in os.listdir(ac_server_dir):
@@ -288,9 +285,10 @@ class ACServerManager:
             launch_args = [local_exe]
         else:
             # AssettoServer
-            # Runs from its own install directory and points to configs
+            # Uses basefolder to read config_dir/cfg and config_dir/content
+            self._sync_server_content(config_dir, all_cars_list, track, enable_csp=enable_csp)
             launch_dir = os.path.dirname(exe)
-            launch_args = [exe, "--config", os.path.join(config_dir, "cfg", "server_cfg.ini")]
+            launch_args = [exe, "--basefolder", config_dir]
 
         # Launch acServer from the isolated per-group directory
         try:
