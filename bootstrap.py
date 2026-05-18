@@ -347,6 +347,15 @@ def main() -> None:
         print("  To start: double-click START_ADMIN.bat")
         print("  =======================================")
 
+        # AssettoServer optional binary check
+        repo_root = os.path.dirname(os.path.abspath(__file__))
+        as_exe = os.path.join(repo_root, "AssettoServer", "AssettoServer.exe")
+        if not os.path.exists(as_exe):
+            print()
+            print("  [!] AssettoServer not found (optional — needed for AI Traffic / No Hesi mode)")
+            print("      Download: https://github.com/compujuckel/AssettoServer/releases/latest")
+            print("      Extract as: CorsaConnect/AssettoServer/")
+
     elif role == "rig":
         hostname = socket.gethostname().upper()
         rig_id = input(f"  Rig ID (press Enter for '{hostname}'): ").strip() or hostname

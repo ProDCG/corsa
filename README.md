@@ -74,6 +74,13 @@ make frontend-lint # TypeScript type-check
 - **Assetto Corsa** installed at the configured path
 - All machines on the same LAN subnet
 
+### AssettoServer — AI Traffic & No Hesi Mode (Optional)
+1. Download `assetto-server-win-x64.zip` from https://github.com/compujuckel/AssettoServer/releases/latest
+2. Extract and place the folder as `CorsaConnect/AssettoServer/`
+3. Enable **AssettoServer** engine in the CorsaConnect Global Settings UI
+
+Not required for standard racing sessions (Kunos engine is the default).
+
 ## Troubleshooting
 - **Rigs not appearing?** Check firewall — UDP 5001 must be open. Verify IPs can ping.
 - **Robocopy failing?** Access `\\ADMIN-PC\RidgeContent` manually in Explorer first.

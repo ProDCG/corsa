@@ -31,6 +31,9 @@ interface RigGroup {
     ambient_temp: number
     track_grip: number
     freeplay: boolean
+    ai_traffic: boolean
+    weather_plugin: string
+    enable_weather_fx: boolean
 }
 
 const AI_STEPS = [
@@ -108,7 +111,7 @@ const SmartNumberInput = ({ value, onChange, min, max, className, placeholder = 
 }
 
 interface CatalogCar { id: string; name: string; brand: string; car_class: string }
-interface CatalogTrack { id: string; name: string; layouts?: { id: string; name: string }[] }
+interface CatalogTrack { id: string; name: string; layouts?: { id: string; name: string }[]; has_ai_spline?: boolean }
 interface CatalogWeather { id: string; name: string }
 
 interface GroupManagerProps {
@@ -1027,6 +1030,45 @@ export default function GroupManager({ rigs, activeCarPool, activeMapPool }: Gro
                                     </div>
                                 </div>
                             </div>
+                            
+                            {/* AssettoServer Extended Controls (Traffic / Weather) */}
+                            {(() => {
+                                const currentTrack = tracks.find(t => t.id === selectedGroup.track)
+                                const hasAiSpline = currentTrack?.has_ai_spline === true
+                                if (!hasAiSpline) return null
+                                
+                                return (
+                                    <div className="flex gap-3 mt-3 pt-3 border-t border-white/5">
+                                        <div className={`flex-1 flex flex-col p-3 rounded-xl border transition-colors ${selectedGroup.ai_traffic ? 'border-ridge-brand bg-ridge-brand/5' : 'border-white/10 bg-white/5 opacity-80'}`}>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input type="checkbox" className="accent-ridge-brand w-3.5 h-3.5" checked={selectedGroup.ai_traffic ?? false}
+                                                    onChange={e => updateGroup(selectedGroup.id, { ai_traffic: e.target.checked })} />
+                                                <span className="text-[10px] uppercase font-black text-white/70 tracking-widest flex items-center gap-1"><Car size={10}/> Free-Roam Traffic</span>
+                                            </label>
+                                            <p className="text-[8px] font-bold text-white/40 uppercase mt-2 leading-relaxed">
+                                                Requires AssettoServer engine. Spawns continuous highway traffic.
+                                            </p>
+                                        </div>
+                                        <div className={`flex-1 flex flex-col p-3 rounded-xl border transition-colors ${selectedGroup.enable_weather_fx ? 'border-ridge-brand bg-ridge-brand/5' : 'border-white/10 bg-white/5 opacity-80'}`}>
+                                            <label className="flex items-center justify-between cursor-pointer w-full mb-2">
+                                                <div className="flex items-center gap-2">
+                                                    <input type="checkbox" className="accent-ridge-brand w-3.5 h-3.5" checked={selectedGroup.enable_weather_fx ?? false}
+                                                        onChange={e => updateGroup(selectedGroup.id, { enable_weather_fx: e.target.checked })} />
+                                                    <span className="text-[10px] uppercase font-black text-white/70 tracking-widest flex items-center gap-1"><Cloud size={10}/> WeatherFX</span>
+                                                </div>
+                                            </label>
+                                            {selectedGroup.enable_weather_fx && (
+                                                <Select value={selectedGroup.weather_plugin || 'none'} onChange={e => updateGroup(selectedGroup.id, { weather_plugin: e.target.value })}>
+                                                    <option value="none">Fixed Weather</option>
+                                                    <option value="random">Random Changing</option>
+                                                    <option value="live">Live (Real World)</option>
+                                                    <option value="voting">Player Voting</option>
+                                                </Select>
+                                            )}
+                                        </div>
+                                    </div>
+                                )
+                            })()}
 
                             {/* Session Timer + Freeplay */}
                             <div className="pt-3 border-t border-white/5">

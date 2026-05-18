@@ -265,7 +265,8 @@ class AppState:
                           "race_enabled", "race_laps", 
                           "penalties_enabled", "allow_wrong_way", "sun_angle",
                           "time_mult", "session_duration_min",
-                          "ambient_temp", "track_grip", "freeplay"):
+                          "ambient_temp", "track_grip", "freeplay",
+                          "ai_traffic", "weather_plugin", "enable_weather_fx"):
                 value = kwargs.get(field)
                 if value is not None:
                     setattr(group, field, value)

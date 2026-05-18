@@ -121,7 +121,12 @@ def create_router(state: AppState) -> APIRouter:
         for t in scanned_tracks:
             if t.id not in seen_track_ids:
                 seen_track_ids.add(t.id)
-                tracks_out.append({"id": t.id, "name": t.name, "layouts": t.layouts})
+                tracks_out.append({
+                    "id": t.id, 
+                    "name": t.name, 
+                    "layouts": t.layouts,
+                    "has_ai_spline": t.has_ai_spline,
+                })
         tracks_out.sort(key=lambda x: str(x["name"]).lower())
 
         return {

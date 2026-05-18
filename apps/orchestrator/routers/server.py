@@ -185,6 +185,40 @@ def create_router(state: AppState) -> APIRouter:
 
         return {"status": "success", "config": cfg_str}
 
+    @router.get("/engine-info")
+    async def get_engine_info() -> dict[str, object]:
+        """Return status of the server engines."""
+        assert _manager is not None
+        import os
+        
+        kunos_exe = _manager.ac_server_exe
+        kunos_found = bool(kunos_exe and os.path.exists(kunos_exe))
+        
+        as_exe = _manager.as_server_exe
+        
+        # If AS isn't explicitly configured, try to auto-detect it
+        if not as_exe:
+            repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+            auto_as_exe = os.path.join(repo_root, "AssettoServer", "AssettoServer.exe")
+            if os.path.exists(auto_as_exe):
+                as_exe = auto_as_exe
+                
+                # Pre-populate settings for future
+                current = state.settings
+                current.assetto_server_exe = auto_as_exe
+                state.settings = current
+                _manager.as_server_exe = auto_as_exe
+                logger.info("Auto-detected AssettoServer at %s", auto_as_exe)
+                
+        as_found = bool(as_exe and os.path.exists(as_exe))
+        
+        return {
+            "engine": getattr(state.settings, "server_engine", "kunos"),
+            "kunos_exe_found": kunos_found,
+            "as_exe_found": as_found,
+            "as_exe_path": as_exe or "",
+        }
+
     @router.post("/spectate/{group_id}")
     async def spectate_group(group_id: str, monitor: int = 1) -> dict[str, object]:
         """Launch a spectator AC window on Monitor {monitor} for the given group's server."""
