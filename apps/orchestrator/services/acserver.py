@@ -533,7 +533,7 @@ class ACServerManager:
         car_str = ";".join(cars)
         
         if enable_csp:
-            base_track = f"csp/2000/../D/../{track}"
+            base_track = f"csp/2651/../{track}"
         else:
             base_track = track
 
