@@ -111,6 +111,8 @@ class ACServerManager:
 
         engine = getattr(self.state.settings, "server_engine", "kunos")
         dynamic_as_exe = getattr(self.state.settings, "assetto_server_exe", "") or self.as_server_exe
+        if dynamic_as_exe:
+            dynamic_as_exe = dynamic_as_exe.strip('"').strip("'")
         exe = dynamic_as_exe if engine == "assetto_server" else self.ac_server_exe
         
         if not os.path.exists(exe):
