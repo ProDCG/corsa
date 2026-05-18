@@ -1343,6 +1343,17 @@ function App() {
                                             placeholder="C:\Program Files (x86)\Steam\steamapps\common\assettocorsa"
                                         />
                                     </div>
+                                    <div>
+                                        <label className="block text-[10px] uppercase font-black text-white/40 mb-2">AssettoServer.exe Path</label>
+                                        <input
+                                            type="text"
+                                            value={raceSettings.assetto_server_exe || ""}
+                                            onChange={(e) => setRaceSettings({ ...raceSettings, assetto_server_exe: e.target.value })}
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 font-mono text-xs focus:ring-1 focus:ring-ridge-brand outline-none transition-all"
+                                            placeholder="C:\CorsaConnect\AssettoServer\AssettoServer.exe"
+                                        />
+                                        <p className="text-[9px] font-bold text-white/30 uppercase mt-2">Required only if you enable AssettoServer below. Point this to the .exe file.</p>
+                                    </div>
                                     <div className="flex items-center gap-3 bg-white/5 border border-white/10 p-4 rounded-xl">
                                         <div 
                                             className={`w-10 h-6 rounded-full cursor-pointer transition-colors relative ${raceSettings.enable_csp ? 'bg-ridge-brand' : 'bg-black/40'}`}
