@@ -669,22 +669,10 @@ class ACServerManager:
         if time_mult is None:
             time_mult = 1
 
-        # Map sun_angle to CM_FX_TIME (exact seconds from midnight 00:00)
-        time_map = {
-            -16: 25200,  # Dawn (07:00)
-            8: 28800,    # Sunrise (08:00)
-            24: 32400,   # Morning (09:00)
-            40: 37800,   # Late Morning (10:30)
-            56: 43200,   # Midday (12:00)
-            72: 48600,   # Early Afternoon (13:30)
-            88: 54000,   # Afternoon (15:00)
-            104: 59400,  # Late Afternoon (16:30)
-            120: 64800,  # Sunset (18:00)
-            136: 70200,  # Dusk (19:30)
-            163: 79200   # Night (22:00)
-        }
-        # Fallback linear interpolation (0 = 07:30, 16 degrees = 1 hour)
-        fx_time = time_map.get(sun_angle, int(27000 + (sun_angle / 16.0) * 3600))
+        # Map sun_angle (-80 to 80) to CM_FX_TIME (exact seconds from midnight)
+        # In our system, 0 = 13:00 (46800 seconds), and 16 degrees = 1 hour (3600 seconds)
+        fx_time = int(46800 + (sun_angle / 16.0) * 3600)
+        
         if fx_time < 0:
             fx_time += 86400
         # Ensure it is bounded 0 to 86399
